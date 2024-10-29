@@ -1,3 +1,5 @@
+import argparse
+import torch
 from models.simpleSC import RGC2SCNet
 
 def parse_args():
