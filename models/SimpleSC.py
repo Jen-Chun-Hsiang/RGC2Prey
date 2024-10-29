@@ -2,9 +2,9 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-class MultiConvSplitConcatNet(nn.Module):
+class RGC2SCNet(nn.Module):
     def __init__(self, input_shape=(2, 7, 7)):
-        super(MultiConvSplitConcatNet, self).__init__()
+        super(RGC2SCNet, self).__init__()
         
         # Convolutional paths for each channel
         # Path for channel 1
