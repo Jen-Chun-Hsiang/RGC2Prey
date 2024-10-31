@@ -1,4 +1,4 @@
-from utils import convert_images_to_png
+from utils.preprocessing import convert_images_to_png, process_and_crop_images
 
 if __name__ == "__main__":
     input_folder = "/storage1/fs1/KerschensteinerD/Active/Emily/PreyCaptureRGC/Simulation/Images" \
