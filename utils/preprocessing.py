@@ -53,17 +53,20 @@ def process_and_crop_images(input_folder, output_folder, crop_size=(480, 640), s
             input_path = os.path.join(input_folder, file_name)
             try:
                 with Image.open(input_path) as img:
-                    # Step 1: Rotate the image to make the shortest side the height
+                    # Step 1: Rotate the image to ensure the shortest side is the height
                     if img.width < img.height:
                         img = img.rotate(90, expand=True)
                     
-                    # Step 2: Scale image up if the width is less than 640
-                    if img.width < crop_size[1]:
-                        scaling_factor = crop_size[1] / img.width
-                        new_size = (int(img.width * scaling_factor), int(img.height * scaling_factor))
-                        img = img.resize(new_size, Image.ANTIALIAS)
+                    # Step 2: Calculate scaling factors
+                    scale_factor_height = crop_size[0] / img.height
+                    scale_factor_width = crop_size[1] / img.width
+                    overall_scale_factor = max(scale_factor_height, scale_factor_width)
                     
-                    # Step 3: Crop the image if it is larger than the fixed crop size
+                    # Step 3: Scale the image using the larger scaling factor
+                    new_size = (int(img.width * overall_scale_factor), int(img.height * overall_scale_factor))
+                    img = img.resize(new_size, Image.ANTIALIAS)
+                    
+                    # Step 4: Crop the image if it is larger than the fixed crop size
                     num_crops_x = max(1, int(img.width / (crop_size[1] * scale_factor)))
                     num_crops_y = max(1, int(img.height / (crop_size[0] * scale_factor)))
                     
@@ -72,8 +75,16 @@ def process_and_crop_images(input_folder, output_folder, crop_size=(480, 640), s
                         for j in range(num_crops_x):
                             left = int(j * crop_size[1] * scale_factor)
                             upper = int(i * crop_size[0] * scale_factor)
-                            right = min(left + crop_size[1], img.width)
-                            lower = min(upper + crop_size[0], img.height)
+                            right = left + crop_size[1]
+                            lower = upper + crop_size[0]
+
+                            # Ensure we don't go out of bounds
+                            if right > img.width:
+                                right = img.width
+                                left = right - crop_size[1]
+                            if lower > img.height:
+                                lower = img.height
+                                upper = lower - crop_size[0]
                             
                             cropped_img = img.crop((left, upper, right, lower))
                             
