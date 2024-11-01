@@ -67,8 +67,8 @@ def process_and_crop_images(input_folder, output_folder, crop_size=(480, 640), s
                     img = img.resize(new_size, Image.ANTIALIAS)
                     
                     # Step 4: Crop the image if it is larger than the fixed crop size
-                    num_crops_x = max(1, int(img.width / (crop_size[1] * scale_factor)))
-                    num_crops_y = max(1, int(img.height / (crop_size[0] * scale_factor)))
+                    num_crops_x = max(1, int((img.width-crop_size[1]) / (crop_size[1] * scale_factor)))
+                    num_crops_y = max(1, int((img.height-crop_size[0]) / (crop_size[0] * scale_factor)))
                     
                     crop_index = 0
                     for i in range(num_crops_y):
