@@ -1,7 +1,7 @@
 from utils.preprocessing import convert_images_to_png, process_and_crop_images
 
 if __name__ == "__main__":
-    folder_name = 'floor'
+    folder_name = 'grass'
     input_folder = "/storage1/fs1/KerschensteinerD/Active/Emily/PreyCaptureRGC/Simulation/Images" \
                    f"/{folder_name}/"
     # output_folder = "/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/CricketDataset/Images" \
