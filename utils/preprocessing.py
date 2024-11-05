@@ -102,4 +102,37 @@ def process_and_crop_images(input_folder, output_folder, crop_size=(480, 640), s
                 print(f"Failed to process {file_name}: {e}")
 
 
+def scale_image_to_max_size(input_folder, output_folder, max_side_length=100):
+    # Create output folder if it does not exist
+    if not os.path.exists(output_folder):
+        os.makedirs(output_folder)
+    
+    # Supported input image extensions
+    valid_extensions = ('.jpeg', '.jpg', '.webp', '.bmp', '.jfif', '.avif', '.png')
+    
+    # Iterate through the files in the input folder
+    for file_name in os.listdir(input_folder):
+        if file_name.lower().endswith(valid_extensions):
+            input_path = os.path.join(input_folder, file_name)
+            try:
+                with Image.open(input_path) as img:
+                    # Step 1: Find the maximum side of the image
+                    max_side = max(img.width, img.height)
+
+                    # Step 2: Scale the maximum side to 100 pixels
+                    if max_side > max_side_length:
+                        scale_factor = max_side_length / max_side
+                        new_size = (int(img.width * scale_factor), int(img.height * scale_factor))
+                        img = img.resize(new_size, Image.ANTIALIAS)
+                    
+                    # Save the scaled image
+                    output_path = os.path.join(output_folder, file_name)
+                    img.save(output_path, 'PNG')
+                    print(f"Saved scaled image: {file_name}")
+
+            except Exception as e:
+                print(f"Failed to process {file_name}: {e}")
+
+
+
 
