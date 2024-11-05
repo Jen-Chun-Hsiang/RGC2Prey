@@ -61,7 +61,7 @@ top_img_pos = np.array([0, 0])
 bottom_img_pos = np.array([0, 0])
 bottom_img_jitter_range = np.array([0, 0])
 top_img_jitter_range = np.array([0, 0])
-top_img_scale_range = np.array([cricket_size_range[0]/cricket_size_range[1]], 1)
+top_img_scale_range = np.array([cricket_size_range[0]/cricket_size_range[1], 1])
 
 bottom_img_path = get_random_file_path(bottom_img_folder)
 top_img_path = get_random_file_path(top_img_folder)
