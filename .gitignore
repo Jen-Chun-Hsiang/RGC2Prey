@@ -9,6 +9,10 @@
 *.pptx
 *.png
 *.eps
+*.avif
+*.webp
+*.jpg
+*.jfif
 
 # direct files #
 something_notshared.py
