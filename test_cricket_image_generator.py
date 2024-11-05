@@ -48,6 +48,7 @@ def plot_tensor_and_save(tensor, output_folder, file_name='tensor_plot.png'):
     print(f"Plot saved to {output_path}")
 
 # Below unit in pixel
+num_syn_img = 20
 image_size = np.array([640, 480])
 crop_size = np.array([320, 240])
 rgc_canvas_size = np.array([240, 180])  
@@ -64,11 +65,18 @@ bottom_img_jitter_range = np.array([0, 0])
 top_img_jitter_range = np.array([0, 0])
 top_img_scale_range = np.array([cricket_size_range[0]/cricket_size_range[1], 1])
 
-bottom_img_path = get_random_file_path(bottom_img_folder)
-top_img_path = get_random_file_path(top_img_folder)
+# Generate and save n synthesized images
+for i in range(num_syn_img):
+    bottom_img_path = get_random_file_path(bottom_img_folder)
+    top_img_path = get_random_file_path(top_img_folder)
 
-syn_image = overlay_images_with_jitter_and_scaling(bottom_img_path, top_img_path, top_img_pos, bottom_img_pos,
-                                           bottom_img_jitter_range, top_img_jitter_range,
-                                           top_img_scale_range, crop_size, alpha=1.0)
-Timg = syn_image[1, :, :]
-plot_tensor_and_save(Timg, temp_save_folder, 'example_tensor_plot.png')
+    if bottom_img_path and top_img_path:
+        syn_image = overlay_images_with_jitter_and_scaling(
+            bottom_img_path, top_img_path, top_img_pos, bottom_img_pos,
+            bottom_img_jitter_range, top_img_jitter_range,
+            top_img_scale_range, crop_size, alpha=1.0
+        )
+        Timg = syn_image[1, :, :]
+        plot_tensor_and_save(Timg, temp_save_folder, f'synthesized_image_{i + 1}.png')
+    else:
+        print(f"Skipping iteration {i + 1} due to missing image file(s).")
