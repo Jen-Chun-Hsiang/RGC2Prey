@@ -1,7 +1,9 @@
 import random
 from PIL import Image
+import numpy as np
 import torch
 import torchvision.transforms as T
+
 
 def jitter_position(position, jitter_range):
     """
@@ -21,7 +23,7 @@ def jitter_position(position, jitter_range):
     new_x = x + random.randint(-jitter_x, jitter_x)
     new_y = y + random.randint(-jitter_y, jitter_y)
 
-    return (new_x, new_y)
+    return np.array([new_x, new_y])
 
 
 def scale_image(image, scale_factor):
@@ -75,11 +77,12 @@ def overlay_images_with_jitter_and_scaling(bottom_img_path, top_img_path, top_im
     Parameters:
     - bottom_img_path: str, path to the bottom image (background image).
     - top_img_path: str, path to the top image (transparent overlay).
-    - top_img_pos: tuple, (x, y) base position where the top image will be placed.
-    - bottom_img_jitter_range: tuple, (jitter_x, jitter_y) range of jitter for bottom image.
-    - top_img_jitter_range: tuple, (jitter_x, jitter_y) range of jitter for top image.
-    - top_img_scale_range: tuple, (min_scale, max_scale) range to randomly scale the top image.
-    - crop_size: tuple, (width, height) of the final fixed-size crop of the resulting image.
+    - top_img_pos: numpy array, (x, y) base position where the top image will be placed.
+    - bottom_img_pos: numpy array, (x, y) base position where the bottom image will be placed.
+    - bottom_img_jitter_range: numpy array, (jitter_x, jitter_y) range of jitter for bottom image.
+    - top_img_jitter_range: numpy array, (jitter_x, jitter_y) range of jitter for top image.
+    - top_img_scale_range: numpy array, (min_scale, max_scale) range to randomly scale the top image.
+    - crop_size: numpy array, (width, height) of the final fixed-size crop of the resulting image.
     - alpha: float, transparency level of the top image (0 to 1, where 1 is fully opaque).
 
     Returns:
@@ -101,13 +104,8 @@ def overlay_images_with_jitter_and_scaling(bottom_img_path, top_img_path, top_im
     bottom_w, bottom_h = bottom_img.size
     top_w, top_h = top_img.size
 
-    # Determine the center position for both images
-    bottom_center_pos = (bottom_w // 2, bottom_h // 2)
-    top_center_pos = (top_w // 2, top_h // 2)
-
     # Apply jitter, defaulting to centered positions
     jittered_bottom_pos = jitter_position(bottom_img_pos, bottom_img_jitter_range)
-
     jittered_top_pos = jitter_position(top_img_pos, top_img_jitter_range)
 
     # Convert images to PyTorch tensors
@@ -120,10 +118,7 @@ def overlay_images_with_jitter_and_scaling(bottom_img_path, top_img_path, top_im
     fill_h = (bottom_h - top_h) // 2
     fill_w = (bottom_w - top_w) // 2
 
-    jittered_top_pos = (
-      jittered_top_pos[0] - jittered_bottom_pos[0],
-      jittered_top_pos[1] - jittered_bottom_pos[1]
-    )
+    jittered_top_pos -= jittered_bottom_pos
 
     # Overlay the top image at the jittered position
     for c in range(3):  # Iterate over RGB channels
@@ -135,8 +130,8 @@ def overlay_images_with_jitter_and_scaling(bottom_img_path, top_img_path, top_im
         )
 
     # Convert back to PIL image and crop to desired size from the center
-    
     final_img = T.ToPILImage()(final_tensor)
     cropped_img = crop_image(final_img, crop_size, jittered_bottom_pos)
+    cropped_img = T.ToTensor()(cropped_img)
 
     return cropped_img
