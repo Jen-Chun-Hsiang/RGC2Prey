@@ -4,6 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from datasets.sim_cricket import overlay_images_with_jitter_and_scaling
 
+
 def get_random_file_path(folder_path):
     """
     Returns the path of a randomly sampled file from the specified folder.
@@ -52,8 +53,8 @@ crop_size = np.array([320, 240])
 rgc_canvas_size = np.array([240, 180])  
 cricket_size_range = np.array([40, 100])  # visual angle (~ 20 cm for 1.5~2 cm cricket, 5.56 to 13.89 degree)
 bottom_img_folder = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/CricketDataset/Images/cropped/grass/'
-top_img_folder = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/CricketDataset/cropped/cricket/'
-temp_save_folder = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/CricketDataset/syn_img/'
+top_img_folder    = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/CricketDataset/Images/cropped/cricket/'
+temp_save_folder  = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/CricketDataset/Images/syn_img/'
 
 pixel_in_um = 4.375  # [task] make sure all recordings have the same value; if not, normalization is required
 
