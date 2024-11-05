@@ -5,7 +5,7 @@ if __name__ == "__main__":
     input_folder = "/storage1/fs1/KerschensteinerD/Active/Emily/PreyCaptureRGC/Simulation/Images" \
                    f"/{folder_name}/"
     output_folder = "/storage1/fs1/KerschensteinerD/Active/Emily/PreyCaptureRGC/Simulation/Images" \
-                    "/converted/{folder_name}/"
+                    f"/converted/{folder_name}/"
     convert_images_to_png(input_folder, output_folder)
     # output_folder = "/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/CricketDataset/Images" \
     #                 f"/cropped/{folder_name}/"
