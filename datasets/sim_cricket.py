@@ -1,5 +1,7 @@
 import random
 from PIL import Image
+import torch
+import torchvision.transforms as T
 
 def jitter_position(position, jitter_range):
     """
