@@ -18,7 +18,8 @@ def get_random_file_path(folder_path):
     if not os.path.isdir(folder_path):
         raise ValueError("The provided path is not a valid directory.")
 
-    files = [f for f in os.listdir(folder_path) if os.path.isfile(os.path.join(folder_path, f))]
+    files = [f for f in os.listdir(folder_path) if os.path.isfile(os.path.join(folder_path, f)) and f.lower().endswith('.png')]
+    
     if not files:
         return None  # Return None if the folder is empty
 
