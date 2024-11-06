@@ -56,15 +56,25 @@ if __name__ == "__main__":
         prob_stay = 0.95
         prob_mov = 0.975
         initial_velocity = 6
-        mov_id = 110601
+        mov_id = 110602
         path, velocity = random_movement(boundary_size, center_ratio, max_steps, prob_stay, prob_mov, initial_velocity=initial_velocity,
                                           momentum_decay=0.95, velocity_randomness=0.02, angle_range=0.5)
         path_bg, velocity_bg = random_movement(boundary_size, center_ratio, max_steps, prob_stay=0.98, prob_mov=0.98,
                                                 initial_velocity=initial_velocity, momentum_decay=0.9, velocity_randomness=0.01,
                                                   angle_range=0.25)
         
-        plot_movement_and_velocity(path, velocity, boundary_size, 'obj', output_folder=plot_save_folder)
-        plot_movement_and_velocity(path_bg, velocity_bg, boundary_size=np.array([320, 240]), name='bg', output_folder=plot_save_folder)
+        # Determine the minimum length
+        min_length = min(len(path), len(path_bg))
+
+        # Trim both paths and velocities to the minimum length
+        path = path[:min_length]
+        velocity = velocity[:min_length]
+        path_bg = path_bg[:min_length]
+        velocity_bg = velocity_bg[:min_length]
+        
+        plot_movement_and_velocity(path, velocity, boundary_size, f'{mov_id}_obj', output_folder=plot_save_folder)
+        plot_movement_and_velocity(path_bg, velocity_bg, boundary_size=np.array([320, 240]), name=f'{mov_id}_bg',
+                                    output_folder=plot_save_folder)
 
         bottom_img_path = get_random_file_path(bottom_img_folder)
         top_img_path = get_random_file_path(top_img_folder)
