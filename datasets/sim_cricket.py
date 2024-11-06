@@ -177,3 +177,75 @@ def synthesize_image_with_params(bottom_img_path, top_img_path, top_img_pos, bot
     cropped_img = T.ToTensor()(cropped_img)
 
     return cropped_img
+
+
+def random_movement(boundary_size, center_ratio, max_steps, a, b, initial_velocity=1.0, momentum_decay=0.95, velocity_randomness=0.02,
+                    angle_range=0.5):
+    """
+    Simulates random movement within a 2D boundary centered at (0, 0), preserving momentum with slight randomness.
+
+    Parameters:
+    - boundary_size: (width, height) tuple defining the total size of the boundary (e.g., 100 means -50 to 50).
+    - center_ratio: ratio (e.g., 0.2 for 20%) to define the starting center region.
+    - max_steps: maximum steps allowed in the sequence.
+    - a: probability of staying if currently staying.
+    - b: probability of continuing to move if currently moving.
+    - initial_velocity: initial velocity magnitude.
+    - momentum_decay: factor by which velocity reduces per step (closer to 1 means slower decay).
+    - velocity_randomness: max random factor to adjust the velocity (for slight increase/decrease).
+
+    Returns:
+    - path: List of (x, y) positions for each step until out of boundary or max_steps.
+    """
+
+    # Calculate half-widths and half-heights based on boundary size
+    half_width = boundary_size[0] / 2
+    half_height = boundary_size[1] / 2
+
+    # Calculate center region bounds based on center_ratio
+    center_width = half_width * center_ratio
+    center_height = half_height * center_ratio
+
+    # Set initial position within the center region, with (0, 0) as the center
+    x = np.random.uniform(-center_width, center_width)
+    y = np.random.uniform(-center_height, center_height)
+    path = [(x, y)]
+
+    # State and movement parameters
+    moving = False
+    velocity = initial_velocity
+    velocity_history = []
+    angle = np.random.uniform(0, 2 * np.pi)
+
+    for _ in range(max_steps):
+        if moving:
+            if np.random.rand() > b:
+                moving = False  # Switch to staying
+                velocity_history.append(0)
+            else:
+                # Adjust velocity by momentum decay and add a small random factor
+                velocity = max(velocity * momentum_decay + np.random.uniform(-velocity_randomness, velocity_randomness), 0.01)
+
+                # Slightly adjust direction to keep it mostly stable
+                angle += np.random.uniform(-angle_range, angle_range)
+
+                # Calculate new position with momentum applied
+                x += velocity * np.cos(angle)
+                y += velocity * np.sin(angle)
+                velocity_history.append(velocity)
+
+        else:
+            angle = np.random.uniform(0, 2 * np.pi)
+            velocity_history.append(0)
+            if np.random.rand() > a:
+                moving = True  # Switch to moving
+                # Preserve momentum by reusing the last velocity and angle
+                velocity = initial_velocity * momentum_decay + np.random.uniform(-velocity_randomness, velocity_randomness)
+
+        # Check boundaries (with center at (0, 0))
+        if not (-half_width <= x <= half_width and -half_height <= y <= half_height):
+            break  # Stop if out of bounds
+
+        path.append((x, y))
+
+    return path, velocity_history
