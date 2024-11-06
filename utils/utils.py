@@ -1,6 +1,8 @@
 import os
 import random
 import matplotlib.pyplot as plt
+import cv2
+import os
 
 
 def get_random_file_path(folder_path):
@@ -90,3 +92,44 @@ def plot_movement_and_velocity(path, velocity_history, boundary_size, output_fol
     plt.title('Plot of Velocity at Each Iteration')
     plt.savefig(os.path.join(output_folder, "velocity_history.png"))
     plt.close()
+
+
+def create_video_from_specific_files(folder_path, output_path, filename_template="synthesized_movement_{}.png", fps=10):
+    """
+    Combines specific images in a folder into a video, using an incremental naming pattern.
+
+    Parameters:
+    - folder_path: str, path to the folder containing the images.
+    - output_path: str, path where the video should be saved.
+    - filename_template: str, template for the filenames with `{}` as a placeholder for incrementing numbers.
+    - fps: int, frames per second for the video.
+    """
+    # Collect images based on the template
+    images = []
+    i = 1
+    while True:
+        file_path = os.path.join(folder_path, filename_template.format(i))
+        if os.path.isfile(file_path):
+            images.append(file_path)
+            i += 1
+        else:
+            break
+
+    # Ensure we have images to create the video
+    if not images:
+        raise ValueError("No images found with the specified template.")
+
+    # Read the first image to get dimensions
+    frame = cv2.imread(images[0])
+    height, width, layers = frame.shape
+
+    # Initialize video writer
+    fourcc = cv2.VideoWriter_fourcc(*'mp4v')  # Codec for .mp4
+    video = cv2.VideoWriter(output_path, fourcc, fps, (width, height))
+
+    # Write each image to the video
+    for image_path in images:
+        frame = cv2.imread(image_path)
+        video.write(frame)
+
+    video.release()

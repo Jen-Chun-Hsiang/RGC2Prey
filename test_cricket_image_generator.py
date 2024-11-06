@@ -3,11 +3,11 @@ import random
 import numpy as np
 import matplotlib.pyplot as plt
 from datasets.sim_cricket import overlay_images_with_jitter_and_scaling, synthesize_image_with_params, random_movement
-from utils.utils import get_random_file_path, plot_tensor_and_save, plot_movement_and_velocity
+from utils.utils import get_random_file_path, plot_tensor_and_save, plot_movement_and_velocity, create_video_from_specific_files
 
 
 if __name__ == "__main__":
-    run_task_id = 2
+    run_task_id = 3
 
     # Below unit in pixel
     num_syn_img = 20
@@ -19,6 +19,7 @@ if __name__ == "__main__":
     top_img_folder    = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/CricketDataset/Images/cropped/cricket/'
     syn_save_folder  = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/CricketDataset/Images/syn_img/'
     plot_save_folder  = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/CricketDataset/Figures/'
+    video_save_folder  = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/CricketDataset/Videos/'
 
     pixel_in_um = 4.375  # [task] make sure all recordings have the same value; if not, normalization is required
 
@@ -70,3 +71,10 @@ if __name__ == "__main__":
                                         scale_factor, crop_size, alpha=1.0)
             Timg = syn_image[1, :, :]
             plot_tensor_and_save(Timg, syn_save_folder, f'synthesized_movement_{i + 1}.png')
+            
+    elif run_task_id == 3:
+        create_video_from_specific_files(video_save_folder, "synthesized_movement_1.mp4", filename_template="synthesized_movement_{}.png",
+                                          fps=20)
+
+
+
