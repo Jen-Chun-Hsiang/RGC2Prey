@@ -49,7 +49,7 @@ def plot_tensor_and_save(tensor, output_folder, file_name='tensor_plot.png'):
     print(f"Plot saved to {output_path}")
 
 
-def plot_movement_and_velocity(path, velocity_history, name, boundary_size, output_folder="plots"):
+def plot_movement_and_velocity(path, velocity_history, boundary_size, name, output_folder="plots"):
     """
     Plots the random movement path and velocity history, saving the plots as images.
 
