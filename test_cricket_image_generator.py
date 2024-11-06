@@ -50,7 +50,7 @@ if __name__ == "__main__":
 
     elif run_task_id == 2:
         boundary_size = np.array([220, 140]) 
-        center_ratio = 0.2
+        center_ratio = np.array([0.2, 0.2])
         max_steps = 200
         prob_stay = 0.95
         prob_mov = 0.975
@@ -65,7 +65,8 @@ if __name__ == "__main__":
         scale_factor = random.uniform(*top_img_scale_range)
         num_syn_img = len(path)
         for i in range(num_syn_img):
-            syn_image = synthesize_image_with_params(bottom_img_path, top_img_path, path[i,:], bottom_img_pos,
+            top_img_pos = path[i,:].round().astype(int)
+            syn_image = synthesize_image_with_params(bottom_img_path, top_img_path, top_img_pos, bottom_img_pos,
                                         scale_factor, crop_size, alpha=1.0)
             Timg = syn_image[1, :, :]
             plot_tensor_and_save(Timg, syn_save_folder, f'synthesized_movement_{i + 1}.png')
