@@ -62,7 +62,7 @@ if __name__ == "__main__":
 
         bottom_img_path = get_random_file_path(bottom_img_folder)
         top_img_path = get_random_file_path(top_img_folder)
-        scale_factor = random.uniform(*top_img_scale_range)
+        scale_factor = 1  #random.uniform(*top_img_scale_range)
         num_syn_img = len(path)
         for i in range(num_syn_img):
             top_img_pos = path[i,:].round().astype(int)
