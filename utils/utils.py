@@ -94,7 +94,7 @@ def plot_movement_and_velocity(path, velocity_history, boundary_size, output_fol
     plt.close()
 
 
-def create_video_from_specific_files(folder_path, output_path, filename_template="synthesized_movement_{}.png", fps=10):
+def create_video_from_specific_files(folder_path, output_path, video_file_name, filename_template="synthesized_movement_{}.png", fps=10):
     """
     Combines specific images in a folder into a video, using an incremental naming pattern.
 
@@ -104,6 +104,10 @@ def create_video_from_specific_files(folder_path, output_path, filename_template
     - filename_template: str, template for the filenames with `{}` as a placeholder for incrementing numbers.
     - fps: int, frames per second for the video.
     """
+    video_file = os.path.join(output_path, video_file_name)
+    # Create the output directory if it doesn't exist
+    os.makedirs(output_path, exist_ok=True)
+
     # Collect images based on the template
     images = []
     i = 1
@@ -125,7 +129,7 @@ def create_video_from_specific_files(folder_path, output_path, filename_template
 
     # Initialize video writer
     fourcc = cv2.VideoWriter_fourcc(*'mp4v')  # Codec for .mp4
-    video = cv2.VideoWriter(output_path, fourcc, fps, (width, height))
+    video = cv2.VideoWriter(video_file, fourcc, fps, (width, height))
 
     # Write each image to the video
     for image_path in images:

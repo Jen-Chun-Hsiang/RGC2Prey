@@ -73,8 +73,9 @@ if __name__ == "__main__":
             plot_tensor_and_save(Timg, syn_save_folder, f'synthesized_movement_{i + 1}.png')
             
     elif run_task_id == 3:
-        video_file = os.path.join(video_save_folder, "synthesized_movement_1.mp4")
-        create_video_from_specific_files(syn_save_folder, video_file, filename_template="synthesized_movement_{}.png",
+
+        video_file_name = "synthesized_movement_1.mp4"
+        create_video_from_specific_files(syn_save_folder, video_save_folder, video_file_name, filename_template="synthesized_movement_{}.png",
                                           fps=20)
 
 
