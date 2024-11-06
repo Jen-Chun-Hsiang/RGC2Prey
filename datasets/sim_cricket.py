@@ -93,8 +93,8 @@ def overlay_images_with_jitter_and_scaling(bottom_img_path, top_img_path, top_im
     bottom_img = Image.open(bottom_img_path).convert("RGBA")
     top_img = Image.open(top_img_path).convert("RGBA")
 
-    print(f'top image size: {top_img.size}')
-    print(f'bottom image size: {bottom_img.size}')
+    # print(f'top image size: {top_img.size}')
+    # print(f'bottom image size: {bottom_img.size}')
 
     # Scale the top image within the provided range
     scale_factor = random.uniform(*top_img_scale_range)
@@ -132,6 +132,48 @@ def overlay_images_with_jitter_and_scaling(bottom_img_path, top_img_path, top_im
     # Convert back to PIL image and crop to desired size from the center
     final_img = T.ToPILImage()(final_tensor)
     cropped_img = crop_image(final_img, crop_size, jittered_bottom_pos)
+    cropped_img = T.ToTensor()(cropped_img)
+
+    return cropped_img
+
+
+def synthesize_image_with_params(bottom_img_path, top_img_path, top_img_pos, bottom_img_pos,
+                                 scale_factor, crop_size, alpha=1.0):
+    # Open the images
+    bottom_img = Image.open(bottom_img_path).convert("RGBA")
+    top_img = Image.open(top_img_path).convert("RGBA")
+
+    # Scale the top image using the provided scale factor
+    top_img = scale_image(top_img, scale_factor)
+
+    # Get dimensions
+    bottom_w, bottom_h = bottom_img.size
+    top_w, top_h = top_img.size
+
+    # Convert images to PyTorch tensors
+    bottom_tensor = T.ToTensor()(bottom_img)
+    top_tensor = T.ToTensor()(top_img)
+
+    # Create a blank canvas tensor to overlay the top image on the bottom image
+    final_tensor = bottom_tensor.clone()
+
+    fill_h = (bottom_h - top_h) // 2
+    fill_w = (bottom_w - top_w) // 2
+
+    top_img_pos -= bottom_img_pos
+
+    # Overlay the top image at the jittered position
+    for c in range(3):  # Iterate over RGB channels
+        final_tensor[c, fill_h + top_img_pos[1]:fill_h + top_img_pos[1] + top_h,
+                     fill_w + top_img_pos[0]:fill_w + top_img_pos[0] + top_w] = (
+            top_tensor[c, :, :] * top_tensor[3, :, :] * alpha +
+            final_tensor[c, fill_h + top_img_pos[1]:fill_h + top_img_pos[1] + top_h,
+                         fill_w + top_img_pos[0]:fill_w + top_img_pos[0] + top_w] * (1 - top_tensor[3, :, :] * alpha)
+        )
+
+    # Convert back to PIL image and crop to desired size from the center
+    final_img = T.ToPILImage()(final_tensor)
+    cropped_img = crop_image(final_img, crop_size, bottom_img_pos)
     cropped_img = T.ToTensor()(cropped_img)
 
     return cropped_img

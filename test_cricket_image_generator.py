@@ -2,7 +2,7 @@ import os
 import random 
 import numpy as np
 import matplotlib.pyplot as plt
-from datasets.sim_cricket import overlay_images_with_jitter_and_scaling
+from datasets.sim_cricket import overlay_images_with_jitter_and_scaling, synthesize_image_with_params
 
 
 def get_random_file_path(folder_path):
@@ -69,13 +69,16 @@ top_img_scale_range = np.array([cricket_size_range[0]/cricket_size_range[1], 1])
 for i in range(num_syn_img):
     bottom_img_path = get_random_file_path(bottom_img_folder)
     top_img_path = get_random_file_path(top_img_folder)
+    scale_factor = random.uniform(*top_img_scale_range)
 
     if bottom_img_path and top_img_path:
-        syn_image = overlay_images_with_jitter_and_scaling(
-            bottom_img_path, top_img_path, top_img_pos, bottom_img_pos,
-            bottom_img_jitter_range, top_img_jitter_range,
-            top_img_scale_range, crop_size, alpha=1.0
-        )
+        # syn_image = overlay_images_with_jitter_and_scaling(
+        #    bottom_img_path, top_img_path, top_img_pos, bottom_img_pos,
+        #    bottom_img_jitter_range, top_img_jitter_range,
+        #    top_img_scale_range, crop_size, alpha=1.0
+        #)
+        syn_image = synthesize_image_with_params(bottom_img_path, top_img_path, top_img_pos, bottom_img_pos,
+                                 scale_factor, crop_size, alpha=1.0)
         Timg = syn_image[1, :, :]
         plot_tensor_and_save(Timg, temp_save_folder, f'synthesized_image_{i + 1}.png')
     else:
