@@ -49,12 +49,13 @@ if __name__ == "__main__":
                 print(f"Skipping iteration {i + 1} due to missing image file(s).")
 
     elif run_task_id == 2:
-        boundary_size = np.array([100, 100]) 
+        boundary_size = np.array([220, 140]) 
         center_ratio = 0.2
         max_steps = 200
         prob_stay = 0.95
         prob_mov = 0.975
-        path, velocity = random_movement(boundary_size, center_ratio, max_steps, prob_stay, prob_mov, initial_velocity=1.0, momentum_decay=0.95, velocity_randomness=0.02,
-                        angle_range=0.5)
+        initial_velocity = 6
+        path, velocity = random_movement(boundary_size, center_ratio, max_steps, prob_stay, prob_mov, initial_velocity=initial_velocity,
+                                          momentum_decay=0.95, velocity_randomness=0.02, angle_range=0.5)
         
         plot_movement_and_velocity(path, velocity, boundary_size, output_folder=plot_save_folder)
