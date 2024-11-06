@@ -49,7 +49,7 @@ def plot_tensor_and_save(tensor, output_folder, file_name='tensor_plot.png'):
     print(f"Plot saved to {output_path}")
 
 
-def plot_movement_and_velocity(path, velocity_history, boundary_size, output_folder="plots"):
+def plot_movement_and_velocity(path, velocity_history, name, boundary_size, output_folder="plots"):
     """
     Plots the random movement path and velocity history, saving the plots as images.
 
@@ -81,7 +81,7 @@ def plot_movement_and_velocity(path, velocity_history, boundary_size, output_fol
     plt.title("Random Movement Path within Boundary")
     plt.legend()
     plt.grid(True)
-    plt.savefig(os.path.join(output_folder, "movement_path.png"))
+    plt.savefig(os.path.join(output_folder, f"movement_path_{name}.png"))
     plt.close()
 
     # Plot of velocity over iterations
@@ -90,7 +90,7 @@ def plot_movement_and_velocity(path, velocity_history, boundary_size, output_fol
     plt.xlabel('Iteration')
     plt.ylabel('Speed')
     plt.title('Plot of Velocity at Each Iteration')
-    plt.savefig(os.path.join(output_folder, "velocity_history.png"))
+    plt.savefig(os.path.join(output_folder, f"velocity_history_{name}.png"))
     plt.close()
 
 

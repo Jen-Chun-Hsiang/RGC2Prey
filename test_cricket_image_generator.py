@@ -56,10 +56,15 @@ if __name__ == "__main__":
         prob_stay = 0.95
         prob_mov = 0.975
         initial_velocity = 6
+        mov_id = 110601
         path, velocity = random_movement(boundary_size, center_ratio, max_steps, prob_stay, prob_mov, initial_velocity=initial_velocity,
                                           momentum_decay=0.95, velocity_randomness=0.02, angle_range=0.5)
+        path_bg, velocity_bg = random_movement(boundary_size, center_ratio, max_steps, prob_stay=0.98, prob_mov=0.98,
+                                                initial_velocity=initial_velocity, momentum_decay=0.9, velocity_randomness=0.01,
+                                                  angle_range=0.25)
         
-        plot_movement_and_velocity(path, velocity, boundary_size, output_folder=plot_save_folder)
+        plot_movement_and_velocity(path, velocity, boundary_size, 'obj', output_folder=plot_save_folder)
+        plot_movement_and_velocity(path_bg, velocity_bg, boundary_size=np.array([320, 240]), name='bg', output_folder=plot_save_folder)
 
         bottom_img_path = get_random_file_path(bottom_img_folder)
         top_img_path = get_random_file_path(top_img_folder)
@@ -67,10 +72,11 @@ if __name__ == "__main__":
         num_syn_img = len(path)
         for i in range(num_syn_img):
             top_img_pos = path[i,:].round().astype(int)
+            bottom_img_pos = path_bg[i,:].round().astype(int)
             syn_image = synthesize_image_with_params(bottom_img_path, top_img_path, top_img_pos, bottom_img_pos,
                                         scale_factor, crop_size, alpha=1.0)
             Timg = syn_image[1, :, :]
-            plot_tensor_and_save(Timg, syn_save_folder, f'synthesized_movement_{i + 1}.png')
+            plot_tensor_and_save(Timg, syn_save_folder, f'synthesized_movement_{mov_id}_{i + 1}.png')
             
     elif run_task_id == 3:
 
