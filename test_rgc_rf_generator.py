@@ -7,7 +7,7 @@ from utils.utils import plot_position_and_save, plot_map_and_save
 
 
 if __name__ == "__main__":
-    task_id = 1
+    task_id = 2
     plot_save_folder  = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/CricketDataset/Figures/'
     file_name = 'rgc_rf_position_plot.png'
     xlim = (-120, 120)
@@ -40,15 +40,6 @@ if __name__ == "__main__":
     if task_id == 1:
         values = np.random.uniform(0, 1, size=(number_samples, 1))
         plot_position_and_save(points, values=values, output_folder=plot_save_folder, file_name=file_name)
-
-        '''
-        if grid_generate_method is 'closest':
-            closest_points = get_closest_indices(grid_centers, points)
-            grid_values = map_to_fixed_grid_closest(values, closest_points, target_width, target_height)
-        elif grid_generate_method is'decay':
-            decay_matrix = compute_distance_decay_matrix(grid_centers, points, tau)
-            grid_values = map_to_fixed_grid_decay(values, decay_matrix, target_width, target_height)
-        '''
         # Call the selected mapping function
         grid_values = map_func(values, grid2value_mapping, target_width, target_height)
 
@@ -56,4 +47,9 @@ if __name__ == "__main__":
         plot_map_and_save(grid_values, plot_save_folder, file_name=file_name)
 
     elif task_id == 2:
-        print('Not yet')
+        for i in range(num_step):
+            values = np.random.uniform(0, 1, size=(number_samples, 1))
+            grid_values = map_func(values, grid2value_mapping, target_width, target_height)
+            file_name = f'rgc_rf_gridmap_{grid_generate_method}_plot_{i}.png'
+            plot_map_and_save(grid_values, plot_save_folder, file_name=file_name)
+            
