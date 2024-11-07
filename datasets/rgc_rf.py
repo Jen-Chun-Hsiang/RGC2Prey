@@ -208,6 +208,9 @@ def map_to_fixed_grid_decay(values, decay_matrix, target_width, target_height):
     - grid_values (np.ndarray): A 2D array of shape (target_height, target_width) 
       with values mapped to each grid cell based on decay-weighted values.
     """
+    # Reshape `values` if necessary to make it a 1D array
+    values = values.ravel()  # Flatten to (49,)
+    
     # Expand values to align with the decay matrix for broadcasting
     weighted_values = np.dot(values, decay_matrix)  # shape (M,)
 
