@@ -125,7 +125,7 @@ def map_to_fixed_grid_closest(values, closest_points, target_width, target_heigh
       mapped based on the closest coordinates.
     """
     # Assign the value of the closest coordinate to each grid cell
-    grid_values = values[closest_points].reshape(target_width, target_height)
+    grid_values = values[closest_points].reshape(target_height, target_width)
     
     return grid_values
 
