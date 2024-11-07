@@ -119,5 +119,5 @@ def map_to_fixed_grid_closest(values, closest_points, target_width, target_heigh
     values = torch.from_numpy(values).float()
     # Assign the value of the closest coordinate to each grid cell
     grid_values = values[closest_points].view(target_width, target_height)
-    return grid_values.numpy()
+    return grid_values
 
