@@ -203,3 +203,33 @@ def plot_map_and_save(grid_values, output_folder, file_name='rgc_rf_gridmap_plot
     output_path = os.path.join(output_folder, file_name)
     plt.savefig(output_path)
     plt.close() 
+
+
+def plot_gaussian_model(grid_values, rgc_array_rf_area, output_folder, file_name='gaussian_model_plot.png'):
+    # Create output folder if it does not exist
+    if not os.path.exists(output_folder):
+        os.makedirs(output_folder)
+
+    # Extract height and width from rgc_array_rf_area
+    height, width = rgc_array_rf_area
+
+    # Plot the Gaussian model
+    plt.figure(figsize=(8, 8))
+    plt.imshow(grid_values, cmap='viridis', origin='lower')
+    plt.colorbar(label="Gaussian Intensity (Median Adjusted)")
+
+    # Add dashed lines at specified positions using height and width from rgc_array_rf_area
+    plt.plot([width // 2, width // 2], [0, grid_values.shape[0]], '--k', label=f"Vertical Line at x={width // 2}")
+    plt.plot([0, grid_values.shape[1]], [height // 2, height // 2], '--k', label=f"Horizontal Line at y={height // 2}")
+
+    # Label and display the plot
+    plt.title("Gaussian Model with Median Adjustment")
+    plt.xlabel("X-axis")
+    plt.ylabel("Y-axis")
+    plt.legend()
+
+    # Save the plot to the assigned folder
+    output_path = os.path.join(output_folder, file_name)
+    plt.savefig(output_path)
+    plt.close()
+    print(f"Plot saved to {output_path}")

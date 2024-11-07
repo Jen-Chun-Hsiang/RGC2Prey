@@ -2,25 +2,33 @@ import numpy as np
 import torch
 
 def gaussian2d(x, y, params):
-    x_mean, y_mean, sigma_x, sigma_y, theta, bias, scale, s_sigma_x, s_sigma_y, s_scale = params
+    # Ensure params is a numpy array for element-wise operations
+    x_mean, y_mean, sigma_x, sigma_y, theta, bias, c_scale, s_sigma_x, s_sigma_y, s_scale = params
 
+    # Compute rotated coordinates
     x_rot = (x - x_mean) * np.cos(theta) + (y - y_mean) * np.sin(theta)
     y_rot = -(x - x_mean) * np.sin(theta) + (y - y_mean) * np.cos(theta)
 
-    z = (scale * np.exp(-(x_rot**2 / (2 * sigma_x**2) + y_rot**2 / (2 * sigma_y**2))) +
+    # Calculate the Gaussian function
+    z = (c_scale * np.exp(-(x_rot**2 / (2 * sigma_x**2) + y_rot**2 / (2 * sigma_y**2))) +
          s_scale * np.exp(-(x_rot**2 / (2 * s_sigma_x**2) + y_rot**2 / (2 * s_sigma_y**2))) + bias)
     return z
 
 
-def gaussian_multi(params, image, num_gauss):
-    X, Y = np.meshgrid(np.arange(1, image.shape[1] + 1), np.arange(1, image.shape[0] + 1))
-    params = np.reshape(params, (-1, num_gauss)).T
+def gaussian_multi(params, image_size, num_gauss):
+    # Create a meshgrid for the image dimensions based on image_size
+    height, width = image_size
+    X, Y = np.meshgrid(np.arange(1, width + 1), np.arange(1, height + 1))
 
+    # Reshape params into the number of Gaussians, assuming each row represents one Gaussian's parameters
+    params = np.reshape(np.array(params), (-1, num_gauss)).T
+
+    # Initialize the Gaussian model with the first set of parameters
     gaussian_model = gaussian2d(X, Y, params[0])
     for i in range(1, num_gauss):
         gaussian_model += gaussian2d(X, Y, params[i])
 
-    return gaussian_model  # Optionally, compute error or difference from image if required
+    return gaussian_model
 
 
 def create_hexagonal_centers(xlim, ylim, target_num_centers, max_iterations=100, noise_level=0.3, rand_seed=None, num_positions=None, position_indices=None):

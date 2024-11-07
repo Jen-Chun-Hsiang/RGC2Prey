@@ -2,24 +2,30 @@
 import torch
 import os
 import cv2
+import random
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 
 from datasets.rgc_rf import create_hexagonal_centers, precompute_grid_centers, get_closest_indices, map_to_fixed_grid_closest
-from datasets.rgc_rf import compute_distance_decay_matrix, map_to_fixed_grid_decay
-from utils.utils import plot_position_and_save, plot_map_and_save
+from datasets.rgc_rf import compute_distance_decay_matrix, map_to_fixed_grid_decay, gaussian_multi
+from utils.utils import plot_position_and_save, plot_map_and_save, plot_gaussian_model
+
 
 
 if __name__ == "__main__":
-    task_id = 2
+    task_id = 0
     plot_save_folder  = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/CricketDataset/Figures/'
     video_save_folder  = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/CricketDataset/Videos/'
+    rf_params_file = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/SimulationParams.xlsx'
     file_name = 'rgc_rf_position_plot.png'
     xlim = (-120, 120)
     ylim = (-90, 90)
+    rgc_array_rf_size = (320, 240)
     target_num_centers = 140
     num_step = 20
+    num_gauss_example = 1
     tau = 30
     grid_generate_method = 'decay'  #'closest', 'decay'
     points = create_hexagonal_centers(xlim, ylim, target_num_centers=50, rand_seed=42)
@@ -43,7 +49,18 @@ if __name__ == "__main__":
     else:
         raise ValueError("Invalid grid_generate_method. Use 'closest' or 'decay'.")
 
-    if task_id == 1:
+    if task_id == 0:
+        sf_param_table = pd.read_excel(rf_params_file, sheet_name='SF_params', usecols='A:J')
+        num_sim_data = len(sf_param_table)
+        pid = random.randint(0, num_sim_data - 1)
+        row = sf_param_table.iloc[pid]
+        sf_params = np.array([0, 0, row['sigma_x'], row['sigma_y'],
+        row['theta'], row['bias'], row['c_scale'], row['s_sigma_x'], row['s_sigma_y'], row['s_scale']])
+        opt_sf = gaussian_multi(sf_params, rgc_array_rf_size, num_gauss_example)
+        opt_sf -= np.median(opt_sf)
+        plot_gaussian_model(opt_sf, rgc_array_rf_size, plot_save_folder, file_name='gaussian_model_plot.png')
+
+    elif task_id == 1:
         values = np.random.uniform(0, 1, size=(number_samples, 1))
         plot_position_and_save(points, values=values, output_folder=plot_save_folder, file_name=file_name)
         # Call the selected mapping function
