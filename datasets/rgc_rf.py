@@ -162,8 +162,8 @@ def precompute_grid_centers(target_height, target_width, x_min=0, x_max=1, y_min
     - grid_centers (np.ndarray): Array of shape (target_height * target_width, 2)
       containing the grid center coordinates.
     """
-    grid_x = np.linspace(x_min, x_max, target_width)
-    grid_y = np.linspace(y_min, y_max, target_height)
+    grid_x = np.linspace(x_min, x_max, target_height)
+    grid_y = np.linspace(y_min, y_max, target_width)
     grid_x, grid_y = np.meshgrid(grid_x, grid_y, indexing='ij')
     grid_centers = np.stack((grid_x, grid_y), axis=-1).reshape(-1, 2)
     return grid_centers
@@ -210,7 +210,7 @@ def map_to_fixed_grid_decay(values, decay_matrix, target_width, target_height):
     """
     # Reshape `values` if necessary to make it a 1D array
     values = values.ravel()  # Flatten to (49,)
-    
+
     # Expand values to align with the decay matrix for broadcasting
     weighted_values = np.dot(values, decay_matrix)  # shape (M,)
 
