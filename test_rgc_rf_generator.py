@@ -15,10 +15,11 @@ if __name__ == "__main__":
     tau = 10
     grid_generate_method = 'decay'  #'closest', 'decay'
     points = create_hexagonal_centers(xlim, ylim, target_num_centers=50, rand_seed=42)
-    plot_position_and_save(points, plot_save_folder, file_name=file_name)
-
+    
     number_samples = len(points)
     values = np.random.uniform(0, 1, size=(number_samples, 1))
+    plot_position_and_save(points, value=None, plot_save_folder, file_name=file_name)
+
     target_height = xlim[1]-xlim[0]
     target_width = ylim[1]-ylim[0]
 
