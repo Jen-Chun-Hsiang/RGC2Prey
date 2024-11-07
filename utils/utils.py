@@ -175,7 +175,8 @@ def plot_map_and_save(grid_values, output_folder, file_name='rgc_rf_gridmap_plot
         os.makedirs(output_folder)
 
     plt.figure(figsize=(6, 6))
-    plt.imshow(grid_values.rot90(k=1).numpy(), cmap='viridis')
+    # plt.imshow(grid_values.rot90(k=1).numpy(), cmap='viridis')
+    plt.imshow(grid_values.numpy(), cmap='viridis')
     plt.colorbar()
     plt.title("Mapped Values on Fixed-Size Grid by Closest Coordinate")
      
