@@ -13,7 +13,7 @@ if __name__ == "__main__":
     ylim = (-90, 90)
     target_num_centers = 140
     tau = 10
-    grid_generate_method = 'closest'  #'closest', 'decay'
+    grid_generate_method = 'decay'  #'closest', 'decay'
     points = create_hexagonal_centers(xlim, ylim, target_num_centers=50, rand_seed=42)
     plot_position_and_save(points, plot_save_folder, file_name=file_name)
 
@@ -31,5 +31,5 @@ if __name__ == "__main__":
         decay_matrix = compute_distance_decay_matrix(grid_centers, points, tau)
         grid_values = map_to_fixed_grid_decay(values, decay_matrix, target_width, target_height)
 
-    file_name = 'rgc_rf_gridmap_plot.png'
+    file_name = f'rgc_rf_gridmap_{grid_generate_method}_plot.png'
     plot_map_and_save(grid_values, plot_save_folder, file_name=file_name)
