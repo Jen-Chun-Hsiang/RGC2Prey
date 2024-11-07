@@ -168,3 +168,17 @@ def plot_position_and_save(positions, output_folder, file_name='rgc_rf_position_
     output_path = os.path.join(output_folder, file_name)
     plt.savefig(output_path)
     plt.close()  # Close the plot to avoid displaying it if running in an interactive environment
+
+def plot_map_and_save(grid_values, output_folder, file_name='rgc_rf_gridmap_plot.png'):
+    if not os.path.exists(output_folder):
+        os.makedirs(output_folder)
+
+    plt.figure(figsize=(6, 6))
+    plt.imshow(grid_values.rot90(k=1).numpy(), cmap='viridis')
+    plt.colorbar()
+    plt.title("Mapped Values on Fixed-Size Grid by Closest Coordinate")
+     
+     # Save the plot to the assigned folder
+    output_path = os.path.join(output_folder, file_name)
+    plt.savefig(output_path)
+    plt.close() 

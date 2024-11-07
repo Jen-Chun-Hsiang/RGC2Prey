@@ -88,31 +88,36 @@ def create_hexagonal_centers(xlim, ylim, target_num_centers, max_iterations=100,
     return points
 
 
-def map_to_fixed_grid_closest(coords, values, target_height=50, target_width=50):
+def precompute_grid_centers(target_height, target_width, x_min=0, x_max=1, y_min=0, y_max=1):
     """
-    Maps each grid cell to the value of the closest coordinate.
-
-    Parameters:
-    - coords (torch.Tensor): Tensor of shape (N, 2) with (x, y) coordinates in [0, 1] range.
-    - values (torch.Tensor): Tensor of shape (N,) with corresponding values for each coordinate.
-    - target_height (int): Height of the target grid.
-    - target_width (int): Width of the target grid.
-
-    Returns:
-    - grid (torch.Tensor): Fixed-size grid with values assigned from the closest coordinate.
+    Precomputes grid centers and distance indices for mapping.
     """
-    grid = torch.zeros(target_height, target_width)
+    # Define the grid range based on the input limits
+    grid_x = torch.linspace(x_min, x_max, target_width)
+    grid_y = torch.linspace(y_min, y_max, target_height)
 
-    # Define the center of each grid cell
-    grid_x = torch.linspace(0, 1, target_width)
-    grid_y = torch.linspace(0, 1, target_height)
-    grid_centers = torch.stack(torch.meshgrid(grid_y, grid_x, indexing='ij'), dim=-1).reshape(-1, 2)
+    # Generate grid centers using meshgrid
+    grid_centers = torch.stack(torch.meshgrid(grid_x, grid_y, indexing='ij'), dim=-1).reshape(-1, 2)
 
-    # Calculate distances from each grid cell to all coordinates
+    return grid_centers
+
+def get_closest_indices(grid_centers, coords):
+    """
+    Finds the closest coordinate index for each grid center.
+    """
+    # Convert numpy arrays to torch tensors
+    coords = torch.from_numpy(coords).float()
+    
     distances = torch.cdist(grid_centers, coords)
-    closest_points = distances.argmin(dim=1)  # Get index of closest coordinate for each cell
+    closest_points = distances.argmin(dim=1)
+    return closest_points
 
+def map_to_fixed_grid_closest(values, closest_points, target_width, target_height):
+    """
+    Maps each grid cell to the value of the closest coordinate using precomputed indices.
+    """
+    values = torch.from_numpy(values).float()
     # Assign the value of the closest coordinate to each grid cell
-    grid_values = values[closest_points].view(target_height, target_width).rot90(k=1) # .flip(dims=[1])
+    grid_values = values[closest_points].view(target_width, target_height)
+    return grid_values.numpy()
 
-    return grid_values
