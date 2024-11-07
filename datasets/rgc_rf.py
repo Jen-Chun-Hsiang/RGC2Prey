@@ -88,36 +88,130 @@ def create_hexagonal_centers(xlim, ylim, target_num_centers, max_iterations=100,
     return points
 
 
-def precompute_grid_centers(target_height, target_width, x_min=0, x_max=1, y_min=0, y_max=1):
-    """
-    Precomputes grid centers and distance indices for mapping.
-    """
-    # Define the grid range based on the input limits
-    grid_x = torch.linspace(x_min, x_max, target_width)
-    grid_y = torch.linspace(y_min, y_max, target_height)
-
-    # Generate grid centers using meshgrid
-    grid_centers = torch.stack(torch.meshgrid(grid_x, grid_y, indexing='ij'), dim=-1).reshape(-1, 2)
-
-    return grid_centers
-
 def get_closest_indices(grid_centers, coords):
     """
     Finds the closest coordinate index for each grid center.
+
+    Parameters:
+    - grid_centers (np.ndarray): Array of shape (M, 2), where M is the number of grid centers.
+    - coords (np.ndarray): Array of shape (N, 2), where N is the number of coordinates.
+
+    Returns:
+    - closest_points (np.ndarray): Array of shape (M,) with the index of the closest coordinate
+      for each grid center.
     """
-    # Convert numpy arrays to torch tensors
-    coords = torch.from_numpy(coords).float()
+    # Calculate the pairwise distances between each grid center and each coordinate
+    distances = np.linalg.norm(grid_centers[:, np.newaxis, :] - coords[np.newaxis, :, :], axis=2)
     
-    distances = torch.cdist(grid_centers, coords)
-    closest_points = distances.argmin(dim=1)
+    # Find the index of the closest coordinate for each grid center
+    closest_points = distances.argmin(axis=1)
+    
     return closest_points
+
 
 def map_to_fixed_grid_closest(values, closest_points, target_width, target_height):
     """
     Maps each grid cell to the value of the closest coordinate using precomputed indices.
+
+    Parameters:
+    - values (np.ndarray): Array of shape (N,) containing values for each coordinate.
+    - closest_points (np.ndarray): Array of shape (M,) with the index of the closest coordinate
+      for each grid center.
+    - target_width (int): Width of the target grid.
+    - target_height (int): Height of the target grid.
+
+    Returns:
+    - grid_values (np.ndarray): 2D array of shape (target_height, target_width) with values
+      mapped based on the closest coordinates.
     """
-    values = torch.from_numpy(values).float()
     # Assign the value of the closest coordinate to each grid cell
-    grid_values = values[closest_points].view(target_width, target_height)
+    grid_values = values[closest_points].reshape(target_height, target_width)
+    
     return grid_values
 
+
+def generate_random_samples(number_samples, x_range=(0, 1), y_range=(0, 1)):
+    """
+    Generates random (x, y) coordinates and values within specified ranges.
+
+    Parameters:
+    - number_samples (int): Number of random samples to generate.
+    - x_range (tuple): Range (min, max) for x coordinates.
+    - y_range (tuple): Range (min, max) for y coordinates.
+
+    Returns:
+    - coords (np.ndarray): Array of shape (number_samples, 2) with random coordinates.
+    - values (np.ndarray): Array of shape (number_samples,) with random values.
+    """
+    x_coords = np.random.rand(number_samples) * (x_range[1] - x_range[0]) + x_range[0]
+    y_coords = np.random.rand(number_samples) * (y_range[1] - y_range[0]) + y_range[0]
+    coords = np.stack((x_coords, y_coords), axis=1)
+    values = np.random.rand(number_samples)
+    return coords, values
+
+
+def precompute_grid_centers(target_height, target_width, x_min=0, x_max=1, y_min=0, y_max=1):
+    """
+    Precomputes grid centers for mapping.
+
+    Parameters:
+    - target_height (int): Height of the grid.
+    - target_width (int): Width of the grid.
+
+    Returns:
+    - grid_centers (np.ndarray): Array of shape (target_height * target_width, 2)
+      containing the grid center coordinates.
+    """
+    grid_x = np.linspace(x_min, x_max, target_width)
+    grid_y = np.linspace(y_min, y_max, target_height)
+    grid_x, grid_y = np.meshgrid(grid_x, grid_y, indexing='ij')
+    grid_centers = np.stack((grid_x, grid_y), axis=-1).reshape(-1, 2)
+    return grid_centers
+
+
+
+def compute_distance_decay_matrix(grid_centers, coords, tau):
+    """
+    Computes a 2D matrix where each element represents the distance decay between a 
+    coordinate and a grid center based on the decay constant tau.
+
+    Parameters:
+    - grid_centers (np.ndarray): Array of shape (M, 2), where M is the number of grid centers.
+    - coords (np.ndarray): Array of shape (N, 2), where N is the number of coordinates.
+    - tau (float): The decay constant for the distance decay function.
+
+    Returns:
+    - decay_matrix (np.ndarray): A 2D array of shape (N, M), where each element 
+      represents the distance decay from a coordinate to a grid center.
+    """
+    # Compute pairwise distances between each coordinate and each grid center
+    distances = np.linalg.norm(coords[:, np.newaxis, :] - grid_centers[np.newaxis, :, :], axis=2)
+
+    # Apply distance decay function
+    decay_matrix = np.exp(-distances / tau)
+
+    return decay_matrix
+
+
+def map_to_fixed_grid_decay(values, decay_matrix, target_width, target_height):
+    """
+    Maps each grid cell to a value weighted by the decay matrix.
+
+    Parameters:
+    - values (np.ndarray): Array of shape (N,) containing values for each coordinate.
+    - decay_matrix (np.ndarray): 2D array of shape (N, M), where each element represents
+      the decay factor between a coordinate and a grid center.
+    - target_width (int): Width of the target grid.
+    - target_height (int): Height of the target grid.
+
+    Returns:
+    - grid_values (np.ndarray): A 2D array of shape (target_height, target_width) 
+      with values mapped to each grid cell based on decay-weighted values.
+    """
+    # Expand values to align with the decay matrix for broadcasting
+    weighted_values = np.dot(values, decay_matrix)  # shape (M,)
+
+    # Reshape to the target grid shape
+    grid_values = weighted_values.reshape(target_width, target_height)
+
+    return grid_values
