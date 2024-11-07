@@ -215,6 +215,6 @@ def map_to_fixed_grid_decay(values, decay_matrix, target_width, target_height):
     weighted_values = np.dot(values, decay_matrix)  # shape (M,)
 
     # Reshape to the target grid shape
-    grid_values = weighted_values.reshape(target_width, target_height)
+    grid_values = weighted_values.reshape(target_height, target_width)
 
     return grid_values
