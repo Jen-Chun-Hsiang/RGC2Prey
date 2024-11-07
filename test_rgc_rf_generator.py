@@ -19,9 +19,10 @@ if __name__ == "__main__":
     target_height = xlim[1]-xlim[0]
     target_width = ylim[1]-ylim[0]
 
-    grid_centers = precompute_grid_centers(target_height, target_width, x_min=0, x_max=1, y_min=0, y_max=1)
+    grid_centers = precompute_grid_centers(target_height, target_width, x_min=xlim[0], x_max=xlim[1],
+                                            y_min=ylim[0], y_max=ylim[1])
     closest_points = get_closest_indices(grid_centers, points)
     grid_values = map_to_fixed_grid_closest(values, closest_points, target_width, target_height)
-    file_name = 'rgc_rf_gridmap__plot.png'
+    file_name = 'rgc_rf_gridmap_plot.png'
 
     plot_map_and_save(grid_values, plot_save_folder, file_name=file_name)
