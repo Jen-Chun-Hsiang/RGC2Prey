@@ -29,7 +29,7 @@ if __name__ == "__main__":
     top_img_jitter_range = np.array([0, 0])
     top_img_scale_range = np.array([cricket_size_range[0]/cricket_size_range[1], 1])
 
-    if run_task_id == 1:
+    if run_task_id == 1:   # randomly synthesize images given number of images
         # Generate and save n synthesized images
         for i in range(num_syn_img):
             bottom_img_path = get_random_file_path(bottom_img_folder)
@@ -49,7 +49,7 @@ if __name__ == "__main__":
             else:
                 print(f"Skipping iteration {i + 1} due to missing image file(s).")
 
-    elif run_task_id == 2:
+    elif run_task_id == 2:   # synthesize series of image based on the position of object and background
         boundary_size = np.array([220, 140]) 
         center_ratio = np.array([0.2, 0.2])
         max_steps = 200
@@ -88,7 +88,7 @@ if __name__ == "__main__":
             Timg = syn_image[1, :, :]
             plot_tensor_and_save(Timg, syn_save_folder, f'synthesized_movement_{mov_id}_{i + 1}.png')
             
-    elif run_task_id == 3:
+    elif run_task_id == 3:   # create the movie based on the task 2
         video_file_name = "synthesized_movement_110602.mp4"
         create_video_from_specific_files(syn_save_folder, video_save_folder, video_file_name, 
                                          filename_template="synthesized_movement_110602_{}.png", fps=20)
