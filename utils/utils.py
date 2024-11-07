@@ -3,6 +3,7 @@ import random
 import matplotlib.pyplot as plt
 import cv2
 import os
+import numpy as np
 
 
 def get_random_file_path(folder_path):
@@ -137,3 +138,33 @@ def create_video_from_specific_files(folder_path, output_path, video_file_name, 
         video.write(frame)
 
     video.release()
+
+
+def plot_position_and_save(positions, output_folder, file_name='rgc_rf_position_plot.png'):
+    # Ensure the output folder exists
+    if not os.path.exists(output_folder):
+        os.makedirs(output_folder)
+
+    # Calculate the min and max for each axis
+    x_min, x_max = np.min(positions[:, 0]), np.max(positions[:, 0])
+    y_min, y_max = np.min(positions[:, 1]), np.max(positions[:, 1])
+
+    # Calculate the ranges and expand limits by 10%
+    x_range = x_max - x_min
+    y_range = y_max - y_min
+
+    x_lim = (x_min - 0.1 * x_range, x_max + 0.1 * x_range)
+    y_lim = (y_min - 0.1 * y_range, y_max + 0.1 * y_range)
+
+    plt.figure(figsize=(8, 6))
+    plt.scatter(positions[:, 0], positions[:, 1], c='blue', alpha=0.6)
+    plt.xlim(x_lim)
+    plt.ylim(y_lim)
+    plt.title("Hexagonal Center Points in 2D Space")
+    plt.xlabel("X-axis")
+    plt.ylabel("Y-axis")
+
+    # Save the plot to the assigned folder
+    output_path = os.path.join(output_folder, file_name)
+    plt.savefig(output_path)
+    plt.close()  # Close the plot to avoid displaying it if running in an interactive environment
