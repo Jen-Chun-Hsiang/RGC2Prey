@@ -186,8 +186,7 @@ def plot_position_and_save(positions, values=None, output_folder='', file_name='
     # Save the plot to the assigned folder
     output_path = os.path.join(output_folder, file_name)
     plt.savefig(output_path)
-    plt.close()  # Close the plot to avoid displaying it if running in an interactive environment
-
+    plt.close() 
 
 
 def plot_map_and_save(grid_values, output_folder, file_name='rgc_rf_gridmap_plot.png'):

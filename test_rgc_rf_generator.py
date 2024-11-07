@@ -18,7 +18,7 @@ if __name__ == "__main__":
     
     number_samples = len(points)
     values = np.random.uniform(0, 1, size=(number_samples, 1))
-    plot_position_and_save(points, value=None, plot_save_folder, file_name=file_name)
+    plot_position_and_save(points, values=None, output_folder=plot_save_folder, file_name=file_name)
 
     target_height = xlim[1]-xlim[0]
     target_width = ylim[1]-ylim[0]
