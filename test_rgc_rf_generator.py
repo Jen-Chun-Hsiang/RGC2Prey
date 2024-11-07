@@ -12,7 +12,7 @@ if __name__ == "__main__":
     xlim = (-120, 120)
     ylim = (-90, 90)
     target_num_centers = 140
-    tau = 10
+    tau = 40
     grid_generate_method = 'decay'  #'closest', 'decay'
     points = create_hexagonal_centers(xlim, ylim, target_num_centers=50, rand_seed=42)
     
