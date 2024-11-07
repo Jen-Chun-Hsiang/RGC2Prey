@@ -140,7 +140,17 @@ def create_video_from_specific_files(folder_path, output_path, video_file_name, 
     video.release()
 
 
-def plot_position_and_save(positions, output_folder, file_name='rgc_rf_position_plot.png'):
+def plot_position_and_save(positions, values=None, output_folder='', file_name='rgc_rf_position_plot.png'):
+    """
+    Plots the positions with color-coded values (if provided) and saves the plot.
+
+    Parameters:
+    - positions (np.ndarray): Array of shape (N, 2) containing x and y coordinates.
+    - values (np.ndarray, optional): Array of shape (N,) containing values for each position to color code.
+                                     If None, all points are the same color.
+    - output_folder (str): Folder to save the plot.
+    - file_name (str): Name of the output file (default is 'rgc_rf_position_plot.png').
+    """
     # Ensure the output folder exists
     if not os.path.exists(output_folder):
         os.makedirs(output_folder)
@@ -156,8 +166,17 @@ def plot_position_and_save(positions, output_folder, file_name='rgc_rf_position_
     x_lim = (x_min - 0.1 * x_range, x_max + 0.1 * x_range)
     y_lim = (y_min - 0.1 * y_range, y_max + 0.1 * y_range)
 
+    # Plotting
     plt.figure(figsize=(8, 6))
-    plt.scatter(positions[:, 0], positions[:, 1], c='blue', alpha=0.6)
+
+    if values is not None:
+        # If values are provided, use them for coloring
+        scatter = plt.scatter(positions[:, 0], positions[:, 1], c=values, s=100, cmap='viridis', edgecolor='k', alpha=0.6)
+        plt.colorbar(scatter, label="Value")  # Add a color bar
+    else:
+        # If values are None, use a default color for all points
+        plt.scatter(positions[:, 0], positions[:, 1], color='blue', s=100, edgecolor='k', alpha=0.6)
+
     plt.xlim(x_lim)
     plt.ylim(y_lim)
     plt.title("Hexagonal Center Points in 2D Space")
@@ -168,6 +187,7 @@ def plot_position_and_save(positions, output_folder, file_name='rgc_rf_position_
     output_path = os.path.join(output_folder, file_name)
     plt.savefig(output_path)
     plt.close()  # Close the plot to avoid displaying it if running in an interactive environment
+
 
 
 def plot_map_and_save(grid_values, output_folder, file_name='rgc_rf_gridmap_plot.png'):
