@@ -100,7 +100,7 @@ if __name__ == "__main__":
 
         print(f'multi_opt_sf shape: ({multi_opt_sf.shape[0]}, {multi_opt_sf.shape[1]}, {multi_opt_sf.shape[2]})')
         print(f'syn_movie shape: ({syn_movie.shape[0]}, {syn_movie.shape[1]}, {syn_movie.shape[2]})')
-        print(f'tf shape: ({tf.shape[0]}, {tf.shape[1]})')
+        print(f'tf shape: ({tf.shape[0]})')
 
         # Convert numpy arrays to torch tensors
         multi_opt_sf = torch.from_numpy(multi_opt_sf).float()
