@@ -64,8 +64,9 @@ if __name__ == "__main__":
         pid = random.randint(0, num_sim_data - 1)
         row = sf_param_table.iloc[pid]
 
-        # Initialize a list to store each opt_sf for concatenation
-        multi_opt_sf = []
+        opt_sf_shape = (rgc_array_rf_size[0], rgc_array_rf_size[1])
+        multi_opt_sf = np.zeros((opt_sf_shape[0], opt_sf_shape[1], grid_centers.shape[0]))
+
 
         # Loop over each row in grid_centers to generate multiple opt_sf
         for i in range(2):   #grid_centers.shape[0]
@@ -78,10 +79,7 @@ if __name__ == "__main__":
             opt_sf -= np.median(opt_sf)  # Center opt_sf around zero
             
             # Append to multi_opt_sf list
-            multi_opt_sf.append(opt_sf)
-
-        # Stack opt_sf along the third dimension to form multi_opt_sf
-        multi_opt_sf = np.stack(multi_opt_sf, axis=-1)
+            multi_opt_sf[:, :, i] = opt_sf
 
         # Sum along the last dimension to create assemble_opt_sf
         assemble_opt_sf = np.sum(multi_opt_sf, axis=-1)
