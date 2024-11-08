@@ -75,7 +75,7 @@ if __name__ == "__main__":
         # Loop over each row in grid_centers to generate multiple opt_sf
         for i in range(points.shape[0]):   #
             # Set up sf_params, using the current grid center for the first two entries
-            sf_params = np.array([points[i, 0], points[i, 1], row['sigma_x'], row['sigma_y'],
+            sf_params = np.array([points[i, 1], points[i, 0], row['sigma_x'], row['sigma_y'],
                                 row['theta'], row['bias'], row['c_scale'], row['s_sigma_x'], row['s_sigma_y'], row['s_scale']])
             
             # Generate opt_sf using gaussian_multi function
