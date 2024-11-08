@@ -91,7 +91,8 @@ if __name__ == "__main__":
             syn_movie[:, :, i] = Timg
             plot_tensor_and_save(Timg, syn_save_folder, f'synthesized_movement_{mov_id}_{i + 1}.png')
 
-        np.savez_compressed('syn_movie.npz', syn_movie=syn_movie)
+        syn_file = os.path.join(syn_data_save_folder, 'syn_movie.npz')
+        np.savez_compressed(syn_file, syn_movie=syn_movie)
             
     elif run_task_id == 3:   # create the movie based on the task 2
         video_file_name = "synthesized_movement_110602.mp4"
