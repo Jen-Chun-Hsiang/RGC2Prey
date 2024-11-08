@@ -81,7 +81,7 @@ if __name__ == "__main__":
         top_img_path = get_random_file_path(top_img_folder)
         scale_factor = 1  #random.uniform(*top_img_scale_range)
         num_syn_img = len(path)
-        syn_movie = np.zeros((crop_size[0], crop_size[1], num_syn_img)) 
+        syn_movie = np.zeros((crop_size[1], crop_size[0], num_syn_img)) 
         for i in range(num_syn_img):
             top_img_pos = path[i,:].round().astype(int)
             bottom_img_pos = path_bg[i,:].round().astype(int)
