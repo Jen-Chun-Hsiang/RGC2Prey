@@ -66,7 +66,7 @@ if __name__ == "__main__":
         
         num_sim_data = len(tf_param_table)
         pid = random.randint(0, num_sim_data - 1)
-        row = sf_param_table.iloc[pid]
+        row = tf_param_table.iloc[pid]
         tf_params = np.array([row['sigma1'], row['sigma2'], row['mean1'], row['mean2'], row['amp1'], row['amp2'], row['offset']])
         tf = gaussian_temporalfilter(temporal_filter_len, tf_params)
 
