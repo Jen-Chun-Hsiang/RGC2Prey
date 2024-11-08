@@ -15,7 +15,7 @@ from utils.utils import plot_position_and_save, plot_map_and_save, plot_gaussian
 
 
 if __name__ == "__main__":
-    task_id = 3
+    task_id = 0
     plot_save_folder  = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/CricketDataset/Figures/'
     video_save_folder  = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/CricketDataset/Videos/'
     rf_params_file = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/SimulationParams.xlsx'
