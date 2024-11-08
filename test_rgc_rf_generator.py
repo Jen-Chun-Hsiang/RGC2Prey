@@ -63,17 +63,18 @@ if __name__ == "__main__":
     elif task_id == 1:
         sf_param_table = pd.read_excel(rf_params_file, sheet_name='SF_params', usecols='A:L')
         tf_param_table = pd.read_excel(rf_params_file, sheet_name='TF_params', usecols='A:I')
-        num_sim_data = len(sf_param_table)
+        
+        num_sim_data = len(tf_param_table)
         pid = random.randint(0, num_sim_data - 1)
         row = sf_param_table.iloc[pid]
-
-        opt_sf_shape = (rgc_array_rf_size[0], rgc_array_rf_size[1])
-        
         tf_params = np.array([row['sigma1'], row['sigma2'], row['mean1'], row['mean2'], row['amp1'], row['amp2'], row['offset']])
         tf = gaussian_temporalfilter(temporal_filter_len, tf_params)
 
+        opt_sf_shape = (rgc_array_rf_size[0], rgc_array_rf_size[1])
         multi_opt_sf = np.zeros((opt_sf_shape[0], opt_sf_shape[1], points.shape[0]))  #
-
+        num_sim_data = len(sf_param_table)
+        pid = random.randint(0, num_sim_data - 1)
+        row = sf_param_table.iloc[pid]
         # Loop over each row in grid_centers to generate multiple opt_sf
         for i in range(points.shape[0]):   #
             # Set up sf_params, using the current grid center for the first two entries
