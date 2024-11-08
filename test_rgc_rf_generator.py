@@ -35,10 +35,6 @@ if __name__ == "__main__":
     target_width = ylim[1]-ylim[0]
     grid_centers = precompute_grid_centers(target_height, target_width, x_min=xlim[0], x_max=xlim[1],
                                             y_min=ylim[0], y_max=ylim[1])
-    if grid_generate_method is 'closest':
-        closest_points = get_closest_indices(grid_centers, points)
-    elif grid_generate_method is'decay':
-        decay_matrix = compute_distance_decay_matrix(grid_centers, points, tau)
 
     if grid_generate_method == 'closest':
         grid2value_mapping = get_closest_indices(grid_centers, points)
@@ -48,6 +44,7 @@ if __name__ == "__main__":
         map_func = map_to_fixed_grid_decay
     else:
         raise ValueError("Invalid grid_generate_method. Use 'closest' or 'decay'.")
+
 
     if task_id == 0:
         sf_param_table = pd.read_excel(rf_params_file, sheet_name='SF_params', usecols='A:L')
