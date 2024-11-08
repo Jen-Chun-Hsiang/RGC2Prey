@@ -69,11 +69,11 @@ if __name__ == "__main__":
         print(f'opt_sf_shape 2: {opt_sf_shape[1]}')
         print(f'number of points: {points.shape[0]}')
 
-        multi_opt_sf = np.zeros((opt_sf_shape[0], opt_sf_shape[1], 2))  #
+        multi_opt_sf = np.zeros((opt_sf_shape[0], opt_sf_shape[1], points.shape[0]))  #
 
 
         # Loop over each row in grid_centers to generate multiple opt_sf
-        for i in range(2):   #grid_centers.shape[0]
+        for i in range(points.shape[0]):   #
             # Set up sf_params, using the current grid center for the first two entries
             sf_params = np.array([points[i, 0], points[i, 1], row['sigma_x'], row['sigma_y'],
                                 row['theta'], row['bias'], row['c_scale'], row['s_sigma_x'], row['s_sigma_y'], row['s_scale']])
