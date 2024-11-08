@@ -1,5 +1,21 @@
 import numpy as np
 import torch
+from scipy.stats import norm
+
+def gaussian_temporalfilter(n, OptW):
+    # Generate x as 1:n (inclusive)
+    x = np.arange(1, n + 1)
+    
+    # Extract parameters from OptW
+    sigma1, sigma2 = OptW[0], OptW[1]
+    mean1, mean2 = OptW[2], OptW[3]
+    amplitude1, amplitude2 = OptW[4], OptW[5]
+    offset = OptW[6]
+    
+    # Compute the temporal filter
+    tf = (norm.pdf(x, loc=mean1, scale=sigma1) * amplitude1 -
+          norm.pdf(x, loc=mean2, scale=sigma2) * amplitude2) + offset
+    return tf
 
 def gaussian2d(x, y, params):
     # Ensure params is a numpy array for element-wise operations

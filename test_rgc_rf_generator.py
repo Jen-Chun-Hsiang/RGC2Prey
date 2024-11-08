@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 
 from datasets.rgc_rf import create_hexagonal_centers, precompute_grid_centers, get_closest_indices, map_to_fixed_grid_closest
-from datasets.rgc_rf import compute_distance_decay_matrix, map_to_fixed_grid_decay, gaussian_multi
+from datasets.rgc_rf import compute_distance_decay_matrix, map_to_fixed_grid_decay, gaussian_multi, gaussian_temporalfilter
 from utils.utils import plot_position_and_save, plot_map_and_save, plot_gaussian_model
 
 
@@ -18,6 +18,7 @@ if __name__ == "__main__":
     task_id = 1
     plot_save_folder  = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/CricketDataset/Figures/'
     video_save_folder  = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/CricketDataset/Videos/'
+    movie_load_folder  = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/CricketDataset/SynData/'
     rf_params_file = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/SimulationParams.xlsx'
     file_name = 'rgc_rf_position_plot.png'
     xlim = (-120, 120)
@@ -26,6 +27,7 @@ if __name__ == "__main__":
     target_num_centers = 140
     num_step = 20
     num_gauss_example = 1
+    temporal_filter_len = 50
     tau = 30
     grid_generate_method = 'decay'  #'closest', 'decay'
     points = create_hexagonal_centers(xlim, ylim, target_num_centers=50, rand_seed=42)
@@ -60,17 +62,17 @@ if __name__ == "__main__":
 
     elif task_id == 1:
         sf_param_table = pd.read_excel(rf_params_file, sheet_name='SF_params', usecols='A:L')
+        tf_param_table = pd.read_excel(rf_params_file, sheet_name='TF_params', usecols='A:I')
         num_sim_data = len(sf_param_table)
         pid = random.randint(0, num_sim_data - 1)
         row = sf_param_table.iloc[pid]
 
         opt_sf_shape = (rgc_array_rf_size[0], rgc_array_rf_size[1])
-        print(f'opt_sf_shape 1: {opt_sf_shape[0]}')
-        print(f'opt_sf_shape 2: {opt_sf_shape[1]}')
-        print(f'number of points: {points.shape[0]}')
+        
+        tf_params = np.array([row['sigma1'], row['sigma2'], row['mean1'], row['mean2'], row['amp1'], row['amp2'], row['offset']])
+        tf = gaussian_temporalfilter(temporal_filter_len, tf_params)
 
         multi_opt_sf = np.zeros((opt_sf_shape[0], opt_sf_shape[1], points.shape[0]))  #
-
 
         # Loop over each row in grid_centers to generate multiple opt_sf
         for i in range(points.shape[0]):   #
@@ -90,6 +92,22 @@ if __name__ == "__main__":
 
         # Plot the assembled result
         plot_gaussian_model(assemble_opt_sf, rgc_array_rf_size, plot_save_folder, file_name='gaussian_model_assemble_plot.png')
+
+        movie_file = os.path.join(movie_load_folder, 'syn_movie.npz')
+        data = np.load(movie_file)
+        syn_movie = data['syn_movie']   
+
+        print(f'multi_opt_sf shape: ({multi_opt_sf.shape[0]}, {multi_opt_sf.shape[1]}, {multi_opt_sf.shape[2]})')
+        print(f'syn_movie shape: ({syn_movie.shape[0]}, {syn_movie.shape[1]}, {syn_movie.shape[2]})')
+        print(f'tf shape: ({tf.shape[0]}, {tf.shape[1]})')
+
+        # Convert numpy arrays to torch tensors
+        multi_opt_sf = torch.from_numpy(multi_opt_sf).float()
+        syn_movie = torch.from_numpy(syn_movie).float()
+        tf = torch.from_numpy(tf).float()
+
+        
+        # c_torch = torch.einsum('whn,whm->nm', a_torch, b_torch)
 
 
     elif task_id == 2:
