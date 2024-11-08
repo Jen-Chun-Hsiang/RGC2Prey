@@ -69,7 +69,7 @@ if __name__ == "__main__":
         print(f'opt_sf_shape 2: {opt_sf_shape[1]}')
         print(f'number of grid: {grid_centers.shape[0]}')
 
-        multi_opt_sf = np.zeros((opt_sf_shape[0], opt_sf_shape[1], grid_centers.shape[0]))
+        multi_opt_sf = np.zeros((opt_sf_shape[0], opt_sf_shape[1], 2))  #
 
 
         # Loop over each row in grid_centers to generate multiple opt_sf
