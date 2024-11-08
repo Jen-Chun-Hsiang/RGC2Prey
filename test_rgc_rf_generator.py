@@ -68,7 +68,7 @@ if __name__ == "__main__":
         multi_opt_sf = []
 
         # Loop over each row in grid_centers to generate multiple opt_sf
-        for i in range(grid_centers.shape[0]):
+        for i in range(2):   #grid_centers.shape[0]
             # Set up sf_params, using the current grid center for the first two entries
             sf_params = np.array([grid_centers[i, 0], grid_centers[i, 1], row['sigma_x'], row['sigma_y'],
                                 row['theta'], row['bias'], row['c_scale'], row['s_sigma_x'], row['s_sigma_y'], row['s_scale']])
