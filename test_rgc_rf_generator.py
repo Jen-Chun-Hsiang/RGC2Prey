@@ -15,7 +15,7 @@ from utils.utils import plot_position_and_save, plot_map_and_save, plot_gaussian
 
 
 if __name__ == "__main__":
-    task_id = 0
+    task_id = 1
     plot_save_folder  = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/CricketDataset/Figures/'
     video_save_folder  = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/CricketDataset/Videos/'
     rf_params_file = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/SimulationParams.xlsx'
@@ -58,7 +58,7 @@ if __name__ == "__main__":
         plot_gaussian_model(opt_sf, rgc_array_rf_size, plot_save_folder, file_name='gaussian_model_plot.png')
 
 
-    elif task_id == 3:
+    elif task_id == 1:
         sf_param_table = pd.read_excel(rf_params_file, sheet_name='SF_params', usecols='A:L')
         num_sim_data = len(sf_param_table)
         pid = random.randint(0, num_sim_data - 1)
@@ -90,7 +90,7 @@ if __name__ == "__main__":
         plot_gaussian_model(assemble_opt_sf, rgc_array_rf_size, plot_save_folder, file_name='gaussian_model_assemble_plot.png')
 
 
-    elif task_id == 1:
+    elif task_id == 2:
         values = np.random.uniform(0, 1, size=(number_samples, 1))
         plot_position_and_save(points, values=values, output_folder=plot_save_folder, file_name=file_name)
         # Call the selected mapping function
@@ -99,7 +99,7 @@ if __name__ == "__main__":
         file_name = f'rgc_rf_gridmap_{grid_generate_method}_plot.png'
         plot_map_and_save(grid_values, plot_save_folder, file_name=file_name)
 
-    elif task_id == 2:
+    elif task_id == 3:
         # Parameters for video
         video_id = 110701
         frame_width, frame_height = 640, 480  # Example resolution
