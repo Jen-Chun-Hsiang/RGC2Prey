@@ -55,7 +55,7 @@ if __name__ == "__main__":
         pid = random.randint(0, num_sim_data - 1)
         row = sf_param_table.iloc[pid]
         sf_params = np.array([0, 0, row['sigma_x'], row['sigma_y'],
-        row['theta'], row['bias'], row['c_scale'], row['s_sigma_x'], row['s_sigma_y'], row['s_scale']])
+                        row['theta'], row['bias'], row['c_scale'], row['s_sigma_x'], row['s_sigma_y'], row['s_scale']])
         opt_sf = gaussian_multi(sf_params, rgc_array_rf_size, num_gauss_example)
         opt_sf -= np.median(opt_sf)
         plot_gaussian_model(opt_sf, rgc_array_rf_size, plot_save_folder, file_name='gaussian_model_plot.png')
