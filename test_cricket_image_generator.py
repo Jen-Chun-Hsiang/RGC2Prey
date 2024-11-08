@@ -93,6 +93,7 @@ if __name__ == "__main__":
 
         syn_file = os.path.join(syn_data_save_folder, 'syn_movie.npz')
         np.savez_compressed(syn_file, syn_movie=syn_movie)
+        print('npz data is saved!')
             
     elif run_task_id == 3:   # create the movie based on the task 2
         video_file_name = "synthesized_movement_110602.mp4"

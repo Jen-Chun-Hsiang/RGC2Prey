@@ -47,7 +47,7 @@ def plot_tensor_and_save(tensor, output_folder, file_name='tensor_plot.png'):
     plt.savefig(output_path)
     plt.close()  # Close the plot to avoid displaying it if running in an interactive environment
 
-    print(f"Plot saved to {output_path}")
+    # print(f"Plot saved to {output_path}")
 
 
 def plot_movement_and_velocity(path, velocity_history, boundary_size, name, output_folder="plots"):
