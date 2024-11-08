@@ -18,7 +18,9 @@ def gaussian2d(x, y, params):
 def gaussian_multi(params, image_size, num_gauss):
     # Create a meshgrid for the image dimensions based on image_size
     height, width = image_size
-    X, Y = np.meshgrid(np.arange(1, width + 1), np.arange(1, height + 1))
+    grid_x = np.linspace(-height//2, height//2, height)
+    grid_y = np.linspace(-width//2, width//2, width)
+    X, Y = np.meshgrid(grid_y, grid_x)
 
     # Reshape params into the number of Gaussians, assuming each row represents one Gaussian's parameters
     params = np.reshape(np.array(params), (-1, num_gauss)).T
@@ -29,6 +31,12 @@ def gaussian_multi(params, image_size, num_gauss):
         gaussian_model += gaussian2d(X, Y, params[i])
 
     return gaussian_model
+
+
+    grid_x = np.linspace(x_min, x_max, target_height)
+    grid_y = np.linspace(y_min, y_max, target_width)
+    grid_x, grid_y = np.meshgrid(grid_x, grid_y, indexing='ij')
+    grid_centers = np.stack((grid_x, grid_y), axis=-1).reshape(-1, 2)
 
 
 def create_hexagonal_centers(xlim, ylim, target_num_centers, max_iterations=100, noise_level=0.3, rand_seed=None, num_positions=None, position_indices=None):
