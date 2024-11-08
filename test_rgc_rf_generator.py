@@ -65,6 +65,10 @@ if __name__ == "__main__":
         row = sf_param_table.iloc[pid]
 
         opt_sf_shape = (rgc_array_rf_size[0], rgc_array_rf_size[1])
+        print(f'opt_sf_shape 1: {opt_sf_shape[0]}')
+        print(f'opt_sf_shape 2: {opt_sf_shape[1]}')
+        print(f'number of grid: {grid_centers.shape[0]}')
+
         multi_opt_sf = np.zeros((opt_sf_shape[0], opt_sf_shape[1], grid_centers.shape[0]))
 
 
