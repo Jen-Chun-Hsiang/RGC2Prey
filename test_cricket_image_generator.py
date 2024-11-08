@@ -88,7 +88,7 @@ if __name__ == "__main__":
             syn_image = synthesize_image_with_params(bottom_img_path, top_img_path, top_img_pos, bottom_img_pos,
                                         scale_factor, crop_size, alpha=1.0)
             Timg = syn_image[1, :, :]
-            syn_movie[:, :, i] = syn_movie
+            syn_movie[:, :, i] = Timg
             plot_tensor_and_save(Timg, syn_save_folder, f'synthesized_movement_{mov_id}_{i + 1}.png')
 
         np.savez_compressed('syn_movie.npz', syn_movie=syn_movie)
