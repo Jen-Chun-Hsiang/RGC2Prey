@@ -50,7 +50,7 @@ if __name__ == "__main__":
         raise ValueError("Invalid grid_generate_method. Use 'closest' or 'decay'.")
 
     if task_id == 0:
-        sf_param_table = pd.read_excel(rf_params_file, sheet_name='SF_params', usecols='A:J')
+        sf_param_table = pd.read_excel(rf_params_file, sheet_name='SF_params', usecols='A:L')
         num_sim_data = len(sf_param_table)
         pid = random.randint(0, num_sim_data - 1)
         row = sf_param_table.iloc[pid]
