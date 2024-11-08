@@ -15,7 +15,7 @@ from utils.utils import plot_position_and_save, plot_map_and_save, plot_gaussian
 
 
 if __name__ == "__main__":
-    task_id = 0
+    task_id = 3
     plot_save_folder  = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/CricketDataset/Figures/'
     video_save_folder  = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/CricketDataset/Videos/'
     rf_params_file = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/SimulationParams.xlsx'
@@ -59,6 +59,38 @@ if __name__ == "__main__":
         opt_sf = gaussian_multi(sf_params, rgc_array_rf_size, num_gauss_example)
         opt_sf -= np.median(opt_sf)
         plot_gaussian_model(opt_sf, rgc_array_rf_size, plot_save_folder, file_name='gaussian_model_plot.png')
+
+    elif task_id == 3:
+        sf_param_table = pd.read_excel(rf_params_file, sheet_name='SF_params', usecols='A:L')
+        num_sim_data = len(sf_param_table)
+        pid = random.randint(0, num_sim_data - 1)
+        row = sf_param_table.iloc[pid]
+
+        # Initialize a list to store each opt_sf for concatenation
+        multi_opt_sf = []
+
+        # Loop over each row in grid_centers to generate multiple opt_sf
+        for i in range(grid_centers.shape[0]):
+            # Set up sf_params, using the current grid center for the first two entries
+            sf_params = np.array([grid_centers[i, 0], grid_centers[i, 1], row['sigma_x'], row['sigma_y'],
+                                row['theta'], row['bias'], row['c_scale'], row['s_sigma_x'], row['s_sigma_y'], row['s_scale']])
+            
+            # Generate opt_sf using gaussian_multi function
+            opt_sf = gaussian_multi(sf_params, rgc_array_rf_size, num_gauss_example)
+            opt_sf -= np.median(opt_sf)  # Center opt_sf around zero
+            
+            # Append to multi_opt_sf list
+            multi_opt_sf.append(opt_sf)
+
+        # Stack opt_sf along the third dimension to form multi_opt_sf
+        multi_opt_sf = np.stack(multi_opt_sf, axis=-1)
+
+        # Sum along the last dimension to create assemble_opt_sf
+        assemble_opt_sf = np.sum(multi_opt_sf, axis=-1)
+
+        # Plot the assembled result
+        plot_gaussian_model(assemble_opt_sf, rgc_array_rf_size, plot_save_folder, file_name='gaussian_model_assemble_plot.png')
+
 
     elif task_id == 1:
         values = np.random.uniform(0, 1, size=(number_samples, 1))
