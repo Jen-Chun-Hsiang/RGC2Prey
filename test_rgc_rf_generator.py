@@ -57,6 +57,7 @@ if __name__ == "__main__":
         opt_sf -= np.median(opt_sf)
         plot_gaussian_model(opt_sf, rgc_array_rf_size, plot_save_folder, file_name='gaussian_model_plot.png')
 
+
     elif task_id == 3:
         sf_param_table = pd.read_excel(rf_params_file, sheet_name='SF_params', usecols='A:L')
         num_sim_data = len(sf_param_table)
