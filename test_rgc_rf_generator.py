@@ -7,6 +7,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
+import torch.nn.functional as F
 
 from datasets.rgc_rf import create_hexagonal_centers, precompute_grid_centers, get_closest_indices, map_to_fixed_grid_closest
 from datasets.rgc_rf import compute_distance_decay_matrix, map_to_fixed_grid_decay, gaussian_multi, gaussian_temporalfilter
@@ -108,7 +109,12 @@ if __name__ == "__main__":
         tf = torch.from_numpy(tf).float()
 
         
-        # c_torch = torch.einsum('whn,whm->nm', a_torch, b_torch)
+        sf_frame = torch.einsum('whn,hwm->nm', multi_opt_sf, syn_movie)
+        tf = tf.view(1, 1, -1)  # Reshape for convolution as [out_channels, in_channels, kernel_size]
+        sf_frame = sf_frame.unsqueeze(0).unsqueeze(0) 
+
+        rgc_time = F.conv1d(sf_frame, tf, stride=1, padding=0).squeeze()
+        print(f'rgc_time shape: ({rgc_time.shape})')
 
 
     elif task_id == 2:
