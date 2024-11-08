@@ -67,7 +67,7 @@ if __name__ == "__main__":
         opt_sf_shape = (rgc_array_rf_size[0], rgc_array_rf_size[1])
         print(f'opt_sf_shape 1: {opt_sf_shape[0]}')
         print(f'opt_sf_shape 2: {opt_sf_shape[1]}')
-        print(f'number of grid: {grid_centers.shape[0]}')
+        print(f'number of points: {points.shape[0]}')
 
         multi_opt_sf = np.zeros((opt_sf_shape[0], opt_sf_shape[1], 2))  #
 
@@ -75,7 +75,7 @@ if __name__ == "__main__":
         # Loop over each row in grid_centers to generate multiple opt_sf
         for i in range(2):   #grid_centers.shape[0]
             # Set up sf_params, using the current grid center for the first two entries
-            sf_params = np.array([grid_centers[i, 0], grid_centers[i, 1], row['sigma_x'], row['sigma_y'],
+            sf_params = np.array([points[i, 0], points[i, 1], row['sigma_x'], row['sigma_y'],
                                 row['theta'], row['bias'], row['c_scale'], row['s_sigma_x'], row['s_sigma_y'], row['s_scale']])
             
             # Generate opt_sf using gaussian_multi function
