@@ -20,6 +20,7 @@ if __name__ == "__main__":
     syn_save_folder  = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/CricketDataset/Images/syn_img/'
     plot_save_folder  = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/CricketDataset/Figures/'
     video_save_folder  = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/CricketDataset/Videos/'
+    syn_data_save_folder  = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/CricketDataset/SynData/'
 
     pixel_in_um = 4.375  # [task] make sure all recordings have the same value; if not, normalization is required
 
@@ -80,13 +81,17 @@ if __name__ == "__main__":
         top_img_path = get_random_file_path(top_img_folder)
         scale_factor = 1  #random.uniform(*top_img_scale_range)
         num_syn_img = len(path)
+        syn_movie = np.zeros((crop_size[0], crop_size[1], num_syn_img)) 
         for i in range(num_syn_img):
             top_img_pos = path[i,:].round().astype(int)
             bottom_img_pos = path_bg[i,:].round().astype(int)
             syn_image = synthesize_image_with_params(bottom_img_path, top_img_path, top_img_pos, bottom_img_pos,
                                         scale_factor, crop_size, alpha=1.0)
             Timg = syn_image[1, :, :]
+            syn_movie[:, :, i] = syn_movie
             plot_tensor_and_save(Timg, syn_save_folder, f'synthesized_movement_{mov_id}_{i + 1}.png')
+
+        np.savez_compressed('syn_movie.npz', syn_movie=syn_movie)
             
     elif run_task_id == 3:   # create the movie based on the task 2
         video_file_name = "synthesized_movement_110602.mp4"
