@@ -99,9 +99,9 @@ if __name__ == "__main__":
         data = np.load(movie_file)
         syn_movie = data['syn_movie']   
 
-        print(f'multi_opt_sf shape: ({multi_opt_sf.shape[0]}, {multi_opt_sf.shape[1]}, {multi_opt_sf.shape[2]})')
-        print(f'syn_movie shape: ({syn_movie.shape[0]}, {syn_movie.shape[1]}, {syn_movie.shape[2]})')
-        print(f'tf shape: ({tf.shape[0]})')
+        # print(f'multi_opt_sf shape: ({multi_opt_sf.shape[0]}, {multi_opt_sf.shape[1]}, {multi_opt_sf.shape[2]})')
+        # print(f'syn_movie shape: ({syn_movie.shape[0]}, {syn_movie.shape[1]}, {syn_movie.shape[2]})')
+        # print(f'tf shape: ({tf.shape[0]})')
 
         # Convert numpy arrays to torch tensors
         multi_opt_sf = torch.from_numpy(multi_opt_sf).float()
@@ -113,10 +113,54 @@ if __name__ == "__main__":
         tf = tf.view(1, 1, -1)  # Reshape for convolution as [out_channels, in_channels, kernel_size]
         sf_frame = sf_frame.unsqueeze(0)
         tf = np.repeat(tf, sf_frame.shape[1], axis=0)
-        print(f'sf_frame shape: ({sf_frame.shape})')
-        print(f'tf shape: ({tf.shape})')
+        # print(f'sf_frame shape: ({sf_frame.shape})')
+        # print(f'tf shape: ({tf.shape})')
         rgc_time = F.conv1d(sf_frame, tf, stride=1, padding=0, groups=sf_frame.shape[1]).squeeze()
-        print(f'rgc_time shape: ({rgc_time.shape})')
+        # print(f'rgc_time shape: ({rgc_time.shape})')
+        num_step = rgc_time.shape[1]
+
+        # CREATE VIDEO
+         # Parameters for video
+        video_id = 111001
+        frame_width, frame_height = 640, 480  # Example resolution
+        fps = 5  # Frames per second
+        min_video_value, max_video_value = 0, 4  # Value range for the color map
+        os.makedirs(video_save_folder, exist_ok=True)
+        output_filename = os.path.join(video_save_folder, f'RGC_proj_map_{grid_generate_method}_{video_id}.mp4')
+        # Initialize OpenCV video writer
+        fourcc = cv2.VideoWriter_fourcc(*"mp4v")
+        video_writer = cv2.VideoWriter(output_filename, fourcc, fps, (frame_width, frame_height))
+
+        for i in range(num_step):
+            values = rgc_time[:, i]
+            grid_values = map_func(values, grid2value_mapping, target_width, target_height)
+
+            # Create the figure and render the plot in memory
+            fig, ax = plt.subplots(figsize=(8, 8))
+            canvas = FigureCanvas(fig)  # Use canvas to render the plot to an image
+
+            # Plot the data
+            # cax = ax.imshow(np.rot90(grid_values, k=1), cmap='viridis', vmin=min_video_value, vmax=max_video_value)
+            cax = ax.imshow(np.rot90(grid_values, k=1), cmap='viridis')
+            fig.colorbar(cax, ax=ax, label="Value")
+            ax.set_title(f"Frame {i}")
+
+            # Draw the canvas and convert to an image
+            canvas.draw()
+            img = np.frombuffer(canvas.tostring_rgb(), dtype='uint8')
+            img = img.reshape(canvas.get_width_height()[::-1] + (3,))
+
+            # Resize the image to fit video dimensions
+            img = cv2.resize(img, (frame_width, frame_height))
+
+            # Write the frame to the video
+            video_writer.write(cv2.cvtColor(img, cv2.COLOR_RGB2BGR))
+
+            # Close the figure to free memory
+            plt.close(fig)
+
+        # Release video writer
+        video_writer.release()
 
 
     elif task_id == 2:
