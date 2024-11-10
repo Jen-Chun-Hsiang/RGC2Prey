@@ -112,6 +112,7 @@ if __name__ == "__main__":
         sf_frame = torch.einsum('whn,hwm->nm', multi_opt_sf, syn_movie)
         tf = tf.view(1, 1, -1)  # Reshape for convolution as [out_channels, in_channels, kernel_size]
         sf_frame = sf_frame.unsqueeze(0)
+        tf = np.repeat(tf, sf_frame.shape[1], axis=1)
         print(f'sf_frame shape: ({sf_frame.shape})')
         print(f'tf shape: ({tf.shape})')
         rgc_time = F.conv1d(sf_frame, tf, stride=1, padding=0).squeeze()
