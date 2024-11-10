@@ -29,7 +29,7 @@ if __name__ == "__main__":
     num_step = 20
     num_gauss_example = 1
     temporal_filter_len = 50
-    tau = 30
+    tau = 20
     grid_generate_method = 'decay'  #'closest', 'decay'
     points = create_hexagonal_centers(xlim, ylim, target_num_centers=50, rand_seed=42)
     
