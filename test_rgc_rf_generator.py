@@ -11,6 +11,7 @@ import torch.nn.functional as F
 
 from datasets.rgc_rf import create_hexagonal_centers, precompute_grid_centers, get_closest_indices, map_to_fixed_grid_closest
 from datasets.rgc_rf import compute_distance_decay_matrix, map_to_fixed_grid_decay, gaussian_multi, gaussian_temporalfilter
+from datasets.sim_cricket import plot_tensor_and_save
 from utils.utils import plot_position_and_save, plot_map_and_save, plot_gaussian_model
 
 
@@ -22,6 +23,7 @@ if __name__ == "__main__":
     movie_load_folder  = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/CricketDataset/SynData/'
     rf_params_file = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/SimulationParams.xlsx'
     file_name = 'rgc_rf_position_plot.png'
+    video_id = 111002
     xlim = (-120, 120)
     ylim = (-90, 90)
     rgc_array_rf_size = (320, 240)
@@ -99,15 +101,16 @@ if __name__ == "__main__":
         data = np.load(movie_file)
         syn_movie = data['syn_movie']   
 
-        # print(f'multi_opt_sf shape: ({multi_opt_sf.shape[0]}, {multi_opt_sf.shape[1]}, {multi_opt_sf.shape[2]})')
-        # print(f'syn_movie shape: ({syn_movie.shape[0]}, {syn_movie.shape[1]}, {syn_movie.shape[2]})')
-        # print(f'tf shape: ({tf.shape[0]})')
-
         # Convert numpy arrays to torch tensors
         multi_opt_sf = torch.from_numpy(multi_opt_sf).float()
         syn_movie = torch.from_numpy(syn_movie).float()
         tf = tf[::-1]
         tf = torch.from_numpy(tf.copy()).float()
+
+        # Check 
+        for i in range(syn_movie.shape[3]):
+            Timg = syn_movie[:, :, i]
+            plot_tensor_and_save(Timg, syn_save_folder, f'synthesized_movement_doublecheck_{video_id}_{i + 1}.png')
         
 
         
@@ -122,8 +125,6 @@ if __name__ == "__main__":
         num_step = rgc_time.shape[1]
 
         # CREATE VIDEO
-         # Parameters for video
-        video_id = 111002
         frame_width, frame_height = 640, 480  # Example resolution
         fps = 5  # Frames per second
         min_video_value, max_video_value = 0, 4  # Value range for the color map
