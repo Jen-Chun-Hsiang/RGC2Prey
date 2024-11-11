@@ -11,8 +11,7 @@ import torch.nn.functional as F
 
 from datasets.rgc_rf import create_hexagonal_centers, precompute_grid_centers, get_closest_indices, map_to_fixed_grid_closest
 from datasets.rgc_rf import compute_distance_decay_matrix, map_to_fixed_grid_decay, gaussian_multi, gaussian_temporalfilter
-from datasets.sim_cricket import plot_tensor_and_save
-from utils.utils import plot_position_and_save, plot_map_and_save, plot_gaussian_model
+from utils.utils import plot_position_and_save, plot_map_and_save, plot_gaussian_model, plot_tensor_and_save
 
 
 
