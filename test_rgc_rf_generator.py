@@ -106,11 +106,8 @@ if __name__ == "__main__":
         # Convert numpy arrays to torch tensors
         multi_opt_sf = torch.from_numpy(multi_opt_sf).float()
         syn_movie = torch.from_numpy(syn_movie).float()
-        print(f"tf type: {type(tf)}")
-        print(f"tf shape: {tf.shape}")
         tf = tf[::-1]
-        print(f"tf shape: {tf.shape}")
-        tf = torch.from_numpy(tf).float()
+        tf = torch.from_numpy(tf.copy()).float()
         
 
         
