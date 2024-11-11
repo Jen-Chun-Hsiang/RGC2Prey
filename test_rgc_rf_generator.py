@@ -32,6 +32,8 @@ if __name__ == "__main__":
     num_gauss_example = 1
     temporal_filter_len = 50
     tau = 20
+    is_show_rgc_rf_individual = False
+    is_show_movie_frames = False
     grid_generate_method = 'decay'  #'closest', 'decay'
     points = create_hexagonal_centers(xlim, ylim, target_num_centers=50, rand_seed=42)
     
@@ -90,10 +92,11 @@ if __name__ == "__main__":
             
             # Append to multi_opt_sf list
             multi_opt_sf[:, :, i] = opt_sf
-            
-            temp_sf = opt_sf.copy()
-            temp_sf = torch.from_numpy(temp_sf).float()
-            plot_tensor_and_save(temp_sf, syn_save_folder, f'receptive_field_check_{video_id}_{i + 1}.png')
+
+            if is_show_rgc_rf_individual is True:
+                temp_sf = opt_sf.copy()
+                temp_sf = torch.from_numpy(temp_sf).float()
+                plot_tensor_and_save(temp_sf, syn_save_folder, f'receptive_field_check_{video_id}_{i + 1}.png')
 
         # Sum along the last dimension to create assemble_opt_sf
         assemble_opt_sf = np.sum(multi_opt_sf, axis=-1)
@@ -112,13 +115,14 @@ if __name__ == "__main__":
         tf = torch.from_numpy(tf.copy()).float()
 
         # Check 
-        # for i in range(syn_movie.shape[2]):
-        #    Timg = syn_movie[:, :, i]
-        #    plot_tensor_and_save(Timg, syn_save_folder, f'synthesized_movement_doublecheck_{video_id}_{i + 1}.png')
+        if is_show_movie_frames is True:
+            for i in range(syn_movie.shape[2]):
+                Timg = syn_movie[:, :, i]
+                plot_tensor_and_save(Timg, syn_save_folder, f'synthesized_movement_doublecheck_{video_id}_{i + 1}.png')
         
 
-        
         sf_frame = torch.einsum('whn,hwm->nm', multi_opt_sf, syn_movie)
+        plot_tensor_and_save(sf_frame, syn_save_folder, f'sfxmovieframe_{video_id}.png')
         tf = tf.view(1, 1, -1)  # Reshape for convolution as [out_channels, in_channels, kernel_size]
         sf_frame = sf_frame.unsqueeze(0)
         tf = np.repeat(tf, sf_frame.shape[1], axis=0)
