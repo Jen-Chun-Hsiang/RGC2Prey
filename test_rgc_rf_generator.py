@@ -90,6 +90,10 @@ if __name__ == "__main__":
             
             # Append to multi_opt_sf list
             multi_opt_sf[:, :, i] = opt_sf
+            
+            temp_sf = opt_sf.copy()
+            temp_sf = torch.from_numpy(temp_sf).float()
+            plot_tensor_and_save(temp_sf, syn_save_folder, f'receptive_field_check_{video_id}_{i + 1}.png')
 
         # Sum along the last dimension to create assemble_opt_sf
         assemble_opt_sf = np.sum(multi_opt_sf, axis=-1)
@@ -108,9 +112,9 @@ if __name__ == "__main__":
         tf = torch.from_numpy(tf.copy()).float()
 
         # Check 
-        for i in range(syn_movie.shape[2]):
-            Timg = syn_movie[:, :, i]
-            plot_tensor_and_save(Timg, syn_save_folder, f'synthesized_movement_doublecheck_{video_id}_{i + 1}.png')
+        # for i in range(syn_movie.shape[2]):
+        #    Timg = syn_movie[:, :, i]
+        #    plot_tensor_and_save(Timg, syn_save_folder, f'synthesized_movement_doublecheck_{video_id}_{i + 1}.png')
         
 
         
