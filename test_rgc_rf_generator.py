@@ -107,7 +107,7 @@ if __name__ == "__main__":
         tf = torch.from_numpy(tf.copy()).float()
 
         # Check 
-        for i in range(syn_movie.shape[3]):
+        for i in range(syn_movie.shape[2]):
             Timg = syn_movie[:, :, i]
             plot_tensor_and_save(Timg, syn_save_folder, f'synthesized_movement_doublecheck_{video_id}_{i + 1}.png')
         
