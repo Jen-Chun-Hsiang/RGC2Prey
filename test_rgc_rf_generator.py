@@ -106,7 +106,9 @@ if __name__ == "__main__":
         # Convert numpy arrays to torch tensors
         multi_opt_sf = torch.from_numpy(multi_opt_sf).float()
         syn_movie = torch.from_numpy(syn_movie).float()
+        tf = tf[::-1]
         tf = torch.from_numpy(tf).float()
+        
 
         
         sf_frame = torch.einsum('whn,hwm->nm', multi_opt_sf, syn_movie)
