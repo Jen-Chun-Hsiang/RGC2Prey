@@ -128,6 +128,14 @@ if __name__ == "__main__":
         path_bg = path_bg[:min_length]
         velocity_bg = velocity_bg[:min_length]
 
+        # Create fixed sections of path and path_bg, repeating the first frame `num_ext` times
+        fixed_path_section = np.repeat(path[0:1, :], num_ext, axis=0)
+        fixed_path_bg_section = np.repeat(path_bg[0:1, :], num_ext, axis=0)
+
+        # Insert the fixed sections at the beginning, followed by the rest of the original path
+        path = np.vstack((fixed_path_section, path))
+        path_bg = np.vstack((fixed_path_bg_section, path_bg))
+
         bottom_img_path = get_random_file_path(bottom_img_folder)
         top_img_path = get_random_file_path(top_img_folder)
         num_syn_img = len(path)
