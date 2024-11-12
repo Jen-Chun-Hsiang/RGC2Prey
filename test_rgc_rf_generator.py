@@ -11,7 +11,7 @@ import torch.nn.functional as F
 
 from datasets.rgc_rf import create_hexagonal_centers, precompute_grid_centers, get_closest_indices, map_to_fixed_grid_closest
 from datasets.rgc_rf import compute_distance_decay_matrix, map_to_fixed_grid_decay, gaussian_multi, gaussian_temporalfilter
-from utils.utils import plot_position_and_save, plot_map_and_save, plot_gaussian_model, plot_tensor_and_save
+from utils.utils import plot_position_and_save, plot_map_and_save, plot_gaussian_model, plot_tensor_and_save, plot_vector_and_save
 
 
 
@@ -74,6 +74,7 @@ if __name__ == "__main__":
         row = tf_param_table.iloc[pid]
         tf_params = np.array([row['sigma1'], row['sigma2'], row['mean1'], row['mean2'], row['amp1'], row['amp2'], row['offset']])
         tf = gaussian_temporalfilter(temporal_filter_len, tf_params)
+        plot_vector_and_save(tf, plot_save_folder, file_name=f'temporal_filter_{video_id}.png')
 
         opt_sf_shape = (rgc_array_rf_size[0], rgc_array_rf_size[1])
         multi_opt_sf = np.zeros((opt_sf_shape[0], opt_sf_shape[1], points.shape[0]))  #

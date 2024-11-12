@@ -50,6 +50,32 @@ def plot_tensor_and_save(tensor, output_folder, file_name='tensor_plot.png'):
     # print(f"Plot saved to {output_path}")
 
 
+def plot_vector_and_save(vector, output_folder, file_name='vector_plot.png'):
+    # Ensure the output folder exists
+    if not os.path.exists(output_folder):
+        os.makedirs(output_folder)
+    
+    # Convert the input to a NumPy array if it is a PyTorch tensor
+    if isinstance(vector, torch.Tensor):
+        vector_np = vector.numpy()
+    elif isinstance(vector, np.ndarray):
+        vector_np = vector
+    else:
+        raise TypeError("Input should be a PyTorch tensor or a NumPy array.")
+    
+    # Plot the vector
+    plt.figure(figsize=(8, 6))
+    plt.plot(vector_np, color='b', linestyle='-', marker='o')  # Customize the line style as desired
+    plt.title('1D Vector Plot')
+    plt.xlabel('Index')
+    plt.ylabel('Value')
+    
+    # Save the plot to the assigned folder
+    output_path = os.path.join(output_folder, file_name)
+    plt.savefig(output_path)
+    plt.close() 
+
+
 def plot_movement_and_velocity(path, velocity_history, boundary_size, name, output_folder="plots"):
     """
     Plots the random movement path and velocity history, saving the plots as images.
