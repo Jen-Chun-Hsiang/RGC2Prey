@@ -34,7 +34,7 @@ if __name__ == "__main__":
     tau = 10
     is_show_rgc_rf_individual = False
     is_show_movie_frames = False
-    is_baseline_subtracted = False
+    is_baseline_subtracted = True
     grid_generate_method = 'decay'  #'closest', 'decay'
     points = create_hexagonal_centers(xlim, ylim, target_num_centers=50, rand_seed=42)
     
@@ -128,16 +128,18 @@ if __name__ == "__main__":
         sf_frame = sf_frame.unsqueeze(0)
         tf = np.repeat(tf, sf_frame.shape[1], axis=0)
         rgc_time = F.conv1d(sf_frame, tf, stride=1, padding=0, groups=sf_frame.shape[1]).squeeze()
+        num_step = rgc_time.shape[1]
         print(f'rgc_time shape: ({rgc_time.shape})')
         if is_baseline_subtracted is True:
             rgc_time = rgc_time-rgc_time[:, 0].unsqueeze(1)
-        num_step = rgc_time.shape[1]
+            min_video_value, max_video_value = -2000, 5000  # Value range for the color map
+        else:
+            min_video_value, max_video_value = -3000, 15000  # Value range for the color map
 
         # CREATE VIDEO
         frame_width, frame_height = 640, 480  # Example resolution
         fps = 5  # Frames per second
-        # min_video_value, max_video_value = -2000, 5000  # Value range for the color map
-        min_video_value, max_video_value = -3000, 15000  # Value range for the color map
+        
         os.makedirs(video_save_folder, exist_ok=True)
         output_filename = os.path.join(video_save_folder, f'RGC_proj_map_{grid_generate_method}_{video_id}.mp4')
         # Initialize OpenCV video writer
