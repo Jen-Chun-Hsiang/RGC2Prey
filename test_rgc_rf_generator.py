@@ -23,7 +23,7 @@ if __name__ == "__main__":
     syn_save_folder  = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/CricketDataset/Images/syn_img/'
     rf_params_file = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/SimulationParams.xlsx'
     file_name = 'rgc_rf_position_plot.png'
-    video_id = 111002
+    video_id = 111201
     xlim = (-120, 120)
     ylim = (-90, 90)
     rgc_array_rf_size = (320, 240)
@@ -34,7 +34,8 @@ if __name__ == "__main__":
     tau = 10
     is_show_rgc_rf_individual = False
     is_show_movie_frames = False
-    is_baseline_subtracted = True
+    is_baseline_subtracted = False
+    is_fixed_scalar_bar = False
     grid_generate_method = 'decay'  #'closest', 'decay'
     points = create_hexagonal_centers(xlim, ylim, target_num_centers=50, rand_seed=42)
     
@@ -105,7 +106,7 @@ if __name__ == "__main__":
         assemble_opt_sf = np.sum(multi_opt_sf, axis=-1)
         plot_gaussian_model(assemble_opt_sf, rgc_array_rf_size, plot_save_folder, file_name='gaussian_model_assemble_plot.png')
 
-        movie_file = os.path.join(movie_load_folder, 'syn_movie.npz')
+        movie_file = os.path.join(movie_load_folder, f'syn_movie_{video_id}.npz')
         data = np.load(movie_file)
         syn_movie = data['syn_movie']   
 
@@ -155,8 +156,10 @@ if __name__ == "__main__":
             canvas = FigureCanvas(fig)  # Use canvas to render the plot to an image
 
             # Plot the data
-            cax = ax.imshow(np.rot90(grid_values, k=1), cmap='viridis', vmin=min_video_value, vmax=max_video_value)
-            # cax = ax.imshow(np.rot90(grid_values, k=1), cmap='viridis')
+            if is_fixed_scalar_bar is True:
+                cax = ax.imshow(np.rot90(grid_values, k=1), cmap='viridis', vmin=min_video_value, vmax=max_video_value)
+            else:
+                cax = ax.imshow(np.rot90(grid_values, k=1), cmap='viridis')
             fig.colorbar(cax, ax=ax, label="Value")
             ax.set_title(f"Frame {i}")
 
