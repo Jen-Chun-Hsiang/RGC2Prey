@@ -28,6 +28,7 @@ if __name__ == "__main__":
     center_ratio = np.array([0.2, 0.2])
     scale_factor = 1  #random.uniform(*top_img_scale_range)
     max_steps = 200
+    num_ext = 50
     fps = 20  # Frames per second
     prob_stay = 0.95
     prob_mov = 0.975
@@ -80,6 +81,14 @@ if __name__ == "__main__":
         plot_movement_and_velocity(path, velocity, boundary_size, f'{mov_id}_obj', output_folder=plot_save_folder)
         plot_movement_and_velocity(path_bg, velocity_bg, boundary_size=np.array([320, 240]), name=f'{mov_id}_bg',
                                     output_folder=plot_save_folder)
+        
+        # Create fixed sections of path and path_bg, repeating the first frame `num_ext` times
+        fixed_path_section = np.repeat(path[0:1, :], num_ext, axis=0)
+        fixed_path_bg_section = np.repeat(path_bg[0:1, :], num_ext, axis=0)
+
+        # Insert the fixed sections at the beginning, followed by the rest of the original path
+        path = np.vstack((fixed_path_section, path))
+        path_bg = np.vstack((fixed_path_bg_section, path_bg))
 
         bottom_img_path = get_random_file_path(bottom_img_folder)
         top_img_path = get_random_file_path(top_img_folder)
