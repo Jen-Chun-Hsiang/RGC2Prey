@@ -34,6 +34,7 @@ if __name__ == "__main__":
     tau = 20
     is_show_rgc_rf_individual = False
     is_show_movie_frames = False
+    is_baseline_subtracted = False
     grid_generate_method = 'decay'  #'closest', 'decay'
     points = create_hexagonal_centers(xlim, ylim, target_num_centers=50, rand_seed=42)
     
@@ -102,8 +103,6 @@ if __name__ == "__main__":
 
         # Sum along the last dimension to create assemble_opt_sf
         assemble_opt_sf = np.sum(multi_opt_sf, axis=-1)
-
-        # Plot the assembled result
         plot_gaussian_model(assemble_opt_sf, rgc_array_rf_size, plot_save_folder, file_name='gaussian_model_assemble_plot.png')
 
         movie_file = os.path.join(movie_load_folder, 'syn_movie.npz')
@@ -131,11 +130,10 @@ if __name__ == "__main__":
         tf = tf.view(1, 1, -1)  # Reshape for convolution as [out_channels, in_channels, kernel_size]
         sf_frame = sf_frame.unsqueeze(0)
         tf = np.repeat(tf, sf_frame.shape[1], axis=0)
-        # print(f'sf_frame shape: ({sf_frame.shape})')
-        # print(f'tf shape: ({tf.shape})')
         rgc_time = F.conv1d(sf_frame, tf, stride=1, padding=0, groups=sf_frame.shape[1]).squeeze()
         print(f'rgc_time shape: ({rgc_time.shape})')
-        rgc_time = rgc_time-rgc_time[:, 0].unsqueeze(1)
+        if is_baseline_subtracted is True:
+            rgc_time = rgc_time-rgc_time[:, 0].unsqueeze(1)
         num_step = rgc_time.shape[1]
 
         # CREATE VIDEO
