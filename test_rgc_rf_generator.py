@@ -74,6 +74,7 @@ if __name__ == "__main__":
         row = tf_param_table.iloc[pid]
         tf_params = np.array([row['sigma1'], row['sigma2'], row['mean1'], row['mean2'], row['amp1'], row['amp2'], row['offset']])
         tf = gaussian_temporalfilter(temporal_filter_len, tf_params)
+        tf = tf-tf[0]
         plot_vector_and_save(tf, plot_save_folder, file_name=f'temporal_filter_{video_id}.png')
 
         opt_sf_shape = (rgc_array_rf_size[0], rgc_array_rf_size[1])
