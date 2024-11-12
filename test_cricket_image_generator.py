@@ -161,7 +161,7 @@ if __name__ == "__main__":
         video_writer.release()
         print("Video generation complete!")
 
-        syn_file = os.path.join(syn_data_save_folder, 'syn_movie_{mov_id}.npz')
+        syn_file = os.path.join(syn_data_save_folder, f'syn_movie_{mov_id}.npz')
         np.savez_compressed(syn_file, syn_movie=syn_movie)
             
     elif run_task_id == 4:   # create the movie based on the task 2
