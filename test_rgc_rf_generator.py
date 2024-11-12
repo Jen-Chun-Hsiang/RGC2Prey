@@ -141,7 +141,7 @@ if __name__ == "__main__":
         # CREATE VIDEO
         frame_width, frame_height = 640, 480  # Example resolution
         fps = 5  # Frames per second
-        min_video_value, max_video_value = 0, 4  # Value range for the color map
+        min_video_value, max_video_value = -2000, 5000  # Value range for the color map
         os.makedirs(video_save_folder, exist_ok=True)
         output_filename = os.path.join(video_save_folder, f'RGC_proj_map_{grid_generate_method}_{video_id}.mp4')
         # Initialize OpenCV video writer
@@ -157,8 +157,8 @@ if __name__ == "__main__":
             canvas = FigureCanvas(fig)  # Use canvas to render the plot to an image
 
             # Plot the data
-            # cax = ax.imshow(np.rot90(grid_values, k=1), cmap='viridis', vmin=min_video_value, vmax=max_video_value)
-            cax = ax.imshow(np.rot90(grid_values, k=1), cmap='viridis')
+            cax = ax.imshow(np.rot90(grid_values, k=1), cmap='viridis', vmin=min_video_value, vmax=max_video_value)
+            # cax = ax.imshow(np.rot90(grid_values, k=1), cmap='viridis')
             fig.colorbar(cax, ax=ax, label="Value")
             ax.set_title(f"Frame {i}")
 
