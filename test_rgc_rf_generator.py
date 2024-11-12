@@ -135,7 +135,7 @@ if __name__ == "__main__":
         # print(f'tf shape: ({tf.shape})')
         rgc_time = F.conv1d(sf_frame, tf, stride=1, padding=0, groups=sf_frame.shape[1]).squeeze()
         print(f'rgc_time shape: ({rgc_time.shape})')
-        rgc_time = rgc_time-rgc_time[:, 0]
+        rgc_time = rgc_time-rgc_time[:, 0].unsqueeze(1)
         num_step = rgc_time.shape[1]
 
         # CREATE VIDEO
