@@ -153,8 +153,8 @@ if __name__ == "__main__":
             canvas = FigureCanvas(fig)  # Use canvas to render the plot to an image
 
             # Plot the data
-            # cax = ax.imshow(np.rot90(grid_values, k=1), cmap='viridis', vmin=min_video_value, vmax=max_video_value)
-            cax = ax.imshow(np.rot90(grid_values, k=1), cmap='viridis')
+            cax = ax.imshow(np.rot90(grid_values, k=1), cmap='viridis', vmin=min_video_value, vmax=max_video_value)
+            # cax = ax.imshow(np.rot90(grid_values, k=1), cmap='viridis')
             fig.colorbar(cax, ax=ax, label="Value")
             ax.set_title(f"Frame {i}")
 
