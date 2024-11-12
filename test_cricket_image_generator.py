@@ -10,7 +10,7 @@ from utils.utils import get_random_file_path, plot_tensor_and_save, plot_movemen
 
 if __name__ == "__main__":
     run_task_id = 3
-    mov_id = 110602
+    mov_id = 111201
     # Below unit in pixel
     num_syn_img = 20
     image_size = np.array([640, 480])
@@ -122,7 +122,7 @@ if __name__ == "__main__":
         bottom_img_path = get_random_file_path(bottom_img_folder)
         top_img_path = get_random_file_path(top_img_folder)
         num_syn_img = len(path)
-
+        syn_movie = np.zeros((crop_size[1], crop_size[0], num_syn_img)) 
         # Loop over each synthesized image to generate frames for the video
         for i in range(num_syn_img):
             top_img_pos = path[i, :].round().astype(int)
@@ -130,7 +130,7 @@ if __name__ == "__main__":
             syn_image = synthesize_image_with_params(bottom_img_path, top_img_path, top_img_pos, bottom_img_pos,
                                                     scale_factor, crop_size, alpha=1.0)
             Timg = syn_image[1, :, :]  # Extract relevant image layer for video frame
-            
+            syn_movie[:, :, i] = Timg
             # Generate a plot with Matplotlib for better visual results
             fig, ax = plt.subplots(figsize=(8, 8))
             canvas = FigureCanvas(fig)
@@ -160,6 +160,9 @@ if __name__ == "__main__":
         # Release the video writer
         video_writer.release()
         print("Video generation complete!")
+
+        syn_file = os.path.join(syn_data_save_folder, 'syn_movie_{mov_id}.npz')
+        np.savez_compressed(syn_file, syn_movie=syn_movie)
             
     elif run_task_id == 4:   # create the movie based on the task 2
         video_file_name = "synthesized_movement_111002.mp4"
