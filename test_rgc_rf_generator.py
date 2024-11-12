@@ -31,7 +31,7 @@ if __name__ == "__main__":
     num_step = 20
     num_gauss_example = 1
     temporal_filter_len = 50
-    tau = 20
+    tau = 10
     is_show_rgc_rf_individual = False
     is_show_movie_frames = False
     is_baseline_subtracted = False
