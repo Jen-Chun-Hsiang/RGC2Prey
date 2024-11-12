@@ -121,10 +121,7 @@ if __name__ == "__main__":
                 Timg = syn_movie[:, :, i]
                 plot_tensor_and_save(Timg, syn_save_folder, f'synthesized_movement_doublecheck_{video_id}_{i + 1}.png')
         
-        print(f'min sf value: {torch.min(multi_opt_sf).item()}')
-        print(f'max sf value: {torch.max(multi_opt_sf).item()}')
-        print(f'min mv value: {torch.min(syn_movie).item()}')
-        print(f'max mv value: {torch.max(syn_movie).item()}')
+        #print(f'min sf value: {torch.min(multi_opt_sf).item()}')
         sf_frame = torch.einsum('whn,hwm->nm', multi_opt_sf, syn_movie)
         plot_tensor_and_save(sf_frame, syn_save_folder, f'sfxmovieframe_{video_id}.png')
         tf = tf.view(1, 1, -1)  # Reshape for convolution as [out_channels, in_channels, kernel_size]
@@ -139,7 +136,8 @@ if __name__ == "__main__":
         # CREATE VIDEO
         frame_width, frame_height = 640, 480  # Example resolution
         fps = 5  # Frames per second
-        min_video_value, max_video_value = -2000, 5000  # Value range for the color map
+        # min_video_value, max_video_value = -2000, 5000  # Value range for the color map
+        min_video_value, max_video_value = -3000, 15000  # Value range for the color map
         os.makedirs(video_save_folder, exist_ok=True)
         output_filename = os.path.join(video_save_folder, f'RGC_proj_map_{grid_generate_method}_{video_id}.mp4')
         # Initialize OpenCV video writer
