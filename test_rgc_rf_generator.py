@@ -35,7 +35,7 @@ if __name__ == "__main__":
     is_show_rgc_rf_individual = False
     is_show_movie_frames = False
     is_baseline_subtracted = False
-    is_fixed_scalar_bar = False
+    is_fixed_scalar_bar = True
     grid_generate_method = 'decay'  #'closest', 'decay'
     points = create_hexagonal_centers(xlim, ylim, target_num_centers=50, rand_seed=42)
     
@@ -138,7 +138,7 @@ if __name__ == "__main__":
             bls_tag = 'subtracted'
         else:
             # min_video_value, max_video_value = -3000, 15000  # Value range for the color map
-            min_video_value, max_video_value = -4000, 9000  #111201
+            min_video_value, max_video_value = -3000, 7000  #111201
             bls_tag = 'raw'
 
         # CREATE VIDEO
