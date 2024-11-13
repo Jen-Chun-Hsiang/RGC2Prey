@@ -37,6 +37,9 @@ if __name__ == "__main__":
     is_baseline_subtracted = False
     is_fixed_scalar_bar = True
     grid_generate_method = 'decay'  #'closest', 'decay'
+    # CREATE VIDEO
+    frame_width, frame_height = 640, 480  # Example resolution
+    fps = 20  # Frames per second
     points = create_hexagonal_centers(xlim, ylim, target_num_centers=50, rand_seed=42)
     
     number_samples = len(points)
@@ -141,9 +144,7 @@ if __name__ == "__main__":
             min_video_value, max_video_value = -2000, 7000  #111201
             bls_tag = 'raw'
 
-        # CREATE VIDEO
-        frame_width, frame_height = 640, 480  # Example resolution
-        fps = 5  # Frames per second
+        
         
         os.makedirs(video_save_folder, exist_ok=True)
         output_filename = os.path.join(video_save_folder, f'RGC_proj_map_{bls_tag}_{grid_generate_method}_{video_id}.mp4')
