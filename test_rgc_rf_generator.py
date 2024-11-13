@@ -155,7 +155,7 @@ if __name__ == "__main__":
         for i in range(num_step):
             values = rgc_time[:, i]
             grid_values = map_func(values, grid2value_mapping, target_width, target_height)
-            grid_values = grid_values[::-1]
+            grid_values = grid_values[:, ::-1]
             # Create the figure and render the plot in memory
             fig, ax = plt.subplots(figsize=(8, 8))
             canvas = FigureCanvas(fig)  # Use canvas to render the plot to an image
