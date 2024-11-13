@@ -54,12 +54,12 @@ for epoch in range(num_epochs):
         outputs = model(sequences)
         
         # Mask for invisible targets
-        mask = (targets != -1).all(dim=2).float().unsqueeze(2)
-        masked_outputs = outputs * mask
-        masked_targets = targets * mask
+        # mask = (targets != -1).all(dim=2).float().unsqueeze(2)
+        # masked_outputs = outputs * mask
+        # masked_targets = targets * mask
         
         # Compute loss
-        loss = criterion(masked_outputs, masked_targets)
+        loss = criterion(outputs, targets)
         loss.backward()
         optimizer.step()
         
