@@ -30,6 +30,7 @@ if __name__ == "__main__":
     max_steps = 200
     num_ext = 50
     fps = 20  # Frames per second
+    video_scalar = 2
     prob_stay = 0.95
     prob_mov = 0.975
     initial_velocity = 6
@@ -114,7 +115,7 @@ if __name__ == "__main__":
         # Ensure output folder exists
         os.makedirs(video_save_folder, exist_ok=True)
         output_filename = os.path.join(video_save_folder, f'synthesized_movement_{mov_id}.mp4')
-        video_writer = cv2.VideoWriter(output_filename, fourcc, fps, (frame_width, frame_height))
+        video_writer = cv2.VideoWriter(output_filename, fourcc, fps, (frame_width*video_scalar, frame_height*video_scalar))
 
         path, velocity = random_movement(boundary_size, center_ratio, max_steps, prob_stay, prob_mov, 
                                         initial_velocity=initial_velocity, momentum_decay=0.95, velocity_randomness=0.02, angle_range=0.5)
@@ -168,7 +169,7 @@ if __name__ == "__main__":
             img = img.reshape(canvas.get_width_height()[::-1] + (3,))
 
             # Resize the image to fit video dimensions
-            img = cv2.resize(img, (frame_width*2, frame_height*2))
+            img = cv2.resize(img, (frame_width*video_scalar, frame_height*video_scalar))
 
             # Write the frame to the video
             video_writer.write(cv2.cvtColor(img, cv2.COLOR_RGB2BGR))
