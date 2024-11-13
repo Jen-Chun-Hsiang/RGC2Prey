@@ -166,7 +166,7 @@ if __name__ == "__main__":
             else:
                 cax = ax.imshow(np.rot90(grid_values, k=1), cmap='viridis')
             fig.colorbar(cax, ax=ax, label="Value")
-            ax.set_title(f"Frame {i-tf.shape[2]}")
+            ax.set_title(f"Frame {i+tf.shape[2]}")
 
             # Draw the canvas and convert to an image
             canvas.draw()
