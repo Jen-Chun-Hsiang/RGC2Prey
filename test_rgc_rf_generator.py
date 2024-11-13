@@ -34,7 +34,7 @@ if __name__ == "__main__":
     tau = 10
     is_show_rgc_rf_individual = False
     is_show_movie_frames = False
-    is_baseline_subtracted = True
+    is_baseline_subtracted = False
     is_fixed_scalar_bar = False
     grid_generate_method = 'decay'  #'closest', 'decay'
     points = create_hexagonal_centers(xlim, ylim, target_num_centers=50, rand_seed=42)
