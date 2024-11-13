@@ -23,7 +23,7 @@ if __name__ == "__main__":
     syn_save_folder  = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/CricketDataset/Images/syn_img/'
     rf_params_file = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/SimulationParams.xlsx'
     file_name = 'rgc_rf_position_plot.png'
-    video_id = 111202
+    video_id = 111203
     xlim = (-120, 120)
     ylim = (-90, 90)
     rgc_array_rf_size = (320, 240)
@@ -34,8 +34,8 @@ if __name__ == "__main__":
     tau = 10
     is_show_rgc_rf_individual = False
     is_show_movie_frames = False
-    is_baseline_subtracted = False
-    is_fixed_scalar_bar = True
+    is_baseline_subtracted = True
+    is_fixed_scalar_bar = False
     grid_generate_method = 'decay'  #'closest', 'decay'
     points = create_hexagonal_centers(xlim, ylim, target_num_centers=50, rand_seed=42)
     
