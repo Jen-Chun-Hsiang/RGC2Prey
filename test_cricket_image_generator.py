@@ -10,7 +10,7 @@ from utils.utils import get_random_file_path, plot_tensor_and_save, plot_movemen
 
 if __name__ == "__main__":
     run_task_id = 3
-    mov_id = 111202
+    mov_id = 111203
     # Below unit in pixel
     num_syn_img = 20
     image_size = np.array([640, 480])
@@ -154,9 +154,11 @@ if __name__ == "__main__":
             
             # Plot data using imshow and add colorbar
             if min_video_value is not None:
-                cax = ax.imshow(np.rot90(Timg, k=1), cmap='viridis', vmin=min_video_value, vmax=max_video_value)
+                # cax = ax.imshow(np.rot90(Timg, k=1), cmap='viridis', vmin=min_video_value, vmax=max_video_value)
+                cax = ax.imshow(Timg, cmap='viridis', vmin=min_video_value, vmax=max_video_value)
             else:
-                cax = ax.imshow(np.rot90(Timg, k=1), cmap='viridis')
+                # cax = ax.imshow(np.rot90(Timg, k=1), cmap='viridis')
+                cax = ax.imshow(Timg, cmap='viridis')
             fig.colorbar(cax, ax=ax, label="Value")
             ax.set_title(f"Frame {i}")
             
@@ -166,7 +168,7 @@ if __name__ == "__main__":
             img = img.reshape(canvas.get_width_height()[::-1] + (3,))
 
             # Resize the image to fit video dimensions
-            img = cv2.resize(img, (frame_width, frame_height))
+            img = cv2.resize(img, (frame_width*2, frame_height*2))
 
             # Write the frame to the video
             video_writer.write(cv2.cvtColor(img, cv2.COLOR_RGB2BGR))
