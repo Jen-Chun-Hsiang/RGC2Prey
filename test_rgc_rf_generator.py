@@ -34,7 +34,7 @@ if __name__ == "__main__":
     tau = 10
     is_show_rgc_rf_individual = False
     is_show_movie_frames = False
-    is_baseline_subtracted = False
+    is_baseline_subtracted = True
     is_fixed_scalar_bar = True
     grid_generate_method = 'decay'  #'closest', 'decay'
     # CREATE VIDEO
