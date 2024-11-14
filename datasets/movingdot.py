@@ -108,7 +108,8 @@ class CNN_LSTM_ObjectLocation(nn.Module):
                                        conv1_out_channels=conv1_out_channels, conv2_out_channels=conv2_out_channels,
                                        fc_out_features=fc_out_features)  # Assume CNNFeatureExtractor outputs cnn_feature_dim
         self.lstm = nn.LSTM(input_size=cnn_feature_dim, hidden_size=lstm_hidden_size, num_layers=lstm_num_layers, batch_first=True)
-        self.fc = nn.Linear(lstm_hidden_size, output_dim)  # Output layer for (x, y) coordinates
+        self.fc1 = nn.Linear(lstm_hidden_size, lstm_hidden_size)  # Output layer for (x, y) coordinates
+        self.fc2 = nn.Linear(lstm_hidden_size, output_dim) 
 
     def forward(self, x):
         batch_size, sequence_length, C, H, W = x.size()
@@ -124,7 +125,8 @@ class CNN_LSTM_ObjectLocation(nn.Module):
         lstm_out, _ = self.lstm(cnn_features)
         
         # Predict coordinates
-        coord_predictions = self.fc(lstm_out)  # (batch_size, sequence_length, output_dim)
+        lstm_out = torch.relu(self.fc1(lstm_out))  # (batch_size, sequence_length, output_dim)
+        coord_predictions = self.fc2(lstm_out)
         return coord_predictions
     
 
