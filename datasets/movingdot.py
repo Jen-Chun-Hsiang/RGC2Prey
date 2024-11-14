@@ -153,7 +153,7 @@ def plot_and_save_results(epoch_losses, model, dataloader, sequence_length, save
     plt.subplot(1, 2, 2)
     for i in range(sequence_length-1):
         color_t = 'darkblue' if visible[batch_idx, i+1] == 1 else 'lightblue'
-        color_o = 'maroon' if visible[v, i+1] == 1 else 'lightcoral'
+        color_o = 'maroon' if visible[batch_idx, i+1] == 1 else 'lightcoral'
         # Plot line between consecutive target points
         plt.plot([targets[batch_idx, i, 0], targets[batch_idx, i + 1, 0]],
                  [targets[batch_idx, i, 1], targets[batch_idx, i + 1, 1]],
