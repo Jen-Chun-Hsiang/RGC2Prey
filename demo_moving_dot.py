@@ -24,12 +24,11 @@ visibility = visibility.numpy()
 # Video settings
 frame_height, frame_width = sequence.shape[1:3]
 fps = 5
-video_scalar = 1  # Scaling factor for video resolution
+video_scalar = 10  # Scaling factor for video resolution
 
 # Initialize VideoWriter
 fourcc = cv2.VideoWriter_fourcc(*"mp4v")
-output_filename = os.path.join(video_save_folder, f'{file_name}.mp4')
-video_writer = cv2.VideoWriter(output_filename, fourcc, fps, (frame_width * video_scalar, frame_height * video_scalar))
+video_writer = cv2.VideoWriter(save_path, fourcc, fps, (frame_width * video_scalar, frame_height * video_scalar))
 
 # Generate and write frames to video
 for frame in range(len(sequence)):
