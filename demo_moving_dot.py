@@ -32,28 +32,32 @@ video_writer = cv2.VideoWriter(save_path, fourcc, fps, (frame_width * video_scal
 
 # Generate and write frames to video
 for frame in range(len(sequence)):
-    # Set up matplotlib figure
-    fig, ax = plt.subplots(figsize=(8, 8))
+    # Set up matplotlib figure with two subplots
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 5))
     canvas = FigureCanvas(fig)
     
-    # Plot grayscale image for the current frame
-    ax.imshow(sequence[frame], cmap='gray', vmin=0, vmax=255)
-    ax.set_title("Moving Spot Trajectory")
-    
-    # Plot trajectory points
+    # Plot grayscale image for the current frame in the first subplot
+    ax1.imshow(sequence[frame], cmap='gray', vmin=0, vmax=255)
+    ax1.set_title("Current Frame")
+    ax1.axis('off')  # Hide axes for a cleaner look
+
+    # Plot x, y trajectory in the second subplot
     for i in range(frame + 1):
         color = 'blue' if visibility[i] == 1 else 'lightblue'
-        ax.plot(coords[i, 1], coords[i, 0], 'o', color=color, markersize=3)
+        ax2.plot(coords[i, 1], coords[i, 0], 'o', color=color, markersize=3)
     
-    # Add frame text
-    ax.text(1, 2, f"Frame {frame+1}", color="white", fontsize=10, backgroundcolor="black")
+    ax2.set_title("Trajectory Path")
+    ax2.set_xlabel("X Coordinate")
+    ax2.set_ylabel("Y Coordinate")
+    ax2.invert_yaxis()  # Invert Y axis to match image coordinate system
+    ax2.set_aspect('equal', adjustable='box')  # Keep aspect ratio square for clarity
     
     # Render the plot to an image array
     canvas.draw()
     img = np.frombuffer(canvas.tostring_rgb(), dtype='uint8')
     img = img.reshape(canvas.get_width_height()[::-1] + (3,))
 
-    # Resize image for the video dimensions
+    # Resize the image for the video dimensions
     img = cv2.resize(img, (frame_width * video_scalar, frame_height * video_scalar))
 
     # Write the frame to the video
