@@ -5,6 +5,7 @@ import torch.nn as nn
 import numpy as np
 import matplotlib.pyplot as plt
 
+
 class RandomMovingSpotDataset(Dataset):
     def __init__(self, sequence_length=20, grid_height=24, grid_width=32, prob_vis=0.5, num_samples=10000):
         """
@@ -146,20 +147,22 @@ def plot_and_save_results(epoch_losses, model, dataloader, sequence_length, save
     # Sample batch for target and predictions trace
     sequences, targets, visible = next(iter(dataloader))
     outputs = model(sequences).detach()
-    
+    num_batches = targets.shape[0]
+    batch_idx = np.random.choice(num_batches)
     # Trace plot
     plt.subplot(1, 2, 2)
     for i in range(sequence_length-1):
-        color = 'darkblue' if visible[0, i+1] == 1 else 'lightblue'
+        color_t = 'darkblue' if visible[batch_idx, i+1] == 1 else 'lightblue'
+        color_o = 'maroon' if visible[v, i+1] == 1 else 'lightcoral'
         # Plot line between consecutive target points
-        plt.plot([targets[0, i, 0], targets[0, i + 1, 0]],
-                 [targets[0, i, 1], targets[0, i + 1, 1]],
-                 color=color, linestyle='-', linewidth=1.5, label='Target' if i == 0 else "")
+        plt.plot([targets[batch_idx, i, 0], targets[batch_idx, i + 1, 0]],
+                 [targets[batch_idx, i, 1], targets[batch_idx, i + 1, 1]],
+                 color=color_t, linestyle='-', linewidth=1.5, label='Target' if i == 0 else "")
         
         # Plot line between consecutive prediction points
-        plt.plot([outputs[0, i, 0], outputs[0, i + 1, 0]],
-                 [outputs[0, i, 1], outputs[0, i + 1, 1]],
-                 color=color, linestyle='--', linewidth=1.5, label='Prediction' if i == 0 else "")
+        plt.plot([outputs[batch_idx, i, 0], outputs[batch_idx, i + 1, 0]],
+                 [outputs[batch_idx, i, 1], outputs[batch_idx, i + 1, 1]],
+                 color=color_o, linestyle='--', linewidth=1.5, label='Prediction' if i == 0 else "")
 
     plt.xlabel("X-coordinate")
     plt.ylabel("Y-coordinate")
