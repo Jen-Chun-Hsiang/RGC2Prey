@@ -14,7 +14,7 @@ grid_height, grid_width = 24, 32
 prob_vis = 1
 num_samples = 10000  # Number of samples to generate in an epoch (arbitrary choice for demonstration)
 batch_size = 64
-sim_id = '11142403'
+sim_id = '11142404'
 
 plot_save_folder  = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/CricketDataset/Figures/'
 log_save_folder  = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/CricketDataset/Logs/'

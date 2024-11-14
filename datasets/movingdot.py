@@ -106,8 +106,13 @@ class ParallelCNNFeatureExtractor(nn.Module):
         
         # Define parallel convolution layers with different kernel sizes
         self.conv1x1 = nn.Conv2d(1, conv_out_channels, kernel_size=1, stride=1, padding=0)
+        self.bn1x1 = nn.BatchNorm2d(conv_out_channels)
+        
         self.conv3x3 = nn.Conv2d(1, conv_out_channels, kernel_size=3, stride=1, padding=1)
+        self.bn3x3 = nn.BatchNorm2d(conv_out_channels)
+        
         self.conv5x5 = nn.Conv2d(1, conv_out_channels, kernel_size=5, stride=1, padding=2)
+        self.bn5x5 = nn.BatchNorm2d(conv_out_channels)
         
         # Pooling layer to reduce spatial dimensions
         self.pool = nn.MaxPool2d(2, 2)
@@ -123,9 +128,9 @@ class ParallelCNNFeatureExtractor(nn.Module):
 
     def _forward_conv_layers(self, x):
         """Forward pass through each convolutional layer and concatenate their outputs."""
-        x1 = self.pool(torch.relu(self.conv1x1(x)))
-        x2 = self.pool(torch.relu(self.conv3x3(x)))
-        x3 = self.pool(torch.relu(self.conv5x5(x)))
+        x1 = self.pool(torch.relu(self.bn1x1(self.conv1x1(x))))
+        x2 = self.pool(torch.relu(self.bn3x3(self.conv3x3(x))))
+        x3 = self.pool(torch.relu(self.bn5x5(self.conv5x5(x))))
         
         # Concatenate along the channel dimension
         x = torch.cat((x1, x2, x3), dim=1)
@@ -149,6 +154,7 @@ class CNN_LSTM_ObjectLocation(nn.Module):
         self.cnn = ParallelCNNFeatureExtractor(input_height=input_height, input_width=input_width,conv_out_channels=conv1_out_channels,
                                        fc_out_features=fc_out_features)  # Assume CNNFeatureExtractor outputs cnn_feature_dim
         self.lstm = nn.LSTM(input_size=cnn_feature_dim, hidden_size=lstm_hidden_size, num_layers=lstm_num_layers, batch_first=True)
+        self.lstm_norm = nn.LayerNorm(lstm_hidden_size)
         self.fc1 = nn.Linear(lstm_hidden_size, lstm_hidden_size)  # Output layer for (x, y) coordinates
         self.fc2 = nn.Linear(lstm_hidden_size, output_dim) 
 
@@ -164,8 +170,7 @@ class CNN_LSTM_ObjectLocation(nn.Module):
         # Stack CNN outputs and pass through LSTM
         cnn_features = torch.stack(cnn_features, dim=1)
         lstm_out, _ = self.lstm(cnn_features)
-        
-        # Predict coordinates
+        lstm_out = self.lstm_norm(lstm_out)
         lstm_out = torch.relu(self.fc1(lstm_out))  # (batch_size, sequence_length, output_dim)
         coord_predictions = self.fc2(lstm_out)
         return coord_predictions
