@@ -146,7 +146,7 @@ class CNN_LSTM_ObjectLocation(nn.Module):
         # self.cnn = CNNFeatureExtractor(input_height=input_height, input_width=input_width, 
         #                                conv1_out_channels=conv1_out_channels, conv2_out_channels=conv2_out_channels,
         #                                fc_out_features=fc_out_features)  # Assume CNNFeatureExtractor outputs cnn_feature_dim
-        self.cnn = CNNFeatureExtractor(input_height=input_height, input_width=input_width,conv_out_channels=conv1_out_channels,
+        self.cnn = ParallelCNNFeatureExtractor(input_height=input_height, input_width=input_width,conv_out_channels=conv1_out_channels,
                                        fc_out_features=fc_out_features)  # Assume CNNFeatureExtractor outputs cnn_feature_dim
         self.lstm = nn.LSTM(input_size=cnn_feature_dim, hidden_size=lstm_hidden_size, num_layers=lstm_num_layers, batch_first=True)
         self.fc1 = nn.Linear(lstm_hidden_size, lstm_hidden_size)  # Output layer for (x, y) coordinates
