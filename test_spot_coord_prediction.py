@@ -8,13 +8,13 @@ import logging
 
 from datasets.movingdot import RandomMovingSpotDataset, CNN_LSTM_ObjectLocation, plot_and_save_results
 # Dataset and DataLoader parameters
-sequence_length = 50
-num_epochs = 3
+sequence_length = 20
+num_epochs = 5
 grid_height, grid_width = 24, 32
 prob_vis = 1
 num_samples = 10000  # Number of samples to generate in an epoch (arbitrary choice for demonstration)
 batch_size = 64
-sim_id = '11142402'
+sim_id = '11142403'
 
 plot_save_folder  = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/CricketDataset/Figures/'
 log_save_folder  = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/CricketDataset/Logs/'
@@ -35,7 +35,7 @@ dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
 
 # Sample Training Loop
 model = CNN_LSTM_ObjectLocation(cnn_feature_dim=256, lstm_hidden_size=64, lstm_num_layers=3, output_dim=2,
-              input_height=24, input_width=32, conv1_out_channels=16, conv2_out_channels=32, fc_out_features=256)
+              input_height=grid_height, input_width=grid_width, conv1_out_channels=16, conv2_out_channels=32, fc_out_features=256)
 # model = CNNFeatureExtractor(input_height=24, input_width=32, conv1_out_channels=16, conv2_out_channels=32, fc_out_features=128)
 optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
 criterion = nn.MSELoss()
