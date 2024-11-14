@@ -9,12 +9,12 @@ import logging
 from datasets.movingdot import RandomMovingSpotDataset, CNN_LSTM_ObjectLocation, plot_and_save_results
 # Dataset and DataLoader parameters
 sequence_length = 20
-num_epochs = 5
+num_epochs = 10
 grid_height, grid_width = 24, 32
 prob_vis = 1
 num_samples = 10000  # Number of samples to generate in an epoch (arbitrary choice for demonstration)
 batch_size = 64
-sim_id = '11142404'
+sim_id = '11142405'
 
 plot_save_folder  = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/CricketDataset/Figures/'
 log_save_folder  = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/CricketDataset/Logs/'
