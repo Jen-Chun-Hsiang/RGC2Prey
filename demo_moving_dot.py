@@ -1,69 +1,51 @@
 import os
+import cv2
 import numpy as np
 import torch
-import matplotlib.pyplot as plt
-import matplotlib.animation as animation
 from datasets.movingdot import RandomMovingSpotDataset
 
-# Assuming you have the RandomMovingSpotDataset class defined above
-# Create an instance of the dataset
-video_save_folder  = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/CricketDataset/Videos/'
+# Set paths and filenames
+video_save_folder = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/CricketDataset/Videos/'
 file_name = 'demo_moving_spot'
 os.makedirs(video_save_folder, exist_ok=True)
-save_path = os.path.join(video_save_folder, file_name)
+save_path = os.path.join(video_save_folder, file_name + ".mp4")
 
+# Initialize dataset
 dataset = RandomMovingSpotDataset(sequence_length=20, grid_height=24, grid_width=32, prob_vis=0.8, num_samples=1)
+sequence, coords, visibility = dataset[0]  # Retrieve a sample sequence
 
-# Retrieve a sample sequence
-sequence, coords, visibility = dataset[0]  # Get the first item from the dataset
-
-# Convert tensors to numpy arrays for plotting
-sequence = sequence.squeeze(1).numpy()
+# Convert tensors to numpy arrays
+sequence = (sequence.squeeze(1).numpy() * 255).astype(np.uint8)
 coords = coords.numpy()
 visibility = visibility.numpy()
 
-# Initialize the figure and axes for the animation
-fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 5))
+# Video settings
+frame_height, frame_width = sequence.shape[1:3]
+fps = 5
+video_writer = cv2.VideoWriter(save_path, cv2.VideoWriter_fourcc(*'mp4v'), fps, (frame_width, frame_height))
 
-# Plot the trajectory in ax2
-ax2.set_xlim(0, dataset.grid_width)
-ax2.set_ylim(0, dataset.grid_height)
-ax2.invert_yaxis()
-ax2.set_title("Trajectory (Blue = Visible, Light Blue = Invisible)")
+# Colors for visible and invisible trajectory
+color_visible = (255, 0, 0)      # Blue for visible
+color_invisible = (173, 216, 230) # Light blue for invisible
 
-# Define two lines: one for the visible trajectory and one for invisible
-visible_line, = ax2.plot([], [], 'o-', color='darkblue', lw=2)
-invisible_line, = ax2.plot([], [], 'o-', color='lightblue', lw=1)
+# Generate video frames
+for frame in range(len(sequence)):
+    # Get the current frame
+    img = cv2.cvtColor(sequence[frame], cv2.COLOR_GRAY2BGR)
 
-# Initialize the frame in ax1
-im = ax1.imshow(sequence[0], cmap='gray', vmin=0, vmax=1)
-ax1.set_title("Current Frame")
+    # Plot the trajectory points
+    for i in range(frame + 1):
+        if visibility[i] == 1:
+            cv2.circle(img, (int(coords[i, 1]), int(coords[i, 0])), 2, color_visible, -1)
+        else:
+            cv2.circle(img, (int(coords[i, 1]), int(coords[i, 0])), 2, color_invisible, -1)
 
-# Animation update function
-def update(frame):
-    # Update the frame display in ax1
-    im.set_data(sequence[frame])
-    ax1.set_title(f"Current Frame (Step {frame})")
+    # Add text to indicate the current frame
+    cv2.putText(img, f"Frame {frame+1}", (10, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
 
-    # Separate visible and invisible points in the trajectory
-    visible_points = coords[:frame+1][visibility[:frame+1] == 1]
-    invisible_points = coords[:frame+1][visibility[:frame+1] == 0]
+    # Write frame to video
+    video_writer.write(img)
 
-    # Update the trajectory plot
-    if len(visible_points) > 0:
-        visible_line.set_data(visible_points[:, 1], visible_points[:, 0])
-    if len(invisible_points) > 0:
-        invisible_line.set_data(invisible_points[:, 1], invisible_points[:, 0])
-
-    return im, visible_line, invisible_line
-
-# Set up the animation writer to save as MP4
-Writer = animation.writers['ffmpeg']
-writer = Writer(fps=5, metadata=dict(artist='Me'), bitrate=1800)
-
-# Create and save the animation
-ani = animation.FuncAnimation(fig, update, frames=len(sequence), interval=200, blit=True)
-ani.save(f"{save_path}.mp4", writer=writer)
-
-
-plt.show()
+# Release the video writer
+video_writer.release()
+print(f"Video saved to {save_path}")
