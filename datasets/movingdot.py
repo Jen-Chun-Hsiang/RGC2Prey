@@ -134,10 +134,10 @@ def plot_and_save_results(epoch_losses, model, dataloader, sequence_length, save
     os.makedirs(save_dir, exist_ok=True)
     
     # Plot the loss over epochs
-    plt.figure(figsize=(12, 5))
+    plt.figure(figsize=(12, 12))
     
     # Loss plot
-    plt.subplot(1, 2, 1)
+    plt.subplot(2, 2, 1)
     plt.plot(range(1, len(epoch_losses) + 1), epoch_losses, label="Training Loss")
     plt.xlabel("Epoch")
     plt.ylabel("Loss")
@@ -149,24 +149,39 @@ def plot_and_save_results(epoch_losses, model, dataloader, sequence_length, save
     outputs = model(sequences).detach()
     num_batches = targets.shape[0]
     batch_idx = np.random.choice(num_batches)
-    # Trace plot
-    plt.subplot(1, 2, 2)
-    for i in range(sequence_length-1):
-        color_t = 'darkblue' if visible[batch_idx, i+1] == 1 else 'lightblue'
-        color_o = 'maroon' if visible[batch_idx, i+1] == 1 else 'lightcoral'
-        # Plot line between consecutive target points
-        plt.plot([targets[batch_idx, i, 0], targets[batch_idx, i + 1, 0]],
-                 [targets[batch_idx, i, 1], targets[batch_idx, i + 1, 1]],
-                 color=color_t, linestyle='-', linewidth=1.5, label='Target' if i == 0 else "")
-        
-        # Plot line between consecutive prediction points
-        plt.plot([outputs[batch_idx, i, 0], outputs[batch_idx, i + 1, 0]],
-                 [outputs[batch_idx, i, 1], outputs[batch_idx, i + 1, 1]],
-                 color=color_o, linestyle='--', linewidth=1.5, label='Prediction' if i == 0 else "")
 
+    # Helper function to plot traces
+    def plot_trace(x_vals, y_vals, visible, label, line_style, color_visible, color_hidden):
+        for i in range(sequence_length - 1):
+            color = color_visible if visible[batch_idx, i + 1] == 1 else color_hidden
+            plt.plot([x_vals[i], x_vals[i + 1]], [y_vals[i], y_vals[i + 1]],
+                     color=color, linestyle=line_style, linewidth=1.5,
+                     label=label if i == 0 else "")
+    # Trace plot
+    plt.subplot(2, 2, 2)
+    plot_trace(targets[batch_idx, :, 0], targets[batch_idx, :, 1], visible, 'Target', '-', 'darkblue', 'lightblue')
+    plot_trace(outputs[batch_idx, :, 0], outputs[batch_idx, :, 1], visible, 'Prediction', '--', 'maroon', 'lightcoral')
     plt.xlabel("X-coordinate")
     plt.ylabel("Y-coordinate")
     plt.title("Trace of Target and Model Predictions")
+    plt.legend()
+        
+    # X-coordinate over time
+    plt.subplot(2, 2, 3)
+    plot_trace(range(sequence_length), targets[batch_idx, :, 0], visible, 'Target', '-', 'darkblue', 'lightblue')
+    plot_trace(range(sequence_length), outputs[batch_idx, :, 0], visible, 'Prediction', '--', 'maroon', 'lightcoral')
+    plt.xlabel("Time step")
+    plt.ylabel("X-coordinate")
+    plt.title("X-Coordinate Trace over Time")
+    plt.legend()
+    
+    # Y-coordinate over time
+    plt.subplot(2, 2, 4)
+    plot_trace(range(sequence_length), targets[batch_idx, :, 1], visible, 'Target', '-', 'darkblue', 'lightblue')
+    plot_trace(range(sequence_length), outputs[batch_idx, :, 1], visible, 'Prediction', '--', 'maroon', 'lightcoral')
+    plt.xlabel("Time step")
+    plt.ylabel("Y-coordinate")
+    plt.title("Y-Coordinate Trace over Time")
     plt.legend()
     
     # Save the plot to the specified directory
