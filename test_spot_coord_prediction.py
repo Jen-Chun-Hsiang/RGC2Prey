@@ -37,7 +37,7 @@ dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
 model = CNN_LSTM_ObjectLocation(cnn_feature_dim=256, lstm_hidden_size=64, lstm_num_layers=3, output_dim=2,
               input_height=24, input_width=32, conv1_out_channels=16, conv2_out_channels=32, fc_out_features=256)
 # model = CNNFeatureExtractor(input_height=24, input_width=32, conv1_out_channels=16, conv2_out_channels=32, fc_out_features=128)
-optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
+optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
 criterion = nn.MSELoss()
 
 epoch_losses = []  # To store the loss at each epoch
