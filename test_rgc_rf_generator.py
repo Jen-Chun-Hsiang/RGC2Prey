@@ -27,10 +27,11 @@ if __name__ == "__main__":
     xlim = (-120, 120)
     ylim = (-90, 90)
     rgc_array_rf_size = (320, 240)
-    target_num_centers = 140
+    target_num_centers = 150
     num_step = 20
     num_gauss_example = 1
     temporal_filter_len = 50
+    sf_scalar = 0.2
     tau = 10
     is_show_rgc_rf_individual = False
     is_show_movie_frames = False
@@ -40,7 +41,7 @@ if __name__ == "__main__":
     # CREATE VIDEO
     frame_width, frame_height = 640, 480  # Example resolution
     fps = 20  # Frames per second
-    points = create_hexagonal_centers(xlim, ylim, target_num_centers=50, rand_seed=42)
+    points = create_hexagonal_centers(xlim, ylim, target_num_centers=target_num_centers, rand_seed=42)
     
     number_samples = len(points)
     target_height = xlim[1]-xlim[0]
@@ -90,8 +91,9 @@ if __name__ == "__main__":
         # Loop over each row in grid_centers to generate multiple opt_sf
         for i in range(points.shape[0]):   #
             # Set up sf_params, using the current grid center for the first two entries
-            sf_params = np.array([points[i, 1], points[i, 0], row['sigma_x'], row['sigma_y'],
-                                row['theta'], row['bias'], row['c_scale'], row['s_sigma_x'], row['s_sigma_y'], row['s_scale']])
+            sf_params = np.array([points[i, 1], points[i, 0], row['sigma_x']*sf_scalar, row['sigma_y']*sf_scalar,
+                                row['theta'], row['bias'], row['c_scale'], row['s_sigma_x']*sf_scalar, 
+                                row['s_sigma_y']*sf_scalar, row['s_scale']])
             
             # Generate opt_sf using gaussian_multi function
             opt_sf = gaussian_multi(sf_params, rgc_array_rf_size, num_gauss_example)
