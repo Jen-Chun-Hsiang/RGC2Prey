@@ -13,7 +13,7 @@ os.makedirs(video_save_folder, exist_ok=True)
 save_path = os.path.join(video_save_folder, file_name + ".mp4")
 
 # Initialize dataset
-dataset = RandomMovingSpotDataset(sequence_length=20, grid_height=24, grid_width=32, prob_vis=0.8, num_samples=1)
+dataset = RandomMovingSpotDataset(sequence_length=20, grid_height=24, grid_width=32, prob_vis=0.5, num_samples=1)
 sequence, coords, visibility = dataset[0]  # Retrieve a sample sequence
 
 # Convert tensors to numpy arrays
