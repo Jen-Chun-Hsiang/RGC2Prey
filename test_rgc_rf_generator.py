@@ -38,7 +38,7 @@ if __name__ == "__main__":
     is_baseline_subtracted = False
     is_fixed_scalar_bar = False
     is_pixelized_rf = True
-    sf_pixel_thr = 0.997
+    sf_pixel_thr = 99.7
     grid_generate_method = 'decay'  #'closest', 'decay'
     # CREATE VIDEO
     frame_width, frame_height = 640, 480  # Example resolution
