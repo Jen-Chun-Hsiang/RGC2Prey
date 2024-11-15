@@ -38,6 +38,7 @@ if __name__ == "__main__":
     is_baseline_subtracted = False
     is_fixed_scalar_bar = False
     is_pixelized_rf = True
+    sf_pixel_thr = 0.995
     grid_generate_method = 'decay'  #'closest', 'decay'
     # CREATE VIDEO
     frame_width, frame_height = 640, 480  # Example resolution
@@ -79,7 +80,7 @@ if __name__ == "__main__":
         num_sim_data = len(tf_param_table)
         pid = random.randint(0, num_sim_data - 1)
         row = tf_param_table.iloc[pid]
-        if is_pixelized_rf is True:
+        if is_pixelized_rf:
             tf = np.zeros(temporal_filter_len)
             tf[-1] = 1 
         else:
@@ -105,11 +106,15 @@ if __name__ == "__main__":
             # Generate opt_sf using gaussian_multi function
             opt_sf = gaussian_multi(sf_params, rgc_array_rf_size, num_gauss_example)
             opt_sf -= np.median(opt_sf)  # Center opt_sf around zero
+
+            if is_pixelized_rf:
+                threshold_value = np.percentile(opt_sf, sf_pixel_thr)
+                opt_sf = np.where(opt_sf > threshold_value, 1, 0)
             
             # Append to multi_opt_sf list
             multi_opt_sf[:, :, i] = opt_sf
 
-            if is_show_rgc_rf_individual is True:
+            if is_show_rgc_rf_individual:
                 temp_sf = opt_sf.copy()
                 temp_sf = torch.from_numpy(temp_sf).float()
                 plot_tensor_and_save(temp_sf, syn_save_folder, f'receptive_field_check_{video_id}_{i + 1}.png')
@@ -127,9 +132,8 @@ if __name__ == "__main__":
         syn_movie = torch.from_numpy(syn_movie).float()
         # tf = tf[::-1]  # reverse
         tf = torch.from_numpy(tf.copy()).float()
-
         # Check 
-        if is_show_movie_frames is True:
+        if is_show_movie_frames:
             for i in range(syn_movie.shape[2]):
                 Timg = syn_movie[:, :, i]
                 plot_tensor_and_save(Timg, syn_save_folder, f'synthesized_movement_doublecheck_{video_id}_{i + 1}.png')
@@ -143,7 +147,7 @@ if __name__ == "__main__":
         rgc_time = F.conv1d(sf_frame, tf, stride=1, padding=0, groups=sf_frame.shape[1]).squeeze()
         num_step = rgc_time.shape[1]
         print(f'rgc_time shape: ({rgc_time.shape})')
-        if is_baseline_subtracted is True:
+        if is_baseline_subtracted:
             rgc_time = rgc_time-rgc_time[:, 0].unsqueeze(1)
             # min_video_value, max_video_value = -2000, 5000  # Value range for the color map
             min_video_value, max_video_value = -2500, 2100  # 111201
@@ -171,7 +175,7 @@ if __name__ == "__main__":
             canvas = FigureCanvas(fig)  # Use canvas to render the plot to an image
 
             # Plot the data
-            if is_fixed_scalar_bar is True:
+            if is_fixed_scalar_bar:
                 cax = ax.imshow(np.rot90(grid_values, k=1), cmap='viridis', vmin=min_video_value, vmax=max_video_value)
             else:
                 cax = ax.imshow(np.rot90(grid_values, k=1), cmap='viridis')
