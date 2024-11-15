@@ -27,7 +27,7 @@ if __name__ == "__main__":
     xlim = (-120, 120)
     ylim = (-90, 90)
     rgc_array_rf_size = (320, 240)
-    target_num_centers = 150
+    target_num_centers = 500
     num_step = 20
     num_gauss_example = 1
     temporal_filter_len = 50
@@ -37,6 +37,7 @@ if __name__ == "__main__":
     is_show_movie_frames = False
     is_baseline_subtracted = False
     is_fixed_scalar_bar = False
+    is_pixelized_rf = True
     grid_generate_method = 'decay'  #'closest', 'decay'
     # CREATE VIDEO
     frame_width, frame_height = 640, 480  # Example resolution
@@ -78,9 +79,15 @@ if __name__ == "__main__":
         num_sim_data = len(tf_param_table)
         pid = random.randint(0, num_sim_data - 1)
         row = tf_param_table.iloc[pid]
-        tf_params = np.array([row['sigma1'], row['sigma2'], row['mean1'], row['mean2'], row['amp1'], row['amp2'], row['offset']])
-        tf = gaussian_temporalfilter(temporal_filter_len, tf_params)
-        tf = tf-tf[0]
+        if is_pixelized_rf is True:
+            tf = np.zeros(temporal_filter_len)
+            tf[-1] = 1 
+        else:
+            tf_params = np.array([row['sigma1'], row['sigma2'], row['mean1'], row['mean2'], row['amp1'], row['amp2'], row['offset']])
+            tf = gaussian_temporalfilter(temporal_filter_len, tf_params)
+            tf = tf-tf[0]
+        
+        
         plot_vector_and_save(tf, plot_save_folder, file_name=f'temporal_filter_{video_id}.png')
 
         opt_sf_shape = (rgc_array_rf_size[0], rgc_array_rf_size[1])
