@@ -32,13 +32,13 @@ if __name__ == "__main__":
     num_gauss_example = 1
     temporal_filter_len = 50
     sf_scalar = 0.2
-    tau = 5
-    is_show_rgc_rf_individual = False
-    is_show_movie_frames = False
+    tau = 3
+    is_show_rgc_rf_individual = True
+    is_show_movie_frames = True
     is_baseline_subtracted = False
     is_fixed_scalar_bar = False
     is_pixelized_rf = True
-    sf_pixel_thr = 0.995
+    sf_pixel_thr = 0.997
     grid_generate_method = 'decay'  #'closest', 'decay'
     # CREATE VIDEO
     frame_width, frame_height = 640, 480  # Example resolution
