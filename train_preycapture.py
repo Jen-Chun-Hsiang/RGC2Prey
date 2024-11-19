@@ -1,9 +1,10 @@
 import argparse
 import torch
 import pandas as pd
+from torch.utils.data import DataLoader
 # from models.simpleSC import RGC2SCNet
 
-from datasets.sim_cricket import RGCrfArray, SynMovieGenerator
+from datasets.sim_cricket import RGCrfArray, SynMovieGenerator, Cricket2RGCs
 from utils.utils import plot_tensor_and_save, plot_vector_and_save, plot_two_path_comparison
 
 def parse_args():
@@ -29,7 +30,6 @@ def parse_args():
     default_target_height = 480
 
     # Arguments for SynMovieGenerator
-    parser.add_argument('--num_samples', type=int, default=20, help="Number of samples")
     parser.add_argument('--crop_size', type=tuple, default=default_crop_size, help="Crop size as (width, height).")
     parser.add_argument('--boundary_size', type=tuple, default=default_boundary_size, help="Boundary size as (x_limit, y_limit).")
     parser.add_argument('--center_ratio', type=tuple, default=default_center_ratio, help="Center ratio for initial movement placement.")
@@ -47,6 +47,7 @@ def parse_args():
     parser.add_argument('--angle_range_bg', type=float, default=0.25, help='Variation in speed change of each step')
 
     # Arguments for Cricket2RGCs (from movies to RGC array activities based on receptive field properties)
+    parser.add_argument('--num_samples', type=int, default=20, help="Number of samples in the synthesized dataset")
 
     # Arguments for RGCrfArray
     parser.add_argument('--rgc_array_rf_size', type=tuple, default=default_rg_array_rf_size, help="Receptive field size (height, width).")
@@ -60,6 +61,10 @@ def parse_args():
     parser.add_argument('--num_gauss_example', type=int, default=1, help="Number of Gaussian examples.")
     parser.add_argument('--temporal_filter_len', type=int, default=50, help="Number of time points for a temporal filter")
     parser.add_argument('--is_pixelized_rf', action='store_true', help="Flag for pixelized receptive field.")
+
+    # Model training parameters
+    parser.add_argument('--batch_size', type=int, default=4, help="Batch size for dataloader")
+    parser.add_argument('--num_worker', type=int, default=0, help="Number of worker for dataloader")
 
 
 
@@ -114,6 +119,19 @@ def main():
     
     if is_show_pathes:
         plot_two_path_comparison(path, path_bg, plot_save_folder, file_name=f'{args.experiment_name}_movement_pathes.png')
+
+    xlim, ylim = args.xlim, args.ylim
+    target_height = xlim[1]-xlim[0]
+    target_width = ylim[1]-ylim[0]
+    train_dataset = Cricket2RGCs(num_samples=args.num_samples, multi_opt_sf=multi_opt_sf, tf=tf, map_func=map_func,
+                                grid2value_mapping=grid2value_mapping, target_width=target_width, target_height=target_height,
+                                movie_generator=movie_generator)
+    
+    if args.num_worker==0:
+        train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True)
+    else:
+        train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True,
+                                        num_workers=args.num_worker, pin_memory=True, persistent_workers=False)
 
 if __name__ == '__main__':
     main()

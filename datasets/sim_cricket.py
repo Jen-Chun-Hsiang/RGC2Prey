@@ -269,18 +269,9 @@ def random_movement(boundary_size, center_ratio, max_steps, prob_stay, prob_mov,
 
 
 class Cricket2RGCs(Dataset):
-    def __init__(self, num_samples, crop_size, boundary_size, center_ratio, max_steps, num_ext, initial_velocity,
-                 bottom_img_folder, top_img_folder, multi_opt_sf, tf, map_func, grid2value_mapping, target_width, target_height,
+    def __init__(self, num_samples, multi_opt_sf, tf, map_func, grid2value_mapping, target_width, target_height,
                  movie_generator):
         self.num_samples = num_samples
-        self.crop_size = crop_size
-        self.boundary_size = boundary_size
-        self.center_ratio = center_ratio
-        self.max_steps = max_steps
-        self.num_ext = num_ext
-        self.initial_velocity = initial_velocity
-        self.bottom_img_folder = bottom_img_folder
-        self.top_img_folder = top_img_folder
         self.multi_opt_sf = multi_opt_sf
         self.tf = tf.view(1, 1, -1)
         self.map_func = map_func
@@ -295,11 +286,10 @@ class Cricket2RGCs(Dataset):
 
     def __getitem__(self, idx):
         syn_movie, path, path_bg = self.generator.generate()
-        syn_movie_batch = torch.tensor(syn_movie.transpose(2, 0, 1))  # Shape: (time_steps, height, width)
-        sf_frame_batch = torch.einsum('whn,thw->tn', self.multi_opt_sf, syn_movie_batch)
-        sf_frame_batch = sf_frame_batch.unsqueeze(0).transpose(1, 2)  # Shape: (1, num_points, time_steps)
-        rgc_time = F.conv1d(sf_frame_batch, self.tf, stride=1, padding=0)  # Shape: (1, num_points, time_steps')
-        rgc_time = rgc_time.squeeze(0).transpose(0, 1)  # Shape: (time_steps', num_points)
+        sf_frame = torch.einsum('whn,hwt->tn', self.multi_opt_sf, syn_movie)
+        sf_frame = sf_frame.unsqueeze(0) 
+        tf = np.repeat(tf, sf_frame.shape[1], axis=0)
+        rgc_time = F.conv1d(sf_frame, tf, stride=1, padding=0, groups=sf_frame.shape[1]).squeeze()
 
         grid_values_sequence = map_to_fixed_grid_decay_batch(
             rgc_time,  # Shape: (time_steps', num_points)
