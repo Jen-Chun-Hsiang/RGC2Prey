@@ -28,20 +28,25 @@ def parse_args():
     default_target_width = 640
     default_target_height = 480
 
-    # Arguments for Cricket2RGCs
-    parser.add_argument('--num_samples', type=int, default=20, help="Number of samples.")
+    # Arguments for SynMovieGenerator
+    parser.add_argument('--num_samples', type=int, default=20, help="Number of samples")
     parser.add_argument('--crop_size', type=tuple, default=default_crop_size, help="Crop size as (width, height).")
     parser.add_argument('--boundary_size', type=tuple, default=default_boundary_size, help="Boundary size as (x_limit, y_limit).")
     parser.add_argument('--center_ratio', type=tuple, default=default_center_ratio, help="Center ratio for initial movement placement.")
     parser.add_argument('--max_steps', type=int, default=default_max_steps, help="Maximum steps for movement.")
+    parser.add_argument('--prob_stay', type=float, default=0.95, help='Probability of step transition from stay to stay')
+    parser.add_argument('--prob_mov', type=float, default=0.975, help='Probability of step transition from moving to moving')
     parser.add_argument('--num_ext', type=int, default=default_num_ext, help="Number of extended static frames.")
     parser.add_argument('--initial_velocity', type=float, default=default_initial_velocity, help="Initial velocity for movement.")
-    parser.add_argument('--multi_opt_sf', type=float, default=1.0, help="Multiple optimization scale factor.")
-    parser.add_argument('--tf', type=str, default='default_tf_params', help="Temporal filter parameters.")
-    parser.add_argument('--map_func', type=str, default='default_map_func', help="Mapping function for grid values.")
-    parser.add_argument('--grid2value_mapping', type=str, default='default_grid2value_mapping', help="Grid-to-value mapping.")
-    parser.add_argument('--target_width', type=int, default=default_target_width, help="Target width for transformation.")
-    parser.add_argument('--target_height', type=int, default=default_target_height, help="Target height for transformation.")
+    parser.add_argument('--momentum_decay_ob', type=float, default=0.95, help='Reduce speed in each run after moving for object')
+    parser.add_argument('--momentum_decay_bg', type=float, default=0.9, help='Reduce speed in each run after moving for background')
+    parser.add_argument('--scale_factor', type=float, default=1.0, help='Size of cricket image compare to its original size')
+    parser.add_argument('--velocity_randomness_ob', type=float, default=0.02, help='Variation in speed change of each step')
+    parser.add_argument('--velocity_randomness_bg', type=float, default=0.01, help='Variation in speed change of each step')
+    parser.add_argument('--angle_range_ob', type=float, default=0.5, help='Variation in speed change of each step')
+    parser.add_argument('--angle_range_bg', type=float, default=0.25, help='Variation in speed change of each step')
+
+    # Arguments for Cricket2RGCs (from movies to RGC array activities based on receptive field properties)
 
     # Arguments for RGCrfArray
     parser.add_argument('--rgc_array_rf_size', type=tuple, default=default_rg_array_rf_size, help="Receptive field size (height, width).")
@@ -61,8 +66,11 @@ def parse_args():
     return parser.parse_args()
 
 def main():
-    is_show_rgc_rf_individual = True
+    is_show_rgc_rf_individual = False
     is_show_rgc_tf = True
+    is_show_movie_frames = True
+    bottom_img_folder = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/CricketDataset/Images/cropped/grass/'
+    top_img_folder    = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/CricketDataset/Images/cropped/cricket/'
     syn_save_folder  = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/CricketDataset/Images/syn_img/'
     plot_save_folder  = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/CricketDataset/Figures/'
     rf_params_file = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/SimulationParams.xlsx'
@@ -89,10 +97,19 @@ def main():
         plot_vector_and_save(tf, plot_save_folder, file_name=f'{args.experiment_name}_temporal_filter.png')
 
     
-    # movie_generator = SynMovieGenerator(
-    #     args.crop_size, args.boundary_size, args.center_ratio, args.max_steps,
-    #     args.num_ext, args.initial_velocity, 'bottom_img_folder_placeholder', 'top_img_folder_placeholder'
-    # )
+    movie_generator = SynMovieGenerator(top_img_folder, bottom_img_folder,
+        crop_size=args.crop_size, boundary_size=args.boundary_size, center_ratio=args.center_ratio, max_steps=args.max_steps,
+        prob_stay=args.prob_stay, prob_mov=args.prob_mov, num_ext=args.num_ext, initial_velocity=args.initial_velocity, 
+        momentum_decay_ob=args.momentum_decay_ob, momentum_decay_bg=args.momentum_decay_bg, scale_factor=args.scale_factor,
+        velocity_randomness_ob = args.velocity_randomness_ob, velocity_randomness_bg=args.velocity_randomness_bg,
+        angle_range_ob=args.angle_range_ob, angle_range_bg=args.angle_range_bg
+    )
+    syn_movie, path, path_bg = movie_generator.generate()
+
+    if is_show_movie_frames:
+        for i in range(syn_movie.shape[2]):
+            Timg = syn_movie[:, :, i]
+            plot_tensor_and_save(Timg, syn_save_folder, f'{args.experiment_name}_synthesized_movement_doublecheck_{i + 1}.png')
 
 if __name__ == '__main__':
     main()

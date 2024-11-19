@@ -207,6 +207,7 @@ def random_movement(boundary_size, center_ratio, max_steps, prob_stay, prob_mov,
 
     # Calculate half-widths and half-heights based on boundary size
     boundary_size = np.array(boundary_size)
+    center_ratio = np.array(center_ratio)
     half_boundary = boundary_size / 2
 
     # Calculate center region bounds based on center_ratio
@@ -311,8 +312,9 @@ class Cricket2RGCs(Dataset):
     
 
 class SynMovieGenerator:
-    def __init__(self, crop_size, boundary_size, center_ratio, max_steps, num_ext, initial_velocity,
-                 bottom_img_folder, top_img_folder, scale_factor=1.0):
+    def __init__(self, top_img_folder, bottom_img_folder, crop_size, boundary_size, center_ratio, max_steps=200, prob_stay=0.95, 
+                 prob_mov=0.975, num_ext=50, initial_velocity=6, momentum_decay_ob=0.95, momentum_decay_bg=0.5, scale_factor=1.0,
+                velocity_randomness_ob=0.02, velocity_randomness_bg=0.01, angle_range_ob=0.5, angle_range_bg=0.25):
         """
         Initializes the SynMovieGenerator with configuration parameters.
 
@@ -327,15 +329,23 @@ class SynMovieGenerator:
         - top_img_folder (str): Path to the folder containing top images.
         - scale_factor (float): Scale factor for image synthesis.
         """
+        self.bottom_img_folder = bottom_img_folder
+        self.top_img_folder = top_img_folder
         self.crop_size = crop_size
         self.boundary_size = boundary_size
         self.center_ratio = center_ratio
         self.max_steps = max_steps
+        self.prob_stay = prob_stay
+        self.prob_mov = prob_mov
         self.num_ext = num_ext
         self.initial_velocity = initial_velocity
-        self.bottom_img_folder = bottom_img_folder
-        self.top_img_folder = top_img_folder
+        self.momentum_decay_ob = momentum_decay_ob
+        self.momentum_decay_bg = momentum_decay_bg
         self.scale_factor = scale_factor
+        self.velocity_randomness_ob = velocity_randomness_ob
+        self.velocity_randomness_bg = velocity_randomness_bg
+        self.angle_range_ob = angle_range_ob
+        self.angle_range_bg = angle_range_bg
 
     def generate(self):
         """
@@ -346,10 +356,12 @@ class SynMovieGenerator:
         - path (np.ndarray): 2D array of object positions (time_steps, 2).
         - path_bg (np.ndarray): 2D array of background positions (time_steps, 2).
         """
-        path, _ = random_movement(self.boundary_size, self.center_ratio, self.max_steps, prob_stay=0.95, prob_mov=0.975,
-                                  initial_velocity=self.initial_velocity, momentum_decay=0.95, velocity_randomness=0.02)
-        path_bg, _ = random_movement(self.boundary_size, self.center_ratio, self.max_steps, prob_stay=0.98, prob_mov=0.98,
-                                     initial_velocity=self.initial_velocity, momentum_decay=0.9, velocity_randomness=0.01)
+        path, _ = random_movement(self.boundary_size, self.center_ratio, self.max_steps, prob_stay=self.prob_stay, 
+                                  prob_mov=self.prob_mov,initial_velocity=self.initial_velocity, momentum_decay=self.momentum_decay_ob,
+                                  velocity_randomness=self.velocity_randomness_ob, angle_range=self.angle_range_ob)
+        path_bg, _ = random_movement(self.boundary_size, self.center_ratio, self.max_steps, prob_stay=self.prob_stay, 
+                                  prob_mov=self.prob_mov, initial_velocity=self.initial_velocity, momentum_decay=self.momentum_decay_bg,
+                                  velocity_randomness=self.velocity_randomness_bg, angle_range=self.angle_range_bg)
 
         # Extend static frames at the beginning
         path = np.vstack((np.repeat(path[0:1, :], self.num_ext, axis=0), path))
