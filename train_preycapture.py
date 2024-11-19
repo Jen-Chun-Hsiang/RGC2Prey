@@ -53,6 +53,7 @@ def parse_args():
     parser.add_argument('--tau', type=float, default=default_tau, help="Decay factor for 'decay' method.")
     parser.add_argument('--rand_seed', type=int, default=42, help="Random seed for reproducibility.")
     parser.add_argument('--num_gauss_example', type=int, default=1, help="Number of Gaussian examples.")
+    parser.add_argument('--temporal_filter_len', type=int, default=50, help="Number of time points for a temporal filter")
     parser.add_argument('--is_pixelized_rf', action='store_true', help="Flag for pixelized receptive field.")
 
 
@@ -70,9 +71,10 @@ def main():
     sf_param_table = pd.read_excel(rf_params_file, sheet_name='SF_params', usecols='A:L')
     tf_param_table = pd.read_excel(rf_params_file, sheet_name='TF_params', usecols='A:I')
     rgc_array = RGCrfArray(
-        sf_param_table, tf_param_table, args.rgc_array_rf_size, args.xlim, args.ylim,
-        args.target_num_centers, args.sf_scalar, args.grid_generate_method, args.tau,
-        args.rand_seed, args.num_gauss_example, args.is_pixelized_rf
+        sf_param_table, tf_param_table, rgc_array_rf_size=args.rgc_array_rf_size, xlim=args.xlim, ylim=args.ylim,
+        target_num_centers=args.target_num_centers, sf_scalar=args.sf_scalar, grid_generate_method=args.grid_generate_method, 
+        tau=args.tau,rand_seed=args.rand_seed, num_gauss_example=args.num_gauss_example, is_pixelized_rf=args.is_pixelized_rf,
+        temporal_filter_len=args.temporal_filter_len
     )
     multi_opt_sf, tf, grid2value_mapping, map_func = rgc_array.get_results()
 

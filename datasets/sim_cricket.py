@@ -437,7 +437,8 @@ def synthesize_image_with_params_batch(bottom_img_path, top_img_path, top_img_po
 
 class RGCrfArray:
     def __init__(self, sf_param_table, tf_param_table, rgc_array_rf_size, xlim, ylim, target_num_centers, sf_scalar,
-                 grid_generate_method, tau=None, rand_seed=42, num_gauss_example=1, is_pixelized_rf=False, sf_pixel_thr=99.7):
+                 grid_generate_method, tau=None, rand_seed=42, num_gauss_example=1, is_pixelized_rf=False, sf_pixel_thr=99.7,
+                 temporal_filter_len=50):
         """
         Args:
             sf_param_table (DataFrame): Table of spatial frequency parameters.
@@ -455,6 +456,7 @@ class RGCrfArray:
         self.tf_param_table = tf_param_table
         self.rgc_array_rf_size = rgc_array_rf_size
         self.sf_scalar = sf_scalar
+        self.temporal_filter_len = temporal_filter_len
         self.grid_generate_method = grid_generate_method
         self.tau = tau
         self.rand_seed = rand_seed
@@ -488,7 +490,7 @@ class RGCrfArray:
 
         # Generate multi_opt_sf and tf arrays
         self.multi_opt_sf = self._create_multi_opt_sf()
-        self.tf = self._create_temporal_filter(len(self.tf_param_table))
+        self.tf = self._create_temporal_filter()
 
 
     def _create_multi_opt_sf(self):
@@ -513,16 +515,17 @@ class RGCrfArray:
         return multi_opt_sf
 
 
-    def _create_temporal_filter(self, temporal_filter_len):
+    def _create_temporal_filter(self):
+        
         if self.is_pixelized_rf:
-            tf = np.zeros(temporal_filter_len)
+            tf = np.zeros(self.temporal_filter_len)
             tf[-1] = 1 
         else:
             num_sim_data = len(self.tf_param_table)
             pid = self.rng.randint(0, num_sim_data - 1)
             row = self.tf_param_table.iloc[pid]
             tf_params = np.array([row['sigma1'], row['sigma2'], row['mean1'], row['mean2'], row['amp1'], row['amp2'], row['offset']])
-            tf = gaussian_temporalfilter(temporal_filter_len, tf_params)
+            tf = gaussian_temporalfilter(self.temporal_filter_len, tf_params)
             tf = tf-tf[0]
         return tf
 
