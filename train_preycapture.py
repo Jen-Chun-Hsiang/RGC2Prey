@@ -87,10 +87,10 @@ def main():
         plot_vector_and_save(tf, plot_save_folder, file_name=f'{args.experiment_name}_temporal_filter.png')
 
     
-    movie_generator = SynMovieGenerator(
-        args.crop_size, args.boundary_size, args.center_ratio, args.max_steps,
-        args.num_ext, args.initial_velocity, 'bottom_img_folder_placeholder', 'top_img_folder_placeholder'
-    )
+    # movie_generator = SynMovieGenerator(
+    #     args.crop_size, args.boundary_size, args.center_ratio, args.max_steps,
+    #     args.num_ext, args.initial_velocity, 'bottom_img_folder_placeholder', 'top_img_folder_placeholder'
+    # )
 
 if __name__ == '__main__':
     main()
