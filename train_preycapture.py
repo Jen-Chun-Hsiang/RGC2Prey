@@ -1,6 +1,7 @@
 import argparse
 import torch
 import pandas as pd
+import time
 from torch.utils.data import DataLoader
 # from models.simpleSC import RGC2SCNet
 
@@ -75,6 +76,7 @@ def main():
     is_show_rgc_tf = True
     is_show_movie_frames = True
     is_show_pathes = True
+    is_show_grids = True
     bottom_img_folder = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/CricketDataset/Images/cropped/grass/'
     top_img_folder    = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/CricketDataset/Images/cropped/cricket/'
     syn_save_folder  = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/CricketDataset/Images/syn_img/'
@@ -132,6 +134,20 @@ def main():
     else:
         train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True,
                                         num_workers=args.num_worker, pin_memory=True, persistent_workers=False)
+    
+    start_time = time.perf_counter()
+    for batch_idx, data in enumerate(train_loader):
+        elapsed_time = time.perf_counter() - start_time  # Calculate elapsed time
+        print(f"[{elapsed_time:.2f}s] Main Process - Batch {batch_idx}")
+        sequence, path, path_bg = data
+
+        if is_show_grids and batch_idx == 0:
+            sequence = sequence[0]
+            for i in range(sequence.shape[2]):
+                Timg = syn_movie[i, :, :]
+                plot_tensor_and_save(Timg, syn_save_folder, f'{args.experiment_name}_RGCgrid_activity_doublecheck_{i + 1}.png')
+            break
+
 
 if __name__ == '__main__':
     main()
