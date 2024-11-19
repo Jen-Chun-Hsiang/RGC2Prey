@@ -6,8 +6,8 @@ import torchvision.transforms as T
 from torch.utils.data import Dataset
 import torch.nn.functional as F
 
-from rgc_rf import map_to_fixed_grid_decay_batch, gaussian_multi, gaussian_temporalfilter, get_closest_indices, compute_distance_decay_matrix
-from rgc_rf import map_to_fixed_grid_closest, map_to_fixed_grid_decay, create_hexagonal_centers, precompute_grid_centers
+from datasets.rgc_rf import map_to_fixed_grid_decay_batch, gaussian_multi, gaussian_temporalfilter, get_closest_indices, compute_distance_decay_matrix
+from datasets.rgc_rf import map_to_fixed_grid_closest, map_to_fixed_grid_decay, create_hexagonal_centers, precompute_grid_centers
 from utils.utils import get_random_file_path
 
 
