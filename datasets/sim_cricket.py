@@ -7,7 +7,7 @@ from torch.utils.data import Dataset
 import torch.nn.functional as F
 
 from rgc_rf import map_to_fixed_grid_decay_batch, gaussian_multi, gaussian_temporalfilter, get_closest_indices, compute_distance_decay_matrix
-from rgc_rf import map_to_fixed_grid_closest, map_to_fixed_grid_decay
+from rgc_rf import map_to_fixed_grid_closest, map_to_fixed_grid_decay, create_hexagonal_centers, precompute_grid_centers
 from utils.utils import get_random_file_path
 
 
@@ -461,19 +461,21 @@ class RGCrfArray:
         self.tau = tau
         self.rand_seed = rand_seed
         self.num_gauss_example = num_gauss_example
+        self.target_num_centers = target_num_centers
         self.is_pixelized_rf = is_pixelized_rf
         self.sf_pixel_thr = sf_pixel_thr
 
         # Set random seed
-        np.random.seed(rand_seed)
-        torch.manual_seed(rand_seed)
-        random.seed(rand_seed)
+        self.np_rng = np.random.default_rng(self.rand_seed)
+        self.rng = random.Random(self.rand_seed)
+        torch.manual_seed(self.rand_seed)
+        
 
         # Generate points and grid centers
-        self.points = self._create_hexagonal_centers(xlim, ylim, target_num_centers, rand_seed=rand_seed)
+        self.points = create_hexagonal_centers(xlim, ylim, target_num_centers=self.target_num_centers, rand_seed=self.rand_seed)
         self.target_height = xlim[1] - xlim[0]
         self.target_width = ylim[1] - ylim[0]
-        self.grid_centers = self.precompute_grid_centers(self.target_height, self.target_width, x_min=xlim[0], x_max=xlim[1],
+        self.grid_centers = precompute_grid_centers(self.target_height, self.target_width, x_min=xlim[0], x_max=xlim[1],
                                             y_min=ylim[0], y_max=ylim[1])
 
         # Generate grid2value mapping and map function
@@ -494,9 +496,10 @@ class RGCrfArray:
     def _create_multi_opt_sf(self):
         # Create multi-optical spatial filters
         multi_opt_sf = np.zeros((self.rgc_array_rf_size[0], self.rgc_array_rf_size[1], len(self.points)))
+        num_sim_data = len(self.sf_param_table)
+        pid = self.rng.randint(0, num_sim_data - 1)
+        row = self.sf_param_table.iloc[pid]
         for i, point in enumerate(self.points):
-            pid = random.randint(0, len(self.sf_param_table) - 1)
-            row = self.sf_param_table.iloc[pid]
             sf_params = np.array([
                 point[1], point[0], row['sigma_x'] * self.sf_scalar, row['sigma_y'] * self.sf_scalar,
                 row['theta'], row['bias'], row['c_scale'], row['s_sigma_x'] * self.sf_scalar,
@@ -518,7 +521,7 @@ class RGCrfArray:
             tf[-1] = 1 
         else:
             num_sim_data = len(self.tf_param_table)
-            pid = random.randint(0, num_sim_data - 1)
+            pid = self.rng.randint(0, num_sim_data - 1)
             row = self.tf_param_table.iloc[pid]
             tf_params = np.array([row['sigma1'], row['sigma2'], row['mean1'], row['mean2'], row['amp1'], row['amp2'], row['offset']])
             tf = gaussian_temporalfilter(temporal_filter_len, tf_params)
