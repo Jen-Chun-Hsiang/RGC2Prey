@@ -3,6 +3,13 @@ from PIL import Image
 import numpy as np
 import torch
 import torchvision.transforms as T
+from torch.utils.data import Dataset
+import torch.nn.functional as F
+
+from rgc_rf import map_to_fixed_grid_decay_batch, gaussian_multi, gaussian_temporalfilter, get_closest_indices, compute_distance_decay_matrix
+from rgc_rf import map_to_fixed_grid_closest, map_to_fixed_grid_decay
+from utils.utils import get_random_file_path
+
 
 
 def jitter_position(position, jitter_range):
@@ -257,3 +264,267 @@ def random_movement(boundary_size, center_ratio, max_steps, prob_stay, prob_mov,
     velocity_history = velocity_history[:step_count]
 
     return path, velocity_history
+
+
+class Cricket2RGCs(Dataset):
+    def __init__(self, num_samples, num_frames, crop_size, boundary_size, center_ratio, max_steps, num_ext, initial_velocity,
+                 bottom_img_folder, top_img_folder, multi_opt_sf, tf, map_func, grid2value_mapping, target_width, target_height,
+                 movie_generator):
+        self.num_samples = num_samples
+        self.num_frames = num_frames
+        self.crop_size = crop_size
+        self.boundary_size = boundary_size
+        self.center_ratio = center_ratio
+        self.max_steps = max_steps
+        self.num_ext = num_ext
+        self.initial_velocity = initial_velocity
+        self.bottom_img_folder = bottom_img_folder
+        self.top_img_folder = top_img_folder
+        self.multi_opt_sf = multi_opt_sf
+        self.tf = tf.view(1, 1, -1)
+        self.map_func = map_func
+        self.grid2value_mapping = grid2value_mapping
+        self.target_width = target_width
+        self.target_height = target_height
+        # Accept pre-initialized movie generator
+        self.movie_generator = movie_generator
+
+    def __len__(self):
+        return self.num_samples
+
+    def __getitem__(self, idx):
+        syn_movie, path, path_bg = self.generator.generate()
+        syn_movie_batch = torch.tensor(syn_movie.transpose(2, 0, 1))  # Shape: (time_steps, height, width)
+        sf_frame_batch = torch.einsum('whn,thw->tn', self.multi_opt_sf, syn_movie_batch)
+        sf_frame_batch = sf_frame_batch.unsqueeze(0).transpose(1, 2)  # Shape: (1, num_points, time_steps)
+        rgc_time = F.conv1d(sf_frame_batch, self.tf, stride=1, padding=0)  # Shape: (1, num_points, time_steps')
+        rgc_time = rgc_time.squeeze(0).transpose(0, 1)  # Shape: (time_steps', num_points)
+
+        grid_values_sequence = map_to_fixed_grid_decay_batch(
+            rgc_time,  # Shape: (time_steps', num_points)
+            self.grid2value_mapping,  # Shape: (num_points, target_width * target_height)
+            self.target_width,
+            self.target_height
+        ) 
+
+        return grid_values_sequence, torch.tensor(path, dtype=torch.float32), torch.tensor(path_bg, dtype=torch.float32)
+    
+
+class SynMovieGenerator:
+    def __init__(self, num_frames, crop_size, boundary_size, center_ratio, max_steps, num_ext, initial_velocity,
+                 bottom_img_folder, top_img_folder, scale_factor=1.0):
+        """
+        Initializes the SynMovieGenerator with configuration parameters.
+
+        Parameters:
+        - num_frames (int): Number of frames in the synthetic movie.
+        - crop_size (tuple): Dimensions of the crop (width, height).
+        - boundary_size (tuple): Boundary limits for movement.
+        - center_ratio (tuple): Center ratios for initial movement placement.
+        - max_steps (int): Maximum number of steps for movement paths.
+        - num_ext (int): Number of extended static frames at the beginning.
+        - initial_velocity (float): Initial velocity for movement.
+        - bottom_img_folder (str): Path to the folder containing bottom images.
+        - top_img_folder (str): Path to the folder containing top images.
+        - scale_factor (float): Scale factor for image synthesis.
+        """
+        self.num_frames = num_frames
+        self.crop_size = crop_size
+        self.boundary_size = boundary_size
+        self.center_ratio = center_ratio
+        self.max_steps = max_steps
+        self.num_ext = num_ext
+        self.initial_velocity = initial_velocity
+        self.bottom_img_folder = bottom_img_folder
+        self.top_img_folder = top_img_folder
+        self.scale_factor = scale_factor
+
+    def generate(self):
+        """
+        Generates a synthetic movie, path, and path_bg.
+
+        Returns:
+        - syn_movie (np.ndarray): 3D array of shape (height, width, time_steps).
+        - path (np.ndarray): 2D array of object positions (time_steps, 2).
+        - path_bg (np.ndarray): 2D array of background positions (time_steps, 2).
+        """
+        path, _ = random_movement(self.boundary_size, self.center_ratio, self.max_steps, prob_stay=0.95, prob_mov=0.975,
+                                  initial_velocity=self.initial_velocity, momentum_decay=0.95, velocity_randomness=0.02)
+        path_bg, _ = random_movement(self.boundary_size, self.center_ratio, self.max_steps, prob_stay=0.98, prob_mov=0.98,
+                                     initial_velocity=self.initial_velocity, momentum_decay=0.9, velocity_randomness=0.01)
+
+        # Extend static frames at the beginning
+        path = np.vstack((np.repeat(path[0:1, :], self.num_ext, axis=0), path))
+        path_bg = np.vstack((np.repeat(path_bg[0:1, :], self.num_ext, axis=0), path_bg))
+
+        bottom_img_path = get_random_file_path(self.bottom_img_folder)
+        top_img_path = get_random_file_path(self.top_img_folder)
+
+        # Convert paths to numpy arrays
+        top_img_positions = path.round().astype(int)
+        bottom_img_positions = path_bg.round().astype(int)
+
+        # Generate the batch of images
+        syn_movie = synthesize_image_with_params_batch(
+            bottom_img_path, top_img_path, top_img_positions, bottom_img_positions,
+            self.scale_factor, self.crop_size, alpha=1.0
+        )
+
+        syn_movie = syn_movie[:, 1, :, :]  # Extract green channel from all image
+
+        return syn_movie, path, path_bg
+    
+
+
+def synthesize_image_with_params_batch(bottom_img_path, top_img_path, top_img_positions, bottom_img_positions,
+                                       scale_factor, crop_size, alpha=1.0):
+    """
+    Synthesizes a batch of images by overlaying the top image on the bottom image at specific positions.
+
+    Parameters:
+    - bottom_img_path (str): Path to the bottom image file.
+    - top_img_path (str): Path to the top image file.
+    - top_img_positions (np.ndarray): Array of shape (batch_size, 2) with positions for the top image.
+    - bottom_img_positions (np.ndarray): Array of shape (batch_size, 2) with positions for the bottom image.
+    - scale_factor (float): Scaling factor for the top image.
+    - crop_size (tuple): Desired output size (width, height).
+    - alpha (float): Alpha blending factor for overlaying.
+
+    Returns:
+    - syn_images (torch.Tensor): Tensor of shape (batch_size, 3, crop_size[1], crop_size[0]) containing the synthesized images.
+    """
+
+    # Open and process the images
+    bottom_img = Image.open(bottom_img_path).convert("RGBA")
+    top_img = Image.open(top_img_path).convert("RGBA")
+    top_img = scale_image(top_img, scale_factor)
+
+    # Convert to PyTorch tensors
+    bottom_tensor = T.ToTensor()(bottom_img)
+    top_tensor = T.ToTensor()(top_img)
+
+    # Get dimensions
+    bottom_h, bottom_w = bottom_img.size
+    top_h, top_w = top_img.size
+    batch_size = len(top_img_positions)
+
+    # Prepare a batch tensor for the final output
+    syn_images = torch.zeros((batch_size, 3, crop_size[1], crop_size[0]))
+
+    for i in range(batch_size):
+        # Compute relative position
+        relative_pos = top_img_positions[i] - bottom_img_positions[i]
+        fill_h = (bottom_h - top_h) // 2
+        fill_w = (bottom_w - top_w) // 2
+
+        # Clone the bottom image tensor
+        final_tensor = bottom_tensor.clone()
+
+        # Overlay the top image
+        for c in range(3):  # Iterate over RGB channels
+            final_tensor[c, fill_h + relative_pos[1]:fill_h + relative_pos[1] + top_h,
+                         fill_w + relative_pos[0]:fill_w + relative_pos[0] + top_w] = (
+                top_tensor[c, :, :] * top_tensor[3, :, :] * alpha +
+                final_tensor[c, fill_h + relative_pos[1]:fill_h + relative_pos[1] + top_h,
+                             fill_w + relative_pos[0]:fill_w + relative_pos[0] + top_w] * (1 - top_tensor[3, :, :] * alpha)
+            )
+
+        # Convert to PIL and crop
+        final_img = T.ToPILImage()(final_tensor)
+        cropped_img = crop_image(final_img, crop_size, bottom_img_positions[i])
+        syn_images[i] = T.ToTensor()(cropped_img)
+
+    return syn_images
+
+
+class RGCrfArray:
+    def __init__(self, sf_param_table, tf_param_table, rgc_array_rf_size, xlim, ylim, target_num_centers, sf_scalar,
+                 grid_generate_method, tau=None, rand_seed=42, num_gauss_example=1, is_pixelized_rf=False, sf_pixel_thr=99.7):
+        """
+        Args:
+            sf_param_table (DataFrame): Table of spatial frequency parameters.
+            tf_param_table (DataFrame): Table of temporal filter parameters.
+            rgc_array_rf_size (tuple): Size of the receptive field (height, width).
+            xlim (tuple): x-axis limits for grid centers.
+            ylim (tuple): y-axis limits for grid centers.
+            target_num_centers (int): Number of target centers to generate.
+            sf_scalar (float): Scaling factor for spatial frequency parameters.
+            grid_generate_method (str): Method for grid generation ('closest' or 'decay').
+            tau (float, optional): Decay factor for the 'decay' method.
+            rand_seed (int): Random seed for reproducibility.
+        """
+        self.sf_param_table = sf_param_table
+        self.tf_param_table = tf_param_table
+        self.rgc_array_rf_size = rgc_array_rf_size
+        self.sf_scalar = sf_scalar
+        self.grid_generate_method = grid_generate_method
+        self.tau = tau
+        self.rand_seed = rand_seed
+        self.num_gauss_example = num_gauss_example
+        self.is_pixelized_rf = is_pixelized_rf
+        self.sf_pixel_thr = sf_pixel_thr
+
+        # Set random seed
+        np.random.seed(rand_seed)
+        torch.manual_seed(rand_seed)
+        random.seed(rand_seed)
+
+        # Generate points and grid centers
+        self.points = self._create_hexagonal_centers(xlim, ylim, target_num_centers, rand_seed=rand_seed)
+        self.target_height = xlim[1] - xlim[0]
+        self.target_width = ylim[1] - ylim[0]
+        self.grid_centers = self.precompute_grid_centers(self.target_height, self.target_width, x_min=xlim[0], x_max=xlim[1],
+                                            y_min=ylim[0], y_max=ylim[1])
+
+        # Generate grid2value mapping and map function
+        if grid_generate_method == 'closest':
+            self.grid2value_mapping = get_closest_indices(self.grid_centers, self.points)
+            self.map_func = map_to_fixed_grid_closest
+        elif grid_generate_method == 'decay':
+            self.grid2value_mapping = compute_distance_decay_matrix(self.grid_centers, self.points, self.tau)
+            self.map_func = map_to_fixed_grid_decay
+        else:
+            raise ValueError("Invalid grid_generate_method. Use 'closest' or 'decay'.")
+
+        # Generate multi_opt_sf and tf arrays
+        self.multi_opt_sf = self._create_multi_opt_sf()
+        self.tf = self._create_temporal_filter(len(self.tf_param_table))
+
+
+    def _create_multi_opt_sf(self):
+        # Create multi-optical spatial filters
+        multi_opt_sf = np.zeros((self.rgc_array_rf_size[0], self.rgc_array_rf_size[1], len(self.points)))
+        for i, point in enumerate(self.points):
+            pid = random.randint(0, len(self.sf_param_table) - 1)
+            row = self.sf_param_table.iloc[pid]
+            sf_params = np.array([
+                point[1], point[0], row['sigma_x'] * self.sf_scalar, row['sigma_y'] * self.sf_scalar,
+                row['theta'], row['bias'], row['c_scale'], row['s_sigma_x'] * self.sf_scalar,
+                row['s_sigma_y'] * self.sf_scalar, row['s_scale']
+            ])
+            opt_sf = gaussian_multi(sf_params, self.rgc_array_rf_size, self.num_gauss_example)
+            opt_sf -= np.median(opt_sf)  
+
+            if self.is_pixelized_rf:
+                threshold_value = np.percentile(opt_sf, self.sf_pixel_thr)
+                opt_sf = np.where(opt_sf > threshold_value, 1, 0)
+            multi_opt_sf[:, :, i] = opt_sf
+        return multi_opt_sf
+
+
+    def _create_temporal_filter(self, temporal_filter_len):
+        if self.is_pixelized_rf:
+            tf = np.zeros(temporal_filter_len)
+            tf[-1] = 1 
+        else:
+            num_sim_data = len(self.tf_param_table)
+            pid = random.randint(0, num_sim_data - 1)
+            row = self.tf_param_table.iloc[pid]
+            tf_params = np.array([row['sigma1'], row['sigma2'], row['mean1'], row['mean2'], row['amp1'], row['amp2'], row['offset']])
+            tf = gaussian_temporalfilter(temporal_filter_len, tf_params)
+            tf = tf-tf[0]
+        return tf
+
+    def get_results(self):
+        return self.multi_opt_sf, self.tf, self.grid2value_mapping, self.map_func
+
