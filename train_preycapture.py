@@ -1,7 +1,7 @@
 import argparse
 import torch
 import pandas as pd
-from models.simpleSC import RGC2SCNet
+# from models.simpleSC import RGC2SCNet
 
 from datasets.sim_cricket import RGCrfArray, SynMovieGenerator
 from utils.utils import plot_tensor_and_save, plot_vector_and_save
