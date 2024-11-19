@@ -363,6 +363,13 @@ class SynMovieGenerator:
                                   prob_mov=self.prob_mov, initial_velocity=self.initial_velocity, momentum_decay=self.momentum_decay_bg,
                                   velocity_randomness=self.velocity_randomness_bg, angle_range=self.angle_range_bg)
 
+        # Determine the minimum length for consistency
+        min_length = min(len(path), len(path_bg))
+        path = path[:min_length]
+        velocity = velocity[:min_length]
+        path_bg = path_bg[:min_length]
+        velocity_bg = velocity_bg[:min_length]
+
         # Extend static frames at the beginning
         path = np.vstack((np.repeat(path[0:1, :], self.num_ext, axis=0), path))
         path_bg = np.vstack((np.repeat(path_bg[0:1, :], self.num_ext, axis=0), path_bg))
@@ -416,6 +423,9 @@ def synthesize_image_with_params_batch(bottom_img_path, top_img_path, top_img_po
     # Get dimensions
     bottom_h, bottom_w = bottom_img.size
     top_h, top_w = top_img.size
+    fill_h = (bottom_h - top_h) // 2
+    fill_w = (bottom_w - top_w) // 2
+    
     batch_size = len(top_img_positions)
 
     # Prepare a batch tensor for the final output
@@ -424,8 +434,6 @@ def synthesize_image_with_params_batch(bottom_img_path, top_img_path, top_img_po
     for i in range(batch_size):
         # Compute relative position
         relative_pos = top_img_positions[i] - bottom_img_positions[i]
-        fill_h = (bottom_h - top_h) // 2
-        fill_w = (bottom_w - top_w) // 2
 
         # Clone the bottom image tensor
         final_tensor = bottom_tensor.clone()
