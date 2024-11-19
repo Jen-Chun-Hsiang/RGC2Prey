@@ -421,8 +421,8 @@ def synthesize_image_with_params_batch(bottom_img_path, top_img_path, top_img_po
     top_tensor = T.ToTensor()(top_img)
 
     # Get dimensions
-    bottom_h, bottom_w = bottom_img.size
-    top_h, top_w = top_img.size
+    bottom_w, bottom_h = bottom_img.size
+    top_w, top_h = top_img.size
     fill_h = (bottom_h - top_h) // 2
     fill_w = (bottom_w - top_w) // 2
     
