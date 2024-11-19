@@ -273,7 +273,7 @@ class Cricket2RGCs(Dataset):
                  movie_generator):
         self.num_samples = num_samples
         self.multi_opt_sf = multi_opt_sf
-        self.tf = tf.view(1, 1, -1)
+        self.tf = torch.from_numpy(tf.copy()).float().view(1, 1, -1)
         self.map_func = map_func
         self.grid2value_mapping = grid2value_mapping
         self.target_width = target_width
