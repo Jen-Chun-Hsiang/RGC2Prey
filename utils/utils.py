@@ -260,3 +260,38 @@ def plot_gaussian_model(grid_values, rgc_array_rf_area, output_folder, file_name
     plt.savefig(output_path)
     plt.close()
     print(f"Plot saved to {output_path}")
+
+
+def plot_two_path_comparison(array1, array2, save_folder, file_name):
+    """
+    Plot traces from two 2D numpy arrays and save the figure.
+    
+    Parameters:
+    - array1: numpy.ndarray, shape (n, 2), first array with x and y coordinates
+    - array2: numpy.ndarray, shape (n, 2), second array with x and y coordinates
+    - save_folder: str, folder path to save the plot
+    - file_name: str, name of the file to save the plot (e.g., "plot.png")
+    """
+    # Ensure save folder exists
+    os.makedirs(save_folder, exist_ok=True)
+    
+    # Extract x and y coordinates
+    x1, y1 = array1[:, 0], array1[:, 1]
+    x2, y2 = array2[:, 0], array2[:, 1]
+    
+    # Create the plot
+    plt.figure(figsize=(8, 6))
+    plt.plot(x1, y1, label="Trace 1", color="blue", linestyle="-", linewidth=2)
+    plt.plot(x2, y2, label="Trace 2", color="red", linestyle="--", linewidth=2)
+    
+    # Add labels and legend
+    plt.xlabel("X Coordinate")
+    plt.ylabel("Y Coordinate")
+    plt.title("Traces Plot")
+    plt.legend()
+    plt.grid(True)
+    
+    # Save the plot
+    save_path = os.path.join(save_folder, file_name)
+    plt.savefig(save_path, bbox_inches="tight")
+    plt.close()

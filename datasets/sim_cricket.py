@@ -450,6 +450,8 @@ def synthesize_image_with_params_batch(bottom_img_path, top_img_path, top_img_po
         # Convert to PIL and crop
         final_img = T.ToPILImage()(final_tensor)
         cropped_img = crop_image(final_img, crop_size, bottom_img_positions[i])
+        if cropped_img.mode == "RGBA":
+            cropped_img = cropped_img.convert("RGB")
         syn_images[i] = T.ToTensor()(cropped_img)
 
     return syn_images

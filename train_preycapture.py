@@ -4,7 +4,7 @@ import pandas as pd
 # from models.simpleSC import RGC2SCNet
 
 from datasets.sim_cricket import RGCrfArray, SynMovieGenerator
-from utils.utils import plot_tensor_and_save, plot_vector_and_save
+from utils.utils import plot_tensor_and_save, plot_vector_and_save, plot_two_path_comparison
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Script for Model Training to get 3D RF in simulation")
@@ -69,6 +69,7 @@ def main():
     is_show_rgc_rf_individual = False
     is_show_rgc_tf = True
     is_show_movie_frames = True
+    is_show_pathes = True
     bottom_img_folder = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/CricketDataset/Images/cropped/grass/'
     top_img_folder    = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/CricketDataset/Images/cropped/cricket/'
     syn_save_folder  = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/CricketDataset/Images/syn_img/'
@@ -110,6 +111,9 @@ def main():
         for i in range(syn_movie.shape[2]):
             Timg = syn_movie[:, :, i]
             plot_tensor_and_save(Timg, syn_save_folder, f'{args.experiment_name}_synthesized_movement_doublecheck_{i + 1}.png')
+    
+    if is_show_pathes:
+        plot_two_path_comparison(path, path_bg, plot_save_folder, file_name=f'{args.experiment_name}_movement_pathes.png')
 
 if __name__ == '__main__':
     main()
