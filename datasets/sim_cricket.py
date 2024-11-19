@@ -356,10 +356,10 @@ class SynMovieGenerator:
         - path (np.ndarray): 2D array of object positions (time_steps, 2).
         - path_bg (np.ndarray): 2D array of background positions (time_steps, 2).
         """
-        path, _ = random_movement(self.boundary_size, self.center_ratio, self.max_steps, prob_stay=self.prob_stay, 
+        path, velocity = random_movement(self.boundary_size, self.center_ratio, self.max_steps, prob_stay=self.prob_stay, 
                                   prob_mov=self.prob_mov,initial_velocity=self.initial_velocity, momentum_decay=self.momentum_decay_ob,
                                   velocity_randomness=self.velocity_randomness_ob, angle_range=self.angle_range_ob)
-        path_bg, _ = random_movement(self.boundary_size, self.center_ratio, self.max_steps, prob_stay=self.prob_stay, 
+        path_bg, velocity_bg = random_movement(self.boundary_size, self.center_ratio, self.max_steps, prob_stay=self.prob_stay, 
                                   prob_mov=self.prob_mov, initial_velocity=self.initial_velocity, momentum_decay=self.momentum_decay_bg,
                                   velocity_randomness=self.velocity_randomness_bg, angle_range=self.angle_range_bg)
 
