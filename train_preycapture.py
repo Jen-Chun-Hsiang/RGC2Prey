@@ -75,7 +75,7 @@ def main():
         args.target_num_centers, args.sf_scalar, args.grid_generate_method, args.tau,
         args.rand_seed, args.num_gauss_example, args.is_pixelized_rf
     )
-    multi_opt_sf, tf, grid2value_mapping, map_func = rgc_array.get_results
+    multi_opt_sf, tf, grid2value_mapping, map_func = rgc_array.get_results()
 
     # Check results of RGC array synthesis
     if is_show_rgc_rf_individual:
