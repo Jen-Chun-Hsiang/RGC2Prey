@@ -206,6 +206,7 @@ def random_movement(boundary_size, center_ratio, max_steps, prob_stay, prob_mov,
     """
 
     # Calculate half-widths and half-heights based on boundary size
+    boundary_size = np.array(boundary_size)
     half_boundary = boundary_size / 2
 
     # Calculate center region bounds based on center_ratio
@@ -267,11 +268,10 @@ def random_movement(boundary_size, center_ratio, max_steps, prob_stay, prob_mov,
 
 
 class Cricket2RGCs(Dataset):
-    def __init__(self, num_samples, num_frames, crop_size, boundary_size, center_ratio, max_steps, num_ext, initial_velocity,
+    def __init__(self, num_samples, crop_size, boundary_size, center_ratio, max_steps, num_ext, initial_velocity,
                  bottom_img_folder, top_img_folder, multi_opt_sf, tf, map_func, grid2value_mapping, target_width, target_height,
                  movie_generator):
         self.num_samples = num_samples
-        self.num_frames = num_frames
         self.crop_size = crop_size
         self.boundary_size = boundary_size
         self.center_ratio = center_ratio
@@ -311,13 +311,12 @@ class Cricket2RGCs(Dataset):
     
 
 class SynMovieGenerator:
-    def __init__(self, num_frames, crop_size, boundary_size, center_ratio, max_steps, num_ext, initial_velocity,
+    def __init__(self, crop_size, boundary_size, center_ratio, max_steps, num_ext, initial_velocity,
                  bottom_img_folder, top_img_folder, scale_factor=1.0):
         """
         Initializes the SynMovieGenerator with configuration parameters.
 
         Parameters:
-        - num_frames (int): Number of frames in the synthetic movie.
         - crop_size (tuple): Dimensions of the crop (width, height).
         - boundary_size (tuple): Boundary limits for movement.
         - center_ratio (tuple): Center ratios for initial movement placement.
@@ -328,7 +327,6 @@ class SynMovieGenerator:
         - top_img_folder (str): Path to the folder containing top images.
         - scale_factor (float): Scale factor for image synthesis.
         """
-        self.num_frames = num_frames
         self.crop_size = crop_size
         self.boundary_size = boundary_size
         self.center_ratio = center_ratio

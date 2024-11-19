@@ -30,7 +30,6 @@ def parse_args():
 
     # Arguments for Cricket2RGCs
     parser.add_argument('--num_samples', type=int, default=20, help="Number of samples.")
-    parser.add_argument('--num_frames', type=int, default=50, help="Number of frames in the dataset.")
     parser.add_argument('--crop_size', type=tuple, default=default_crop_size, help="Crop size as (width, height).")
     parser.add_argument('--boundary_size', type=tuple, default=default_boundary_size, help="Boundary size as (x_limit, y_limit).")
     parser.add_argument('--center_ratio', type=tuple, default=default_center_ratio, help="Center ratio for initial movement placement.")
@@ -88,10 +87,10 @@ def main():
         plot_vector_and_save(tf, plot_save_folder, file_name=f'{args.experiment_name}_temporal_filter.png')
 
     
-    # movie_generator = SynMovieGenerator(
-    #     args.num_frames, args.crop_size, args.boundary_size, args.center_ratio, args.max_steps,
-    #     args.num_ext, args.initial_velocity, 'bottom_img_folder_placeholder', 'top_img_folder_placeholder'
-    # )
+    movie_generator = SynMovieGenerator(
+        args.crop_size, args.boundary_size, args.center_ratio, args.max_steps,
+        args.num_ext, args.initial_velocity, 'bottom_img_folder_placeholder', 'top_img_folder_placeholder'
+    )
 
 if __name__ == '__main__':
     main()
