@@ -290,14 +290,10 @@ class Cricket2RGCs(Dataset):
 
     def __getitem__(self, idx):
         syn_movie, path, path_bg = self.movie_generator.generate()
-        print(f'multi_opt_sf.shape: {self.multi_opt_sf.shape}')
         sf_frame = torch.einsum('whn,thw->nt', self.multi_opt_sf, syn_movie)
         sf_frame = sf_frame.unsqueeze(0) 
-        print(f'sf_frame.shape: {sf_frame.shape}')
         tf = np.repeat(self.tf, sf_frame.shape[1], axis=0)
-        print(f'tf.shape: {self.tf.shape}')
         rgc_time = F.conv1d(sf_frame, tf, stride=1, padding=0, groups=sf_frame.shape[1]).squeeze()
-        print(f'rgc_time.shape: {rgc_time.shape}')
         grid_values_sequence = map_to_fixed_grid_decay_batch(
             rgc_time,  # Shape: (time_steps', num_points)
             self.grid2value_mapping,  # Shape: (num_points, target_width * target_height)
