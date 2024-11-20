@@ -275,7 +275,7 @@ class Cricket2RGCs(Dataset):
         self.multi_opt_sf = torch.from_numpy(multi_opt_sf).float()
         self.tf = torch.from_numpy(tf.copy()).float().view(1, 1, -1)
         self.map_func = map_func
-        self.grid2value_mapping = grid2value_mapping
+        self.grid2value_mapping = torch.from_numpy(grid2value_mapping).float()
         self.target_width = target_width
         self.target_height = target_height
         # Accept pre-initialized movie generator

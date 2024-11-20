@@ -268,11 +268,12 @@ def map_to_fixed_grid_decay_batch(values, decay_matrix, target_width, target_hei
     - grid_values_batch (torch.Tensor): A 3D tensor of shape (T, target_height, target_width),
       with values mapped to each grid cell based on decay-weighted values for the entire batch.
     """
-    if isinstance(values, np.ndarray):
-        values = torch.tensor(values, dtype=torch.float32)
-    if isinstance(decay_matrix, np.ndarray):
-        decay_matrix = torch.tensor(decay_matrix, dtype=torch.float32)
-
+    # if isinstance(values, np.ndarray):
+    #     values = torch.tensor(values, dtype=torch.float32)
+    # if isinstance(decay_matrix, np.ndarray):
+    #     decay_matrix = torch.tensor(decay_matrix, dtype=torch.float32)
+    print(f'values shape: {values.shape}')
+    print(f'decay_matrix shape: {decay_matrix.shape}')
     # Perform batch matrix multiplication to compute weighted values for all time steps
     # values: (T, N), decay_matrix: (N, M)
     weighted_values = torch.matmul(values, decay_matrix)  # shape: (T, M)
