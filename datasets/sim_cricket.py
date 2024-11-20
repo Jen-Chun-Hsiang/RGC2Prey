@@ -300,6 +300,7 @@ class Cricket2RGCs(Dataset):
             self.target_width,
             self.target_height
         ) 
+        print(f'path rgc_time: {rgc_time.shape}')
         path = path[-rgc_time.shape[0]:, :]
         path_bg = path_bg[-rgc_time.shape[0]:, :]
         print(f'path shape: {path.shape}')
