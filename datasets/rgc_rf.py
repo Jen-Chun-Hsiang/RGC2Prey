@@ -276,7 +276,7 @@ def map_to_fixed_grid_decay_batch(values, decay_matrix, target_width, target_hei
     print(f'decay_matrix shape: {decay_matrix.shape}')
     # Perform batch matrix multiplication to compute weighted values for all time steps
     # values: (T, N), decay_matrix: (N, M)
-    weighted_values = torch.matmul(values, decay_matrix)  # shape: (T, M)
+    weighted_values = torch.matmul(values.T, decay_matrix)  # shape: (T, M)
 
     # Reshape the result to (T, target_height, target_width)
     grid_values_batch = weighted_values.view(-1, target_height, target_width)  # Shape: (T, H, W)
