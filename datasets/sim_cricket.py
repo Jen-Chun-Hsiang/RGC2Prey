@@ -300,8 +300,11 @@ class Cricket2RGCs(Dataset):
             self.target_width,
             self.target_height
         ) 
-        # print(f'grid_values_sequence shape: {grid_values_sequence.shape}')
-
+        path = path[-rgc_time.shape[0]:, :]
+        path_bg = path_bg[-rgc_time.shape[0]:, :]
+        print(f'path shape: {path.shape}')
+        print(f'path_bg shape: {path_bg.shape}')
+        print(f'grid_values_sequence shape: {grid_values_sequence.shape}')
         return grid_values_sequence.permute(0, 2, 1).unsqueeze(1), torch.tensor(path, dtype=torch.float32), torch.tensor(path_bg, dtype=torch.float32)
     
 
