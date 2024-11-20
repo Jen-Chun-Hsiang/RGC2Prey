@@ -201,7 +201,7 @@ def main():
         # Average loss for the epoch
         avg_epoch_loss = epoch_loss / len(train_loader)
         epoch_losses.append(avg_epoch_loss)
-        print(f"Epoch [{epoch+1}/{num_epochs}], Loss: {avg_epoch_loss:.4f}")
+        # print(f"Epoch [{epoch+1}/{num_epochs}], Loss: {avg_epoch_loss:.4f}")
 
         elapsed_time = time.time()  - start_time
         logging.info( f"{file_name} Epoch [{epoch + 1}/{num_epochs}], Elapsed time: {elapsed_time:.2f} seconds \n"
