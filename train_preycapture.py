@@ -140,9 +140,10 @@ def main():
         elapsed_time = time.perf_counter() - start_time  # Calculate elapsed time
         print(f"[{elapsed_time:.2f}s] Main Process - Batch {batch_idx}")
         sequence, path, path_bg = data
-
+        print(f'sequence shape: {sequence.shape}')
         if is_show_grids and batch_idx == 0:
             sequence = sequence[0]
+            print(f'sequence')
             for i in range(sequence.shape[2]):
                 Timg = syn_movie[i, :, :]
                 plot_tensor_and_save(Timg, syn_save_folder, f'{args.experiment_name}_RGCgrid_activity_doublecheck_{i + 1}.png')
