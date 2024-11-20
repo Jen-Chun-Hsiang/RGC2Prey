@@ -3,6 +3,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 
+import torch
+import torch.nn as nn
+
 class ParallelCNNFeatureExtractor(nn.Module):
     def __init__(self, input_height=24, input_width=32, conv_out_channels=16, fc_out_features=128):
         super(ParallelCNNFeatureExtractor, self).__init__()
@@ -11,10 +14,10 @@ class ParallelCNNFeatureExtractor(nn.Module):
         self.conv1 = nn.Conv2d(1, conv_out_channels, kernel_size=4, stride=2, padding=0)
         self.bn1 = nn.BatchNorm2d(conv_out_channels)
         
-        self.conv2 = nn.Conv2d(1, conv_out_channels, kernel_size=16, stride=8, padding=4)
+        self.conv2 = nn.Conv2d(1, conv_out_channels, kernel_size=16, dilation=4, stride=8, padding=4)
         self.bn2 = nn.BatchNorm2d(conv_out_channels)
         
-        self.conv3 = nn.Conv2d(1, conv_out_channels, kernel_size=32, stride=16, padding=8)
+        self.conv3 = nn.Conv2d(1, conv_out_channels, kernel_size=32, dilation=8, stride=16, padding=8)
         self.bn3 = nn.BatchNorm2d(conv_out_channels)
         
         # Pooling layer to reduce spatial dimensions
@@ -24,26 +27,31 @@ class ParallelCNNFeatureExtractor(nn.Module):
         with torch.no_grad():
             mock_input = torch.zeros(1, 1, input_height, input_width)
             mock_output = self._forward_conv_layers(mock_input)
-            self.flat_feature_size = mock_output.view(1, -1).size(1)
+            self.flat_feature_size = mock_output.size(1)  # Total flattened size after concatenation
 
         # Fully connected layer based on the flattened feature size
         self.fc = nn.Linear(self.flat_feature_size, fc_out_features)
 
     def _forward_conv_layers(self, x):
-        """Forward pass through each convolutional layer and concatenate their outputs."""
+        """Forward pass through each convolutional layer, flatten, and concatenate their outputs."""
         x1 = self.pool(torch.relu(self.bn1(self.conv1(x))))
         x2 = self.pool(torch.relu(self.bn2(self.conv2(x))))
         x3 = self.pool(torch.relu(self.bn3(self.conv3(x))))
         
-        # Concatenate along the channel dimension
-        x = torch.cat((x1, x2, x3), dim=1)
+        # Flatten each output
+        x1_flat = x1.view(x1.size(0), -1)
+        x2_flat = x2.view(x2.size(0), -1)
+        x3_flat = x3.view(x3.size(0), -1)
+        
+        # Concatenate flattened features
+        x = torch.cat((x1_flat, x2_flat, x3_flat), dim=1)
         return x
 
     def forward(self, x):
         x = self._forward_conv_layers(x)
-        x = x.view(x.size(0), -1)  # Flatten
         x = self.fc(x)  # Project to feature vector of specified size
         return x
+
     
 
 # Full CNN-LSTM model for predicting (x, y) coordinates
