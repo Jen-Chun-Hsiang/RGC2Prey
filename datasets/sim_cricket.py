@@ -385,9 +385,7 @@ class SynMovieGenerator:
             self.scale_factor, self.crop_size, alpha=1.0
         )
 
-        syn_movie = syn_movie[:, 1, :, :]  # Extract green channel from all image
-
-        return syn_movie, path, path_bg
+        return syn_movie[:, 1, :, :], path, path_bg
     
 
 
