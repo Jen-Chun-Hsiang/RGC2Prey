@@ -242,8 +242,16 @@ def random_movement(boundary_size, center_ratio, max_steps, prob_stay, prob_mov,
                 angle += np.random.uniform(-angle_range, angle_range)
 
                 # Calculate new position with momentum applied
-                x += velocity * np.cos(angle)
-                y += velocity * np.sin(angle)
+                new_x = x + velocity * np.cos(angle)
+                new_y = y + velocity * np.sin(angle)
+
+                # Check boundaries and reset if out of bounds
+                if -half_boundary[0] <= new_x <= half_boundary[0] and -half_boundary[1] <= new_y <= half_boundary[1]:
+                    x, y = new_x, new_y
+                else:
+                    # Stay in the same position and reset velocity to 0
+                    velocity = 0
+                    moving = False
                 velocity_history[i] = velocity
 
         else:
@@ -253,10 +261,6 @@ def random_movement(boundary_size, center_ratio, max_steps, prob_stay, prob_mov,
                 moving = True  # Switch to moving
                 # Preserve momentum by reusing the last velocity and angle
                 velocity = initial_velocity * momentum_decay + np.random.uniform(-velocity_randomness, velocity_randomness)
-
-        # Check boundaries (with center at (0, 0))
-        if not (-half_boundary[0] <= x <= half_boundary[0] and -half_boundary[1] <= y <= half_boundary[1]):
-            break  # Stop if out of bounds
 
         path[step_count] = [x, y]
         step_count += 1
