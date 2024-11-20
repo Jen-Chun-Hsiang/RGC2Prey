@@ -14,10 +14,10 @@ class ParallelCNNFeatureExtractor(nn.Module):
         self.conv1 = nn.Conv2d(1, conv_out_channels, kernel_size=4, stride=2, padding=0)
         self.bn1 = nn.BatchNorm2d(conv_out_channels)
         
-        self.conv2 = nn.Conv2d(1, conv_out_channels, kernel_size=16, dilation=4, stride=8, padding=4)
+        self.conv2 = nn.Conv2d(1, conv_out_channels, kernel_size=4, dilation=4, stride=8, padding=4)
         self.bn2 = nn.BatchNorm2d(conv_out_channels)
         
-        self.conv3 = nn.Conv2d(1, conv_out_channels, kernel_size=32, dilation=8, stride=16, padding=8)
+        self.conv3 = nn.Conv2d(1, conv_out_channels, kernel_size=4, dilation=8, stride=16, padding=8)
         self.bn3 = nn.BatchNorm2d(conv_out_channels)
         
         # Pooling layer to reduce spatial dimensions
