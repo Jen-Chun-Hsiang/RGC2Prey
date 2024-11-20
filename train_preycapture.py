@@ -2,9 +2,11 @@ import argparse
 import torch
 import pandas as pd
 import time
+import os
 from torch.utils.data import DataLoader
 import torch.nn as nn
 import logging
+from datetime import datetime
 
 from datasets.sim_cricket import RGCrfArray, SynMovieGenerator, Cricket2RGCs
 from utils.utils import plot_tensor_and_save, plot_vector_and_save, plot_two_path_comparison
@@ -77,6 +79,7 @@ def parse_args():
     # Model training parameters
     parser.add_argument('--batch_size', type=int, default=4, help="Batch size for dataloader")
     parser.add_argument('--num_worker', type=int, default=0, help="Number of worker for dataloader")
+    parser.add_argument('--num_epochs', type=int, default=10, help="Number of worker for dataloader")
 
     return parser.parse_args()
 
@@ -90,9 +93,21 @@ def main():
     top_img_folder    = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/CricketDataset/Images/cropped/cricket/'
     syn_save_folder  = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/CricketDataset/Images/syn_img/'
     plot_save_folder  = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/CricketDataset/Figures/'
+    log_save_folder  = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/CricketDataset/Logs/'
     rf_params_file = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/SimulationParams.xlsx'
 
     args = parse_args()
+    timestr = datetime.now().strftime('%Y%m%d_%H%M%S')
+    # Construct the full path for the log file
+    file_name = f'{args.experiment_name}_cricket_location_prediction'
+    log_filename = os.path.join(log_save_folder, f'{file_name}_training_log_{timestr}.txt')
+
+    # Setup logging
+    logging.basicConfig(filename=log_filename,
+                        level=logging.INFO,
+                        format='%(asctime)s %(levelname)s:%(message)s')
+
+    
     sf_param_table = pd.read_excel(rf_params_file, sheet_name='SF_params', usecols='A:L')
     tf_param_table = pd.read_excel(rf_params_file, sheet_name='TF_params', usecols='A:I')
     rgc_array = RGCrfArray(
@@ -150,6 +165,7 @@ def main():
     print(f"[{elapsed_time:.2f}s] Main Process - Batch 0")
     sequence, path, path_bg = data
     print(f'sequence shape: {sequence.shape}')
+    print(f'path shape: {path.shape}')
     if is_show_grids:
         sequence = sequence[0]
         for i in range(sequence.shape[2]):
@@ -160,12 +176,40 @@ def main():
     # Sample Training Loop
     model = CNN_LSTM_ObjectLocation(cnn_feature_dim=args.cnn_feature_dim, lstm_hidden_size=args.lstm_hidden_size,
                                      lstm_num_layers=args.lstm_num_layers, output_dim=args.output_dim,
-                                    input_height=grid_height, input_width=grid_width, conv1_out_channels=args.conv1_out_channels, 
+                                    input_height=target_width, input_width=target_height, conv1_out_channels=args.conv1_out_channels, 
                                     conv2_out_channels=args.conv2_out_channels, fc_out_features=args.fc_out_features)
     # model = CNNFeatureExtractor(input_height=24, input_width=32, conv1_out_channels=16, conv2_out_channels=32, fc_out_features=128)
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
     criterion = nn.MSELoss()
 
+    epoch_losses = []  # To store the loss at each epoch
+    num_epochs = args.num_epochs
+    for epoch in range(num_epochs):
+        model.train()
+        epoch_loss = 0.0
+        
+        start_time = time.time()
+        for sequences, targets, _ in train_loader:
+            optimizer.zero_grad()
+            
+            # Forward pass
+            outputs = model(sequences)
+            
+            # Compute loss
+            loss = criterion(outputs, targets)
+            loss.backward()
+            optimizer.step()
+            
+            epoch_loss += loss.item()
+    
+        # Average loss for the epoch
+        avg_epoch_loss = epoch_loss / len(train_loader)
+        epoch_losses.append(avg_epoch_loss)
+        print(f"Epoch [{epoch+1}/{num_epochs}], Loss: {avg_epoch_loss:.4f}")
+
+        elapsed_time = time.time()  - start_time
+        logging.info( f"{file_name} Epoch [{epoch + 1}/{num_epochs}], Elapsed time: {elapsed_time:.2f} seconds \n"
+                        f"\tLoss: {avg_epoch_loss:.4f} \n")
 
 if __name__ == '__main__':
     main()
