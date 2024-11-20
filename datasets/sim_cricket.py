@@ -436,14 +436,25 @@ def synthesize_image_with_params_batch(bottom_img_path, top_img_path, top_img_po
         # Clone the bottom image tensor
         final_tensor = bottom_tensor.clone()
 
+        
         # Overlay the top image
-        for c in range(3):  # Iterate over RGB channels
-            final_tensor[c, fill_h + relative_pos[1]:fill_h + relative_pos[1] + top_h,
-                         fill_w + relative_pos[0]:fill_w + relative_pos[0] + top_w] = (
-                top_tensor[c, :, :] * top_tensor[3, :, :] * alpha +
-                final_tensor[c, fill_h + relative_pos[1]:fill_h + relative_pos[1] + top_h,
-                             fill_w + relative_pos[0]:fill_w + relative_pos[0] + top_w] * (1 - top_tensor[3, :, :] * alpha)
-            )
+        # for c in range(3):  # Iterate over RGB channels
+        #     final_tensor[c, fill_h + relative_pos[1]:fill_h + relative_pos[1] + top_h,
+        #                  fill_w + relative_pos[0]:fill_w + relative_pos[0] + top_w] = (
+        #         top_tensor[c, :, :] * top_tensor[3, :, :] * alpha +
+        #         final_tensor[c, fill_h + relative_pos[1]:fill_h + relative_pos[1] + top_h,
+        #                      fill_w + relative_pos[0]:fill_w + relative_pos[0] + top_w] * (1 - top_tensor[3, :, :] * alpha)
+        #     )
+        
+        # Overlay the top image (vectorized for all RGB channels)
+        final_tensor[:3, 
+                    fill_h + relative_pos[1]:fill_h + relative_pos[1] + top_h, 
+                    fill_w + relative_pos[0]:fill_w + relative_pos[0] + top_w] = (
+            top_tensor[:3, :, :] * top_tensor[3:4, :, :] * alpha +
+            final_tensor[:3, 
+                        fill_h + relative_pos[1]:fill_h + relative_pos[1] + top_h, 
+                        fill_w + relative_pos[0]:fill_w + relative_pos[0] + top_w] * (1 - top_tensor[3:4, :, :] * alpha)
+        )
 
         # Convert to PIL and crop
         final_img = T.ToPILImage()(final_tensor)
