@@ -11,6 +11,7 @@ from datetime import datetime
 from datasets.sim_cricket import RGCrfArray, SynMovieGenerator, Cricket2RGCs
 from utils.utils import plot_tensor_and_save, plot_vector_and_save, plot_two_path_comparison
 from models.rgc2behavior import CNN_LSTM_ObjectLocation
+from utils.data_handling import save_checkpoint
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Script for Model Training to get 3D RF in simulation")
@@ -92,6 +93,7 @@ def main():
     syn_save_folder  = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/CricketDataset/Images/syn_img/'
     plot_save_folder  = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/CricketDataset/Figures/'
     log_save_folder  = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/CricketDataset/Logs/'
+    savemodel_dir = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/Results/CheckPoints/'
     rf_params_file = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/SimulationParams.xlsx'
 
     args = parse_args()
@@ -178,7 +180,7 @@ def main():
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
     criterion = nn.MSELoss()
 
-    epoch_losses = []  # To store the loss at each epoch
+    training_losses = []  # To store the loss at each epoch
     num_epochs = args.num_epochs
     for epoch in range(num_epochs):
         model.train()
@@ -200,12 +202,17 @@ def main():
     
         # Average loss for the epoch
         avg_epoch_loss = epoch_loss / len(train_loader)
-        epoch_losses.append(avg_epoch_loss)
+        training_losses.append(avg_epoch_loss)
         # print(f"Epoch [{epoch+1}/{num_epochs}], Loss: {avg_epoch_loss:.4f}")
 
         elapsed_time = time.time()  - start_time
         logging.info( f"{file_name} Epoch [{epoch + 1}/{num_epochs}], Elapsed time: {elapsed_time:.2f} seconds \n"
                         f"\tLoss: {avg_epoch_loss:.4f} \n")
+        
+        if (epoch + 1) % 2 == 0:  # Example: Save every 10 epochs
+            checkpoint_filename = f'{file_name}_checkpoint_epoch_{epoch + 1}.pth'
+            save_checkpoint(epoch, model, optimizer, training_losses=training_losses, args=args,  
+                                file_path=os.path.join(savemodel_dir, checkpoint_filename))
 
 if __name__ == '__main__':
     main()
