@@ -2,70 +2,77 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-class RGC2SCNet(nn.Module):
-    def __init__(self, input_shape=(2, 7, 7)):
-        super(RGC2SCNet, self).__init__()
-        
-        # Convolutional paths for each channel
-        # Path for channel 1
-        self.conv1a = nn.Conv2d(in_channels=1, out_channels=16, kernel_size=3, padding=1)
-        self.conv1b = nn.Conv2d(in_channels=16, out_channels=32, kernel_size=3, padding=1)
-        
-        # Path for channel 2
-        self.conv2a = nn.Conv2d(in_channels=1, out_channels=16, kernel_size=5, padding=2)
-        self.conv2b = nn.Conv2d(in_channels=16, out_channels=32, kernel_size=5, padding=2)
-        
-        # Calculate the size for the first fully connected layer
-        self.fc1_input_size = self._get_conv_output(input_shape)
-        
-        # Fully connected layers
-        self.fc1 = nn.Linear(self.fc1_input_size, 128)
-        self.fc2 = nn.Linear(128, 64)
-        
-        # Output layers
-        self.fc_x = nn.Linear(64, 1)   # For x-coordinate
-        self.fc_y = nn.Linear(64, 1)   # For y-coordinate
-        self.fc_exist = nn.Linear(64, 1)  # For existence (0 or 1)
-        
-    def _get_conv_output(self, shape):
-        """Helper function to calculate the output size after convolutions."""
-        x = torch.zeros(1, *shape)  # Create a dummy input tensor with two channels
-        # Split the dummy input
-        x1, x2 = x[:, 0:1, :, :], x[:, 1:2, :, :]
-        
-        # Pass through each path
-        x11 = F.relu(self.conv1a(x1))
-        x12 = F.relu(self.conv1b(x1))
-        
-        x21 = F.relu(self.conv2a(x2))
-        x22 = F.relu(self.conv2b(x2))
 
+class ParallelCNNFeatureExtractor(nn.Module):
+    def __init__(self, input_height=24, input_width=32, conv_out_channels=16, fc_out_features=128):
+        super(ParallelCNNFeatureExtractor, self).__init__()
+        
+        # Define parallel convolution layers with different kernel sizes
+        self.conv1 = nn.Conv2d(1, conv_out_channels, kernel_size=4, stride=2, padding=0)
+        self.bn1 = nn.BatchNorm2d(conv_out_channels)
+        
+        self.conv2 = nn.Conv2d(1, conv_out_channels, kernel_size=16, stride=8, padding=4)
+        self.bn2 = nn.BatchNorm2d(conv_out_channels)
+        
+        self.conv3 = nn.Conv2d(1, conv_out_channels, kernel_size=32, stride=16, padding=8)
+        self.bn3 = nn.BatchNorm2d(conv_out_channels)
+        
+        # Pooling layer to reduce spatial dimensions
+        self.pool = nn.MaxPool2d(2, 2)
+        
+        # Determine the flattened feature size after the convolution and pooling layers
+        with torch.no_grad():
+            mock_input = torch.zeros(1, 1, input_height, input_width)
+            mock_output = self._forward_conv_layers(mock_input)
+            self.flat_feature_size = mock_output.view(1, -1).size(1)
+
+        # Fully connected layer based on the flattened feature size
+        self.fc = nn.Linear(self.flat_feature_size, fc_out_features)
+
+    def _forward_conv_layers(self, x):
+        """Forward pass through each convolutional layer and concatenate their outputs."""
+        x1 = self.pool(torch.relu(self.bn1(self.conv1(x))))
+        x2 = self.pool(torch.relu(self.bn2(self.conv2(x))))
+        x3 = self.pool(torch.relu(self.bn3(self.conv3(x))))
+        
         # Concatenate along the channel dimension
-        x_concat = torch.cat((x11, x21, x21, x22), dim=1)
-        return int(x_concat.numel() / x_concat.size(0))  # Total features per batch element
-    
+        x = torch.cat((x1, x2, x3), dim=1)
+        return x
+
     def forward(self, x):
-        # Split the input along the channel dimension
-        x1, x2 = x[:, 0:1, :, :], x[:, 1:2, :, :]
+        x = self._forward_conv_layers(x)
+        x = x.view(x.size(0), -1)  # Flatten
+        x = self.fc(x)  # Project to feature vector of specified size
+        return x
+    
+
+# Full CNN-LSTM model for predicting (x, y) coordinates
+class CNN_LSTM_ObjectLocation(nn.Module):
+    def __init__(self, cnn_feature_dim=128, lstm_hidden_size=64, lstm_num_layers=2, output_dim=2,
+                 input_height=24, input_width=32, conv1_out_channels=16, conv2_out_channels=32, fc_out_features=128):
+        super(CNN_LSTM_ObjectLocation, self).__init__()
+        self.cnn = ParallelCNNFeatureExtractor(input_height=input_height, input_width=input_width,conv_out_channels=conv1_out_channels,
+                                       fc_out_features=fc_out_features)  # Assume CNNFeatureExtractor outputs cnn_feature_dim
+        self.lstm = nn.LSTM(input_size=cnn_feature_dim, hidden_size=lstm_hidden_size, num_layers=lstm_num_layers, batch_first=True)
+        self.lstm_norm = nn.LayerNorm(lstm_hidden_size)
+        self.fc1 = nn.Linear(lstm_hidden_size, lstm_hidden_size)  # Output layer for (x, y) coordinates
+        self.fc2 = nn.Linear(lstm_hidden_size, output_dim) 
+
+    def forward(self, x):
+        batch_size, sequence_length, C, H, W = x.size()
+        cnn_features = []
+
+        # Pass each frame through CNN
+        for t in range(sequence_length):
+            cnn_out = self.cnn(x[:, t, :, :, :])  # Shape: (batch_size, cnn_feature_dim)
+            cnn_features.append(cnn_out)
         
-        # Pass through each path
-        x11 = F.relu(self.conv1a(x1))
-        x12 = F.relu(self.conv1b(x1))
-        
-        x21 = F.relu(self.conv2a(x2))
-        x22 = F.relu(self.conv2b(x2))
-        
-        # Concatenate along the channel dimension
-        x_concat = torch.cat((x11, x21, x21, x22), dim=1)
-        
-        # Flatten and pass through fully connected layers
-        x_flat = x_concat.view(x_concat.size(0), -1)
-        x = F.relu(self.fc1(x_flat))
-        features = F.relu(self.fc2(x))
-        
-        # Output branches
-        x_out = self.fc_x(features)
-        y_out = self.fc_y(features)
-        exist_out = torch.sigmoid(self.fc_exist(features))  # Sigmoid for binary classification
-        
-        return x_out, y_out, exist_out
+        # Stack CNN outputs and pass through LSTM
+        cnn_features = torch.stack(cnn_features, dim=1)
+        lstm_out, _ = self.lstm(cnn_features)
+        lstm_out = self.lstm_norm(lstm_out)
+        lstm_out = torch.relu(self.fc1(lstm_out))  # (batch_size, sequence_length, output_dim)
+        coord_predictions = self.fc2(lstm_out)
+        return coord_predictions
+    
+

@@ -3,10 +3,12 @@ import torch
 import pandas as pd
 import time
 from torch.utils.data import DataLoader
-# from models.simpleSC import RGC2SCNet
+import torch.nn as nn
+import logging
 
 from datasets.sim_cricket import RGCrfArray, SynMovieGenerator, Cricket2RGCs
 from utils.utils import plot_tensor_and_save, plot_vector_and_save, plot_two_path_comparison
+from models.simpleSC import CNN_LSTM_ObjectLocation
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Script for Model Training to get 3D RF in simulation")
@@ -63,11 +65,18 @@ def parse_args():
     parser.add_argument('--temporal_filter_len', type=int, default=50, help="Number of time points for a temporal filter")
     parser.add_argument('--is_pixelized_rf', action='store_true', help="Flag for pixelized receptive field.")
 
+    # Arguments for CNN_LSTM 
+    parser.add_argument('--cnn_feature_dim', type=int, default=256, help="Number of CNN feature dimensions.")
+    parser.add_argument('--lstm_hidden_size', type=int, default=64, help="Number of LSTM hiddne size.")
+    parser.add_argument('--lstm_num_layers', type=int, default=3, help="Number of LSTM hiddne size.")
+    parser.add_argument('--output_dim', type=int, default=3, help="Number of output dimension.")
+    parser.add_argument('--conv1_out_channels', type=int, default=16, help="Number of output channel in convultion 1st layer.")
+    parser.add_argument('--conv2_out_channels', type=int, default=32, help="Number of output channel in convultion 2nd layer.")
+    parser.add_argument('--fc_out_features', type=int, default=32, help="Number of output features in convultion layers.")
+
     # Model training parameters
     parser.add_argument('--batch_size', type=int, default=4, help="Batch size for dataloader")
     parser.add_argument('--num_worker', type=int, default=0, help="Number of worker for dataloader")
-
-
 
     return parser.parse_args()
 
@@ -136,18 +145,26 @@ def main():
                                         num_workers=args.num_worker, pin_memory=True, persistent_workers=False)
     
     start_time = time.perf_counter()
-    for batch_idx, data in enumerate(train_loader):
-        elapsed_time = time.perf_counter() - start_time  # Calculate elapsed time
-        print(f"[{elapsed_time:.2f}s] Main Process - Batch {batch_idx}")
-        sequence, path, path_bg = data
-        print(f'sequence shape: {sequence.shape}')
-        if is_show_grids and batch_idx == 0:
-            sequence = sequence[0]
-            print(f'sequence')
-            for i in range(sequence.shape[2]):
-                Timg = syn_movie[i, :, :]
-                plot_tensor_and_save(Timg, syn_save_folder, f'{args.experiment_name}_RGCgrid_activity_doublecheck_{i + 1}.png')
-            break
+    data = next(iter(train_loader))
+    elapsed_time = time.perf_counter() - start_time  # Calculate elapsed time
+    print(f"[{elapsed_time:.2f}s] Main Process - Batch 0")
+    sequence, path, path_bg = data
+    print(f'sequence shape: {sequence.shape}')
+    if is_show_grids:
+        sequence = sequence[0]
+        for i in range(sequence.shape[2]):
+            Timg = syn_movie[i, :, :]
+            plot_tensor_and_save(Timg, syn_save_folder, f'{args.experiment_name}_RGCgrid_activity_doublecheck_{i + 1}.png')
+        
+
+    # Sample Training Loop
+    model = CNN_LSTM_ObjectLocation(cnn_feature_dim=args.cnn_feature_dim, lstm_hidden_size=args.lstm_hidden_size,
+                                     lstm_num_layers=args.lstm_num_layers, output_dim=args.output_dim,
+                                    input_height=grid_height, input_width=grid_width, conv1_out_channels=args.conv1_out_channels, 
+                                    conv2_out_channels=args.conv2_out_channels, fc_out_features=args.fc_out_features)
+    # model = CNNFeatureExtractor(input_height=24, input_width=32, conv1_out_channels=16, conv2_out_channels=32, fc_out_features=128)
+    optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
+    criterion = nn.MSELoss()
 
 
 if __name__ == '__main__':
