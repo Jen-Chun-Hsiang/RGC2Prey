@@ -286,12 +286,9 @@ class Cricket2RGCs(Dataset):
 
     def __getitem__(self, idx):
         syn_movie, path, path_bg = self.movie_generator.generate()
-        print(f'multi_opt_sf shape: {self.multi_opt_sf.shape}')
-        print(f'syn_movie shape: {syn_movie.shape}')
-
         sf_frame = torch.einsum('whn,thw->tn', self.multi_opt_sf, syn_movie)
         sf_frame = sf_frame.unsqueeze(0) 
-        tf = np.repeat(tf, sf_frame.shape[1], axis=0)
+        tf = np.repeat(self.tf, sf_frame.shape[1], axis=0)
         rgc_time = F.conv1d(sf_frame, tf, stride=1, padding=0, groups=sf_frame.shape[1]).squeeze()
 
         grid_values_sequence = map_to_fixed_grid_decay_batch(
@@ -300,7 +297,6 @@ class Cricket2RGCs(Dataset):
             self.target_width,
             self.target_height
         ) 
-        # grid_values_sequence = None
 
         return grid_values_sequence, torch.tensor(path, dtype=torch.float32), torch.tensor(path_bg, dtype=torch.float32)
     
