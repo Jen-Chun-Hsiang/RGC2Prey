@@ -71,9 +71,8 @@ def parse_args():
     parser.add_argument('--cnn_feature_dim', type=int, default=256, help="Number of CNN feature dimensions.")
     parser.add_argument('--lstm_hidden_size', type=int, default=64, help="Number of LSTM hiddne size.")
     parser.add_argument('--lstm_num_layers', type=int, default=3, help="Number of LSTM hiddne size.")
-    parser.add_argument('--output_dim', type=int, default=3, help="Number of output dimension.")
-    parser.add_argument('--conv1_out_channels', type=int, default=16, help="Number of output channel in convultion 1st layer.")
-    parser.add_argument('--conv2_out_channels', type=int, default=32, help="Number of output channel in convultion 2nd layer.")
+    parser.add_argument('--output_dim', type=int, default=2, help="Number of output dimension.")
+    parser.add_argument('--conv_out_channels', type=int, default=16, help="Number of output channel in convultion layers.")
 
     # Model training parameters
     parser.add_argument('--batch_size', type=int, default=4, help="Batch size for dataloader")
@@ -175,9 +174,7 @@ def main():
     # Sample Training Loop
     model = CNN_LSTM_ObjectLocation(cnn_feature_dim=args.cnn_feature_dim, lstm_hidden_size=args.lstm_hidden_size,
                                      lstm_num_layers=args.lstm_num_layers, output_dim=args.output_dim,
-                                    input_height=target_width, input_width=target_height, conv1_out_channels=args.conv1_out_channels, 
-                                    conv2_out_channels=args.conv2_out_channels)
-    # model = CNNFeatureExtractor(input_height=24, input_width=32, conv1_out_channels=16, conv2_out_channels=32, fc_out_features=128)
+                                    input_height=target_width, input_width=target_height, conv_out_channels=args.conv_out_channels)
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
     criterion = nn.MSELoss()
 

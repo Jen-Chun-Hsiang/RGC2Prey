@@ -57,9 +57,9 @@ class ParallelCNNFeatureExtractor(nn.Module):
 # Full CNN-LSTM model for predicting (x, y) coordinates
 class CNN_LSTM_ObjectLocation(nn.Module):
     def __init__(self, cnn_feature_dim=128, lstm_hidden_size=64, lstm_num_layers=2, output_dim=2,
-                 input_height=24, input_width=32, conv1_out_channels=16, conv2_out_channels=32):
+                 input_height=24, input_width=32, conv_out_channels=32):
         super(CNN_LSTM_ObjectLocation, self).__init__()
-        self.cnn = ParallelCNNFeatureExtractor(input_height=input_height, input_width=input_width,conv_out_channels=conv1_out_channels,
+        self.cnn = ParallelCNNFeatureExtractor(input_height=input_height, input_width=input_width,conv_out_channels=conv_out_channels,
                                        fc_out_features=cnn_feature_dim)  # Assume CNNFeatureExtractor outputs cnn_feature_dim
         self.lstm = nn.LSTM(input_size=cnn_feature_dim, hidden_size=lstm_hidden_size, num_layers=lstm_num_layers, batch_first=True)
         self.lstm_norm = nn.LayerNorm(lstm_hidden_size)
