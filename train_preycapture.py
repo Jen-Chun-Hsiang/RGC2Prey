@@ -113,7 +113,7 @@ def main():
         angle_range_ob=args.angle_range_ob, angle_range_bg=args.angle_range_bg
     )
     syn_movie, path, path_bg = movie_generator.generate()
-
+    print(f'syn_movie shape: {syn_movie.shape}')
     if is_show_movie_frames:
         for i in range(syn_movie.shape[2]):
             Timg = syn_movie[:, :, i]
