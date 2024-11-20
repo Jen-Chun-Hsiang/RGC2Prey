@@ -8,7 +8,7 @@ import logging
 
 from datasets.sim_cricket import RGCrfArray, SynMovieGenerator, Cricket2RGCs
 from utils.utils import plot_tensor_and_save, plot_vector_and_save, plot_two_path_comparison
-from models.simpleSC import CNN_LSTM_ObjectLocation
+from models.rgc2behavior import CNN_LSTM_ObjectLocation
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Script for Model Training to get 3D RF in simulation")
