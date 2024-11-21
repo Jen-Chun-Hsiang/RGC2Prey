@@ -106,6 +106,11 @@ if __name__ == "__main__":
             surround_fac = row['c_scale']*surround_fac
         print(f'surround_fac: {surround_fac}')
         # Loop over each row in grid_centers to generate multiple opt_sf
+        min_values = np.min(points, axis=0)
+        max_values = np.max(points, axis=0)
+        for i in range(2):
+            print(f"Column {i} - Min: {min_values[i]}, Max: {max_values[i]}")
+
         for i in range(points.shape[0]):   #
             # Set up sf_params, using the current grid center for the first two entries
             sf_params = np.array([points[i, 1], points[i, 0], row['sigma_x']*sf_scalar, row['sigma_y']*sf_scalar,
