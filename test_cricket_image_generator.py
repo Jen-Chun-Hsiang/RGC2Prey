@@ -10,7 +10,7 @@ from utils.utils import get_random_file_path, plot_tensor_and_save, plot_movemen
 
 if __name__ == "__main__":
     run_task_id = 3
-    mov_id = 111203
+    mov_id = 111204
     # Below unit in pixel
     num_syn_img = 20
     image_size = np.array([640, 480])
