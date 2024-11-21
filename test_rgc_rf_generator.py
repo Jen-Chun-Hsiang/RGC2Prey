@@ -24,16 +24,16 @@ if __name__ == "__main__":
     rf_params_file = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/SimulationParams.xlsx'
     file_name = 'rgc_rf_position_plot.png'
     video_id = 111205
-    grid_id = '125-15'
+    grid_id = '63-15'
     xlim = (-120, 120)
     ylim = (-90, 90)
     rgc_array_rf_size = (320, 240)
-    target_num_centers = 125 #250
+    target_num_centers = 63 #500 250 125 63
     num_step = 20
     num_gauss_example = 1
     temporal_filter_len = 50
     sf_scalar = 0.2
-    tau = 15 #6, 8.485, 12
+    tau = 16.97 #6, 8.485, 12, 16.97
     is_show_rgc_rf_individual = True
     is_show_movie_frames = True
     is_baseline_subtracted = False
@@ -155,7 +155,7 @@ if __name__ == "__main__":
             bls_tag = 'subtracted'
         else:
             # min_video_value, max_video_value = -3000, 15000  # Value range for the color map
-            min_video_value, max_video_value = 0, 700  #111201  550 for tau 6, 700 for tau 15
+            min_video_value, max_video_value = 0, 550  #111201  550 for tau 6, 700 for tau 15
             bls_tag = 'raw'
 
         
