@@ -155,7 +155,7 @@ if __name__ == "__main__":
             bls_tag = 'subtracted'
         else:
             # min_video_value, max_video_value = -3000, 15000  # Value range for the color map
-            min_video_value, max_video_value = 0, 550  #111201  550 for tau 6, 700 for tau 15
+            min_video_value, max_video_value = 0, 300  #111201  550 for tau 6, 700 for tau 15
             bls_tag = 'raw'
 
         
