@@ -28,7 +28,7 @@ if __name__ == "__main__":
     xlim = (-120, 120)
     ylim = (-90, 90)
     rgc_array_rf_size = (320, 240)
-    target_num_centers = 63 #500 250 125 63
+    target_num_centers = 500 #500 250 125 63
     num_step = 20
     num_gauss_example = 1
     temporal_filter_len = 50
@@ -37,7 +37,7 @@ if __name__ == "__main__":
     is_show_rgc_rf_individual = True
     is_show_movie_frames = True
     is_baseline_subtracted = False
-    is_fixed_scalar_bar = True
+    is_fixed_scalar_bar = False
     is_pixelized_rf = True
     sf_pixel_thr = 99.7
     grid_generate_method = 'decay'  #'closest', 'decay'
@@ -97,6 +97,7 @@ if __name__ == "__main__":
         num_sim_data = len(sf_param_table)
         pid = random.randint(0, num_sim_data - 1)
         row = sf_param_table.iloc[pid]
+        print(f'inhibition strength: {row['s_scale']}')
         # Loop over each row in grid_centers to generate multiple opt_sf
         for i in range(points.shape[0]):   #
             # Set up sf_params, using the current grid center for the first two entries
@@ -110,7 +111,8 @@ if __name__ == "__main__":
 
             if is_pixelized_rf:
                 threshold_value = np.percentile(opt_sf, sf_pixel_thr)
-                opt_sf = np.where(opt_sf > threshold_value, 1, 0)
+                # opt_sf = np.where(opt_sf > threshold_value, 1, 0)
+                opt_sf = np.where(opt_sf > threshold_value, opt_sf, 0)
             
             # Append to multi_opt_sf list
             multi_opt_sf[:, :, i] = opt_sf
@@ -155,7 +157,7 @@ if __name__ == "__main__":
             bls_tag = 'subtracted'
         else:
             # min_video_value, max_video_value = -3000, 15000  # Value range for the color map
-            min_video_value, max_video_value = 0, 300  #111201  550 for tau 6, 700 for tau 15
+            min_video_value, max_video_value = 0, 550  #111201  300 for tau 3, 550 for tau 6, 700 for tau 15
             bls_tag = 'raw'
 
         
