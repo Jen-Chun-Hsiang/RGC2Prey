@@ -119,7 +119,7 @@ if __name__ == "__main__":
             if is_pixelized_rf:
                 if masking_method == 'circle':
                     rows, cols = np.ogrid[:opt_sf.shape[0], :opt_sf.shape[1]]
-                    distance_from_center = np.sqrt((rows - points[i, 0])**2 + (cols - points[i, 1])**2)
+                    distance_from_center = np.sqrt((rows - points[i, 1])**2 + (cols - points[i, 0])**2)
                     circular_mask = distance_from_center <= mask_radius
                     opt_sf = np.where(circular_mask, opt_sf, 0)
                 else:
