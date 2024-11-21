@@ -216,7 +216,7 @@ def main():
         
         if (epoch + 1) % 2 == 0:  # Example: Save every 10 epochs
             checkpoint_filename = f'{file_name}_checkpoint_epoch_{epoch + 1}.pth'
-            save_checkpoint(epoch, model, optimizer, training_losses=training_losses, args=args,  
+            save_checkpoint(epoch, model, optimizer, training_losses=training_losses, scheduler=scheduler, args=args,  
                                 file_path=os.path.join(savemodel_dir, checkpoint_filename))
 
 if __name__ == '__main__':
