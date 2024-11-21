@@ -37,7 +37,7 @@ if __name__ == "__main__":
     is_show_rgc_rf_individual = True
     is_show_movie_frames = True
     is_baseline_subtracted = False
-    is_fixed_scalar_bar = False
+    is_fixed_scalar_bar = True
     is_pixelized_rf = True
     sf_pixel_thr = 99.7
     grid_generate_method = 'decay'  #'closest', 'decay'
@@ -155,7 +155,7 @@ if __name__ == "__main__":
             bls_tag = 'subtracted'
         else:
             # min_video_value, max_video_value = -3000, 15000  # Value range for the color map
-            min_video_value, max_video_value = 0, 550  #111201
+            min_video_value, max_video_value = 0, 700  #111201  550 for tau 6, 700 for tau 15
             bls_tag = 'raw'
 
         
