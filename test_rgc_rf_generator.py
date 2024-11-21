@@ -116,7 +116,7 @@ if __name__ == "__main__":
 
             if is_pixelized_rf:
                 upper_threshold_value = np.percentile(opt_sf, sf_pixel_thr)  # 95th percentile
-                lower_threshold_value = np.percentile(opt_sf, (1-sf_pixel_thr)*2)   # 5th percentile
+                lower_threshold_value = np.percentile(opt_sf, (100-sf_pixel_thr)*2)   # 5th percentile
 
                 # Set values above the upper threshold or below the lower threshold, otherwise set to 0
                 opt_sf = np.where((opt_sf > upper_threshold_value) | (opt_sf < lower_threshold_value), opt_sf, 0)
