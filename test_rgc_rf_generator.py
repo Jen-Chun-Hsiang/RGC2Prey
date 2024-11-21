@@ -123,12 +123,12 @@ if __name__ == "__main__":
                     circular_mask = distance_from_center <= mask_radius
                     opt_sf = np.where(circular_mask, opt_sf, 0)
                 else:
-                upper_threshold_value = np.percentile(opt_sf, sf_pixel_thr)  # 95th percentile
-                if surround_fac < 0:
-                    lower_threshold_value = np.percentile(opt_sf, (100-sf_pixel_thr)*2)   # 5th percentile
-                    opt_sf = np.where((opt_sf > upper_threshold_value) | (opt_sf < lower_threshold_value), opt_sf, 0)
-                else:
-                    opt_sf = np.where(opt_sf > upper_threshold_value, opt_sf, 0)
+                    upper_threshold_value = np.percentile(opt_sf, sf_pixel_thr)  # 95th percentile
+                    if surround_fac < 0:
+                        lower_threshold_value = np.percentile(opt_sf, (100-sf_pixel_thr)*2)   # 5th percentile
+                        opt_sf = np.where((opt_sf > upper_threshold_value) | (opt_sf < lower_threshold_value), opt_sf, 0)
+                    else:
+                        opt_sf = np.where(opt_sf > upper_threshold_value, opt_sf, 0)
                     
 
             
