@@ -24,11 +24,11 @@ if __name__ == "__main__":
     rf_params_file = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/SimulationParams.xlsx'
     file_name = 'rgc_rf_position_plot.png'
     video_id = 111205
-    grid_id = '250-3'
+    grid_id = '125-3'
     xlim = (-120, 120)
     ylim = (-90, 90)
     rgc_array_rf_size = (320, 240)
-    target_num_centers = 250 #250
+    target_num_centers = 125 #250
     num_step = 20
     num_gauss_example = 1
     temporal_filter_len = 50
