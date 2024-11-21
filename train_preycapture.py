@@ -81,6 +81,7 @@ def parse_args():
     parser.add_argument('--num_worker', type=int, default=0, help="Number of worker for dataloader")
     parser.add_argument('--num_epochs', type=int, default=10, help="Number of worker for dataloader")
     parser.add_argument('--schedule_method', type=str, default='RLRP', help='Method used for scheduler')
+    parser.add_argument('--schedule_factor', type=float, default=0.2, help='Learning rate')
 
     return parser.parse_args()
 
