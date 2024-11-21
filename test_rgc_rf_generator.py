@@ -97,7 +97,7 @@ if __name__ == "__main__":
         num_sim_data = len(sf_param_table)
         pid = random.randint(0, num_sim_data - 1)
         row = sf_param_table.iloc[pid]
-        print(f'inhibition strength: {row['s_scale']}')
+        print(f"inhibition strength: {row['s_scale']}")
         # Loop over each row in grid_centers to generate multiple opt_sf
         for i in range(points.shape[0]):   #
             # Set up sf_params, using the current grid center for the first two entries
