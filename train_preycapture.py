@@ -7,6 +7,7 @@ from torch.utils.data import DataLoader
 import torch.nn as nn
 import logging
 from datetime import datetime
+import torch.optim as optim
 
 from datasets.sim_cricket import RGCrfArray, SynMovieGenerator, Cricket2RGCs
 from utils.utils import plot_tensor_and_save, plot_vector_and_save, plot_two_path_comparison
@@ -179,6 +180,10 @@ def main():
                                     input_height=target_width, input_width=target_height, conv_out_channels=args.conv_out_channels)
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
     criterion = nn.MSELoss()
+    if args.schedule_method.lower() == 'rlrp':
+        scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=args.schedule_factor, patience=5)
+    elif args.schedule_method.lower() == 'cawr':
+        scheduler = optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer, T_0=5, T_mult=2, eta_min=1e-6)
 
     training_losses = []  # To store the loss at each epoch
     num_epochs = args.num_epochs
