@@ -41,7 +41,9 @@ if __name__ == "__main__":
     is_fixed_scalar_bar = False
     is_pixelized_rf = True
     sf_pixel_thr = 99.7
+    mask_radius = 10
     grid_generate_method = 'decay'  #'closest', 'decay'
+    masking_method = 'circle'
     # CREATE VIDEO
     frame_width, frame_height = 640, 480  # Example resolution
     fps = 20  # Frames per second
@@ -115,11 +117,19 @@ if __name__ == "__main__":
             opt_sf -= np.median(opt_sf)  # Center opt_sf around zero
 
             if is_pixelized_rf:
+                if masking_method == 'circle':
+                    rows, cols = np.ogrid[:opt_sf.shape[0], :opt_sf.shape[1]]
+                    distance_from_center = np.sqrt((rows - points[i, 0])**2 + (cols - points[i, 1])**2)
+                    circular_mask = distance_from_center <= mask_radius
+                    opt_sf = np.where(circular_mask, opt_sf, 0)
+                else:
                 upper_threshold_value = np.percentile(opt_sf, sf_pixel_thr)  # 95th percentile
-                lower_threshold_value = np.percentile(opt_sf, (100-sf_pixel_thr)*2)   # 5th percentile
-
-                # Set values above the upper threshold or below the lower threshold, otherwise set to 0
-                opt_sf = np.where((opt_sf > upper_threshold_value) | (opt_sf < lower_threshold_value), opt_sf, 0)
+                if surround_fac < 0:
+                    lower_threshold_value = np.percentile(opt_sf, (100-sf_pixel_thr)*2)   # 5th percentile
+                    opt_sf = np.where((opt_sf > upper_threshold_value) | (opt_sf < lower_threshold_value), opt_sf, 0)
+                else:
+                    opt_sf = np.where(opt_sf > upper_threshold_value, opt_sf, 0)
+                    
 
             
             # Append to multi_opt_sf list
