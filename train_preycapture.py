@@ -80,6 +80,7 @@ def parse_args():
     parser.add_argument('--batch_size', type=int, default=4, help="Batch size for dataloader")
     parser.add_argument('--num_worker', type=int, default=0, help="Number of worker for dataloader")
     parser.add_argument('--num_epochs', type=int, default=10, help="Number of worker for dataloader")
+    parser.add_argument('--schedule_method', type=str, default='RLRP', help='Method used for scheduler')
 
     return parser.parse_args()
 
