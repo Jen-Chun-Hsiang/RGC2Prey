@@ -24,7 +24,7 @@ if __name__ == "__main__":
     rf_params_file = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/SimulationParams.xlsx'
     file_name = 'rgc_rf_position_plot.png'
     video_id = 111205
-    grid_id = '500-6-so'
+    grid_id = '500-6-n0.5'
     xlim = (-120, 120)
     ylim = (-90, 90)
     rgc_array_rf_size = (320, 240)
@@ -33,6 +33,7 @@ if __name__ == "__main__":
     num_gauss_example = 1
     temporal_filter_len = 50
     sf_scalar = 0.2
+    surround_fac = -0.5
     tau = 6 #6, 8.485, 12, 16.97
     is_show_rgc_rf_individual = True
     is_show_movie_frames = True
@@ -97,22 +98,29 @@ if __name__ == "__main__":
         num_sim_data = len(sf_param_table)
         pid = random.randint(0, num_sim_data - 1)
         row = sf_param_table.iloc[pid]
-        print(f"inhibition strength: {row['s_scale']}")
+        if surround_fac is None:
+            surround_fac = row['s_scale']
+        else:
+            surround_fac = row['c_scale']*surround_fac
+        print(f'surround_fac: {surround_fac}')
         # Loop over each row in grid_centers to generate multiple opt_sf
         for i in range(points.shape[0]):   #
             # Set up sf_params, using the current grid center for the first two entries
             sf_params = np.array([points[i, 1], points[i, 0], row['sigma_x']*sf_scalar, row['sigma_y']*sf_scalar,
                                 row['theta'], row['bias'], row['c_scale'], row['s_sigma_x']*sf_scalar, 
-                                row['s_sigma_y']*sf_scalar, row['s_scale']])
+                                row['s_sigma_y']*sf_scalar, surround_fac])
             
             # Generate opt_sf using gaussian_multi function
             opt_sf = gaussian_multi(sf_params, rgc_array_rf_size, num_gauss_example)
             opt_sf -= np.median(opt_sf)  # Center opt_sf around zero
 
             if is_pixelized_rf:
-                threshold_value = np.percentile(opt_sf, sf_pixel_thr)
-                # opt_sf = np.where(opt_sf > threshold_value, 1, 0)
-                opt_sf = np.where(opt_sf > threshold_value, opt_sf, 0)
+                upper_threshold_value = np.percentile(opt_sf, sf_pixel_thr)  # 95th percentile
+                lower_threshold_value = np.percentile(opt_sf, (1-sf_pixel_thr)*2)   # 5th percentile
+
+                # Set values above the upper threshold or below the lower threshold, otherwise set to 0
+                opt_sf = np.where((opt_sf > upper_threshold_value) | (opt_sf < lower_threshold_value), opt_sf, 0)
+
             
             # Append to multi_opt_sf list
             multi_opt_sf[:, :, i] = opt_sf
