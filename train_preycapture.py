@@ -81,7 +81,8 @@ def parse_args():
     parser.add_argument('--num_worker', type=int, default=0, help="Number of worker for dataloader")
     parser.add_argument('--num_epochs', type=int, default=10, help="Number of worker for dataloader")
     parser.add_argument('--schedule_method', type=str, default='RLRP', help='Method used for scheduler')
-    parser.add_argument('--schedule_factor', type=float, default=0.2, help='Learning rate')
+    parser.add_argument('--schedule_factor', type=float, default=0.2, help='Scheduler reduction factor')
+    parser.add_argument('--learning_rate', type=float, default=0.001, help='Learning rate')
 
     return parser.parse_args()
 
@@ -180,7 +181,7 @@ def main():
     model = CNN_LSTM_ObjectLocation(cnn_feature_dim=args.cnn_feature_dim, lstm_hidden_size=args.lstm_hidden_size,
                                      lstm_num_layers=args.lstm_num_layers, output_dim=args.output_dim,
                                     input_height=target_width, input_width=target_height, conv_out_channels=args.conv_out_channels)
-    optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
+    optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate)
     criterion = nn.MSELoss()
     if args.schedule_method.lower() == 'rlrp':
         scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=args.schedule_factor, patience=5)
@@ -208,13 +209,17 @@ def main():
             epoch_loss += loss.item()
     
         # Average loss for the epoch
-        avg_epoch_loss = epoch_loss / len(train_loader)
-        training_losses.append(avg_epoch_loss)
-        # print(f"Epoch [{epoch+1}/{num_epochs}], Loss: {avg_epoch_loss:.4f}")
+        avg_train_loss = epoch_loss / len(train_loader)
+        training_losses.append(avg_train_loss)
+        # Scheduler step
+        if args.schedule_method.lower() == 'rlrp':
+            scheduler.step(avg_train_loss)
+        elif args.schedule_method.lower() == 'cawr':
+            scheduler.step(epoch + (epoch / args.epochs))
 
         elapsed_time = time.time()  - start_time
         logging.info( f"{file_name} Epoch [{epoch + 1}/{num_epochs}], Elapsed time: {elapsed_time:.2f} seconds \n"
-                        f"\tLoss: {avg_epoch_loss:.4f} \n")
+                        f"\tLoss: {avg_train_loss:.4f} \n")
         
         if (epoch + 1) % 2 == 0:  # Example: Save every 10 epochs
             checkpoint_filename = f'{file_name}_checkpoint_epoch_{epoch + 1}.pth'
