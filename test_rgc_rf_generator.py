@@ -28,7 +28,7 @@ if __name__ == "__main__":
     xlim = (-120, 120)
     ylim = (-90, 90)
     rgc_array_rf_size = (320, 240)
-    target_num_centers = 500 #250
+    target_num_centers = 250 #250
     num_step = 20
     num_gauss_example = 1
     temporal_filter_len = 50
