@@ -182,7 +182,7 @@ def generate_random_samples(number_samples, x_range=(0, 1), y_range=(0, 1)):
     return coords, values
 
 
-def precompute_grid_centers(target_height, target_width, x_min=0, x_max=1, y_min=0, y_max=1):
+def precompute_grid_centers(target_height, target_width, x_min=0, x_max=1, y_min=0, y_max=1, grid_size_fac=1):
     """
     Precomputes grid centers for mapping.
 
@@ -194,8 +194,8 @@ def precompute_grid_centers(target_height, target_width, x_min=0, x_max=1, y_min
     - grid_centers (np.ndarray): Array of shape (target_height * target_width, 2)
       containing the grid center coordinates.
     """
-    grid_x = np.linspace(x_min, x_max, target_height)
-    grid_y = np.linspace(y_min, y_max, target_width)
+    grid_x = np.linspace(x_min, x_max, np.round(target_height*grid_size_fac))
+    grid_y = np.linspace(y_min, y_max, np.round(target_width*grid_size_fac)
     grid_x, grid_y = np.meshgrid(grid_x, grid_y, indexing='ij')
     grid_centers = np.stack((grid_x, grid_y), axis=-1).reshape(-1, 2)
     return grid_centers

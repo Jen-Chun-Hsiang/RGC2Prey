@@ -68,6 +68,7 @@ def parse_args():
     parser.add_argument('--num_gauss_example', type=int, default=1, help="Number of Gaussian examples.")
     parser.add_argument('--temporal_filter_len', type=int, default=50, help="Number of time points for a temporal filter")
     parser.add_argument('--is_pixelized_rf', action='store_true', help="Flag for pixelized receptive field.")
+    parser.add_argument('--grid_size_fac', type=float, default=1, help='Resize the grid size that transformed from RGC outputs')
 
     # Arguments for CNN_LSTM 
     parser.add_argument('--cnn_feature_dim', type=int, default=256, help="Number of CNN feature dimensions.")
@@ -118,7 +119,7 @@ def main():
         sf_param_table, tf_param_table, rgc_array_rf_size=args.rgc_array_rf_size, xlim=args.xlim, ylim=args.ylim,
         target_num_centers=args.target_num_centers, sf_scalar=args.sf_scalar, grid_generate_method=args.grid_generate_method, 
         tau=args.tau,rand_seed=args.rand_seed, num_gauss_example=args.num_gauss_example, is_pixelized_rf=args.is_pixelized_rf,
-        temporal_filter_len=args.temporal_filter_len
+        temporal_filter_len=args.temporal_filter_len, grid_size_fac=args.grid_size_fac
     )
     multi_opt_sf, tf, grid2value_mapping, map_func = rgc_array.get_results()
 

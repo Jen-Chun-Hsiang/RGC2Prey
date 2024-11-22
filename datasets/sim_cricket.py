@@ -467,7 +467,7 @@ def synthesize_image_with_params_batch(bottom_img_path, top_img_path, top_img_po
 class RGCrfArray:
     def __init__(self, sf_param_table, tf_param_table, rgc_array_rf_size, xlim, ylim, target_num_centers, sf_scalar,
                  grid_generate_method, tau=None, rand_seed=42, num_gauss_example=1, is_pixelized_rf=False, sf_pixel_thr=99.7,
-                 temporal_filter_len=50):
+                 temporal_filter_len=50, grid_size_fac=0.5):
         """
         Args:
             sf_param_table (DataFrame): Table of spatial frequency parameters.
@@ -493,6 +493,7 @@ class RGCrfArray:
         self.target_num_centers = target_num_centers
         self.is_pixelized_rf = is_pixelized_rf
         self.sf_pixel_thr = sf_pixel_thr
+        self.grid_size_fac = grid_size_fac
 
         # Set random seed
         self.np_rng = np.random.default_rng(self.rand_seed)
@@ -505,7 +506,7 @@ class RGCrfArray:
         self.target_height = xlim[1] - xlim[0]
         self.target_width = ylim[1] - ylim[0]
         self.grid_centers = precompute_grid_centers(self.target_height, self.target_width, x_min=xlim[0], x_max=xlim[1],
-                                            y_min=ylim[0], y_max=ylim[1])
+                                            y_min=ylim[0], y_max=ylim[1], grid_size_fac=grid_size_fac)
 
         # Generate grid2value mapping and map function
         if grid_generate_method == 'closest':
