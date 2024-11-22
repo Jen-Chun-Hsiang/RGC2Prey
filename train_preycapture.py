@@ -3,6 +3,7 @@ import torch
 import pandas as pd
 import time
 import os
+import numpy as np
 from torch.utils.data import DataLoader
 import torch.nn as nn
 import logging
@@ -179,9 +180,11 @@ def main():
         
 
     # Sample Training Loop
+    grid_width = int(np.round(target_width*args.grid_size_fac))
+    grid_heigh = int(np.round(target_height*args.grid_size_fac))
     model = CNN_LSTM_ObjectLocation(cnn_feature_dim=args.cnn_feature_dim, lstm_hidden_size=args.lstm_hidden_size,
                                      lstm_num_layers=args.lstm_num_layers, output_dim=args.output_dim,
-                                    input_height=target_width, input_width=target_height, conv_out_channels=args.conv_out_channels)
+                                    input_height=grid_width, input_width=grid_heigh, conv_out_channels=args.conv_out_channels)
     optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate)
     criterion = nn.MSELoss()
     if args.schedule_method.lower() == 'rlrp':
