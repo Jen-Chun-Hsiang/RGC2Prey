@@ -40,7 +40,7 @@ def plot_tensor_and_save(tensor, output_folder, file_name='tensor_plot.png'):
     # Plot the tensor
     plt.figure(figsize=(8, 6))
     plt.imshow(tensor_np, cmap='gray')  # You can choose a different colormap if needed
-    # plt.colorbar()  # Optional: adds a color bar to the plot
+    plt.colorbar()  # Optional: adds a color bar to the plot
     plt.title('Synthesize Image Visualization')
     
     # Save the plot to the assigned folder
