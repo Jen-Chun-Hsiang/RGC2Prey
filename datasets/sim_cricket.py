@@ -274,7 +274,7 @@ def random_movement(boundary_size, center_ratio, max_steps, prob_stay, prob_mov,
 
 class Cricket2RGCs(Dataset):
     def __init__(self, num_samples, multi_opt_sf, tf, map_func, grid2value_mapping, target_width, target_height,
-                 movie_generator):
+                 movie_generator, grid_size_fac=1):
         self.num_samples = num_samples
         self.multi_opt_sf = torch.from_numpy(multi_opt_sf).float()
         self.tf = torch.from_numpy(tf.copy()).float().view(1, 1, -1)
@@ -282,6 +282,9 @@ class Cricket2RGCs(Dataset):
         self.grid2value_mapping = torch.from_numpy(grid2value_mapping).float()
         self.target_width = target_width
         self.target_height = target_height
+        self.grid_size_fac = grid_size_fac
+        self.grid_width = int(np.round(self.target_width*grid_size_fac))
+        self.grid_height = int(np.round(self.target_height*grid_size_fac))
         # Accept pre-initialized movie generator
         self.movie_generator = movie_generator
 
@@ -297,8 +300,8 @@ class Cricket2RGCs(Dataset):
         grid_values_sequence = map_to_fixed_grid_decay_batch(
             rgc_time,  # Shape: (time_steps', num_points)
             self.grid2value_mapping,  # Shape: (num_points, target_width * target_height)
-            self.target_width,
-            self.target_height
+            self.grid_width,
+            self.grid_height
         ) 
         # print(f'path rgc_time: {rgc_time.shape}')
         path = path[-rgc_time.shape[1]:, :]

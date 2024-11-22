@@ -156,7 +156,7 @@ def main():
     target_width = ylim[1]-ylim[0]
     train_dataset = Cricket2RGCs(num_samples=args.num_samples, multi_opt_sf=multi_opt_sf, tf=tf, map_func=map_func,
                                 grid2value_mapping=grid2value_mapping, target_width=target_width, target_height=target_height,
-                                movie_generator=movie_generator)
+                                movie_generator=movie_generator, grid_size_fac=args.grid_size_fac)
     
     if args.num_worker==0:
         train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True)
