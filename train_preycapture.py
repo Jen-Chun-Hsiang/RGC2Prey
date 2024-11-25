@@ -145,8 +145,8 @@ def main():
     syn_movie, path, path_bg = movie_generator.generate()
     print(f'syn_movie shape: {syn_movie.shape}')
     if is_show_movie_frames:
-        for i in range(syn_movie.shape[2]):
-            Timg = syn_movie[:, :, i]
+        for i in range(syn_movie.shape[0]):
+            Timg = syn_movie[i, :, :]
             plot_tensor_and_save(Timg, syn_save_folder, f'{args.experiment_name}_synthesized_movement_doublecheck_{i + 1}.png')
     
     if is_show_pathes:
