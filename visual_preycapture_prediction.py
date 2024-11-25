@@ -101,9 +101,9 @@ def main():
         
         # X-coordinate over time
         plt.subplot(2, 2, 3)
-        plt.plot(range(sequence_length), x1[:, 0], label=label_1, color='darkblue')
-        plt.plot(range(sequence_length), x2[:, 0], label=label_2, color='maroon')
-        plt.plot(range(sequence_length), x3[:, 0], label=label_2, color='seagreen')
+        plt.plot(range(sequence_length), x1, label=label_1, color='darkblue')
+        plt.plot(range(sequence_length), x2, label=label_2, color='maroon')
+        plt.plot(range(sequence_length), x3, label=label_2, color='seagreen')
         plt.xlabel("Time step")
         plt.ylabel("X-coordinate")
         plt.title("X-Coordinate Trace over Time")
@@ -111,9 +111,9 @@ def main():
 
         # X-coordinate over time
         plt.subplot(2, 2, 4)
-        plt.plot(range(sequence_length), y1[:, 0], label=label_1, color='darkblue')
-        plt.plot(range(sequence_length), y2[:, 0], label=label_2, color='maroon')
-        plt.plot(range(sequence_length), y3[:, 0], label=label_2, color='seagreen')
+        plt.plot(range(sequence_length), y1, label=label_1, color='darkblue')
+        plt.plot(range(sequence_length), y2, label=label_2, color='maroon')
+        plt.plot(range(sequence_length), y3, label=label_2, color='seagreen')
         plt.xlabel("Time step")
         plt.ylabel("Y-coordinate")
         plt.title("Y-Coordinate Trace over Time")
