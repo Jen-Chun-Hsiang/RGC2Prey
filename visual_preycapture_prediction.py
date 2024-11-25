@@ -63,7 +63,7 @@ def main():
     optimizer = torch.optim.Adam(model.parameters())
     model, optimizer, _ = checkpoint_loader.load_checkpoint(model, optimizer)
 
-    model.to(args.device)
+    # model.to(args.device)
     model.eval()
     # Test model on samples
     for batch_idx, (inputs, true_path, _) in enumerate(test_loader):
