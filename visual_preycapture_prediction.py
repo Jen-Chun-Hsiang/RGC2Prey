@@ -67,7 +67,7 @@ def main():
     model.eval()
     # Test model on samples
     for batch_idx, (inputs, true_path, _) in enumerate(test_loader):
-        inputs = inputs.to(args.device)
+        # inputs = inputs.to(args.device)
         true_path = true_path.squeeze(0).cpu().numpy()
 
         with torch.no_grad():
