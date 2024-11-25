@@ -82,5 +82,12 @@ class CNN_LSTM_ObjectLocation(nn.Module):
         lstm_out = torch.relu(self.fc1(lstm_out))  # (batch_size, sequence_length, output_dim)
         coord_predictions = self.fc2(lstm_out)
         return coord_predictions
+
+    def _initialize_weights(self):
+        for m in self.modules():
+            if isinstance(m, (nn.Linear, nn.LSTM)):
+                nn.init.xavier_uniform_(m.weight)
+                if m.bias is not None:
+                    nn.init.constant_(m.bias, 0)
     
 
