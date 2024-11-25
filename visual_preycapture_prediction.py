@@ -27,6 +27,7 @@ def main():
     # Load checkpoint
     checkpoint_loader = CheckpointLoader(checkpoint_filename)
     args = checkpoint_loader.load_args()
+    training_losses = checkpoint_loader.load_training_losses()
 
     #
     sf_param_table = pd.read_excel(rf_params_file, sheet_name='SF_params', usecols='A:L')
@@ -50,10 +51,10 @@ def main():
     xlim, ylim = args.xlim, args.ylim
     target_height = xlim[1]-xlim[0]
     target_width = ylim[1]-ylim[0]
-    train_dataset = Cricket2RGCs(num_samples=args.num_samples, multi_opt_sf=multi_opt_sf, tf=tf, map_func=map_func,
+    train_dataset = Cricket2RGCs(num_samples=num_display, multi_opt_sf=multi_opt_sf, tf=tf, map_func=map_func,
                                 grid2value_mapping=grid2value_mapping, target_width=target_width, target_height=target_height,
                                 movie_generator=movie_generator, grid_size_fac=args.grid_size_fac)
-    test_loader = DataLoader(train_dataset, batch_size=num_display, shuffle=True)
+    test_loader = DataLoader(train_dataset, batch_size=1, shuffle=True)
     #
     grid_width = int(np.round(target_width*args.grid_size_fac))
     grid_height = int(np.round(target_height*args.grid_size_fac))
@@ -66,26 +67,61 @@ def main():
     # model.to(args.device)
     model.eval()
     # Test model on samples
-    for batch_idx, (inputs, true_path, _) in enumerate(test_loader):
+    for batch_idx, (inputs, true_path, bg_path) in enumerate(test_loader):
         # inputs = inputs.to(args.device)
         true_path = true_path.squeeze(0).cpu().numpy()
+        bg_path = bg_path.squeeze(0).cpu().numpy()
 
         with torch.no_grad():
-            predicted_path = model(inputs).cpu().numpy()
+            predicted_path = model(inputs).squeeze().cpu().numpy()
 
-        # Plot the true path and the predicted path
-        plt.figure(figsize=(10, 6))
-        plt.title(f"Sample {batch_idx + 1}: True Path vs Predicted Path")
-        plt.plot(true_path[:, 0], true_path[:, 1], label='True Path', color='blue')
-        plt.plot(predicted_path[:, 0], predicted_path[:, 1], label='Predicted Path', color='red')
+        # Extract x and y coordinates
+        sequence_length = len(true_path)
+        x1, y1 = true_path[:, 0], true_path[:, 1]
+        x2, y2 = predicted_path[:, 0], predicted_path[:, 1]
+        x3, y3 = bg_path[:, 0], bg_path[:, 1]
+        label_1 = 'Truth'
+        label_2 = 'Prediction'
+        label_3 = 'Background'
+
+        # Plot the loss over epochs
+        plt.figure(figsize=(12, 12))
+
+        # Loss plot
+        plt.subplot(2, 2, 1)
+        plt.plot(range(1, len(training_losses) + 1), training_losses, label="Training Loss")
+        plt.xlabel("Epoch")
+        plt.ylabel("Loss")
+        plt.title("Training Loss per Epoch")
         plt.legend()
-        plt.xlabel("X Position")
-        plt.ylabel("Y Position")
-        plt.grid()
+
+        plt.subplot(2, 2, 2)
+        plt.plot(x1, y1, label=label_1, color="darkblue", linestyle="-", linewidth=2)
+        plt.plot(x2, y2, label=label_2, color="maroon", linestyle="--", linewidth=2)
+        
+        # X-coordinate over time
+        plt.subplot(2, 2, 3)
+        plt.plot(range(sequence_length), x1[:, 0], label=label_1, color='darkblue')
+        plt.plot(range(sequence_length), x2[:, 0], label=label_2, color='maroon')
+        plt.plot(range(sequence_length), x3[:, 0], label=label_2, color='seagreen')
+        plt.xlabel("Time step")
+        plt.ylabel("X-coordinate")
+        plt.title("X-Coordinate Trace over Time")
+        plt.legend()
+
+        # X-coordinate over time
+        plt.subplot(2, 2, 4)
+        plt.plot(range(sequence_length), y1[:, 0], label=label_1, color='darkblue')
+        plt.plot(range(sequence_length), y2[:, 0], label=label_2, color='maroon')
+        plt.plot(range(sequence_length), y3[:, 0], label=label_2, color='seagreen')
+        plt.xlabel("Time step")
+        plt.ylabel("Y-coordinate")
+        plt.title("Y-Coordinate Trace over Time")
+        plt.legend()
 
         # Save the plot
         save_path = os.path.join(test_save_folder, f'prediction_plot_sample_{batch_idx + 1}.png')
-        plt.savefig(save_path)
+        plt.savefig(save_path, bbox_inches="tight")
         plt.close()
 
 if __name__ == "__main__":
