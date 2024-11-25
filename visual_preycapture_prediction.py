@@ -54,7 +54,7 @@ def main():
     train_dataset = Cricket2RGCs(num_samples=num_display, multi_opt_sf=multi_opt_sf, tf=tf, map_func=map_func,
                                 grid2value_mapping=grid2value_mapping, target_width=target_width, target_height=target_height,
                                 movie_generator=movie_generator, grid_size_fac=args.grid_size_fac)
-    test_loader = DataLoader(train_dataset, batch_size=1, shuffle=True)
+    test_loader = DataLoader(train_dataset, batch_size=1, shuffle=False)
     #
     grid_width = int(np.round(target_width*args.grid_size_fac))
     grid_height = int(np.round(target_height*args.grid_size_fac))
