@@ -91,7 +91,7 @@ def parse_args():
 def main():
     is_show_rgc_rf_individual = False
     is_show_rgc_tf = False
-    is_show_movie_frames = False
+    is_show_movie_frames = True
     is_show_pathes = True
     is_show_grids = True
     bottom_img_folder = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/CricketDataset/Images/cropped/grass/'
@@ -173,9 +173,9 @@ def main():
     print(f'sequence shape: {sequence.shape}')
     print(f'path shape: {path.shape}')
     if is_show_grids:
-        sequence = sequence[0]
-        for i in range(sequence.shape[2]):
-            Timg = syn_movie[i, :, :]
+        one_sequence = sequence[0]
+        for i in range(one_sequence.shape[0]):
+            Timg = one_sequence[i, 0, :, :].squeeze()
             plot_tensor_and_save(Timg, syn_save_folder, f'{args.experiment_name}_RGCgrid_activity_doublecheck_{i + 1}.png')
         if is_show_pathes:
             plot_two_path_comparison(path[0], path_bg[0], plot_save_folder, file_name=f'{args.experiment_name}_dataset_path.png')
