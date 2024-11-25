@@ -10,24 +10,19 @@ from models.rgc2behavior import CNN_LSTM_ObjectLocation
 from utils.utils import plot_two_path_comparison
 from utils.data_handling import CheckpointLoader
 
-def parse_args():
-    parser = argparse.ArgumentParser(description="Load checkpoint and evaluate model")
-    parser.add_argument('--experiment_name', type=str, required=True, help='Name of the checkpoint')
-    parser.add_argument('--epoch_number', type=int, required=True, help='Checkpoint epoch')
-    parser.add_argument('--num_samples', type=int, default=5, help='Number of test samples to generate')
-    parser.add_argument('--device', type=str, default='cuda' if torch.cuda.is_available() else 'cpu', help='Device to run the model')
-    return parser.parse_args()
 
 def main():
-    visual_args = parse_args()
+    experiment_name = 1124202401
+    epoch_number = 4
+    num_display = 2
     checkpoint_path = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/Results/CheckPoints/'
     bottom_img_folder = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/CricketDataset/Images/cropped/grass/'
     top_img_folder    = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/CricketDataset/Images/cropped/cricket/'
     rf_params_file = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/SimulationParams.xlsx'
     test_save_folder = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/Results/Figures/'
 
-    file_name = f'{visual_args.experiment_name}_cricket_location_prediction'
-    checkpoint_filename = os.path.join(checkpoint_path, f'{file_name}_checkpoint_epoch_{visual_args.epoch_number + 1}.pth')
+    file_name = f'{experiment_name}_cricket_location_prediction'
+    checkpoint_filename = os.path.join(checkpoint_path, f'{file_name}_checkpoint_epoch_{epoch_number}.pth')
     
     # Load checkpoint
     checkpoint_loader = CheckpointLoader(checkpoint_filename)
@@ -58,7 +53,7 @@ def main():
     train_dataset = Cricket2RGCs(num_samples=args.num_samples, multi_opt_sf=multi_opt_sf, tf=tf, map_func=map_func,
                                 grid2value_mapping=grid2value_mapping, target_width=target_width, target_height=target_height,
                                 movie_generator=movie_generator, grid_size_fac=args.grid_size_fac)
-    test_loader = DataLoader(train_dataset, batch_size=visual_args.num_samples, shuffle=True)
+    test_loader = DataLoader(train_dataset, batch_size=num_display, shuffle=True)
     #
     grid_width = int(np.round(target_width*args.grid_size_fac))
     grid_height = int(np.round(target_height*args.grid_size_fac))
