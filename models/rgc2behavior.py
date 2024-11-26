@@ -52,13 +52,23 @@ class ParallelCNNFeatureExtractor(nn.Module):
         x = self.fc(x)  # Project to feature vector of specified size
         return x
 
-    
+
+class FullSampleNormalization(nn.Module):
+    def forward(self, x):
+        # Compute mean and std over (sequence, channels, height, width) for each sample
+        mean = x.mean(dim=(1, 2, 3, 4), keepdim=True)  # Mean over sequence, C, H, W
+        std = x.std(dim=(1, 2, 3, 4), keepdim=True) + 1e-6  # Std over sequence, C, H, W
+        return (x - mean) / std   
 
 # Full CNN-LSTM model for predicting (x, y) coordinates
 class CNN_LSTM_ObjectLocation(nn.Module):
     def __init__(self, cnn_feature_dim=128, lstm_hidden_size=64, lstm_num_layers=2, output_dim=2,
-                 input_height=24, input_width=32, conv_out_channels=32):
+                 input_height=24, input_width=32, conv_out_channels=32, is_input_norm=False):
         super(CNN_LSTM_ObjectLocation, self).__init__()
+        self.is_input_norm = is_input_norm
+        if is_input_norm:
+            #self.input_norm = nn.InstanceNorm2d(1)  # Normalize each sample independently on (C, H, W)
+            self.input_norm = FullSampleNormalization()  # Normalizes entire sample
         self.cnn = ParallelCNNFeatureExtractor(input_height=input_height, input_width=input_width,conv_out_channels=conv_out_channels,
                                        fc_out_features=cnn_feature_dim)  # Assume CNNFeatureExtractor outputs cnn_feature_dim
         self.lstm = nn.LSTM(input_size=cnn_feature_dim, hidden_size=lstm_hidden_size, num_layers=lstm_num_layers, batch_first=True)
@@ -67,10 +77,11 @@ class CNN_LSTM_ObjectLocation(nn.Module):
         self.fc2 = nn.Linear(lstm_hidden_size, output_dim) 
 
     def forward(self, x):
+
+        if self.is_input_norm:
+            x = self.input_norm(x)  # Normalize entire sample
         batch_size, sequence_length, C, H, W = x.size()
         cnn_features = []
-
-        # Pass each frame through CNN
         for t in range(sequence_length):
             cnn_out = self.cnn(x[:, t, :, :, :])  # Shape: (batch_size, cnn_feature_dim)
             cnn_features.append(cnn_out)

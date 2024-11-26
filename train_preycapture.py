@@ -56,6 +56,7 @@ def parse_args():
 
     # Arguments for Cricket2RGCs (from movies to RGC array activities based on receptive field properties)
     parser.add_argument('--num_samples', type=int, default=20, help="Number of samples in the synthesized dataset")
+    parser.add_argument('--is_input_norm', action='store_true', help="Normalize inputs to the CNN.")
 
     # Arguments for RGCrfArray
     parser.add_argument('--rgc_array_rf_size', type=tuple, default=default_rg_array_rf_size, help="Receptive field size (height, width).")
@@ -187,7 +188,8 @@ def main():
     grid_height = int(np.round(target_height*args.grid_size_fac))
     model = CNN_LSTM_ObjectLocation(cnn_feature_dim=args.cnn_feature_dim, lstm_hidden_size=args.lstm_hidden_size,
                                      lstm_num_layers=args.lstm_num_layers, output_dim=args.output_dim,
-                                    input_height=grid_width, input_width=grid_height, conv_out_channels=args.conv_out_channels)
+                                    input_height=grid_width, input_width=grid_height, conv_out_channels=args.conv_out_channels,
+                                    is_input_norm=args.is_input_norm)
     optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate)
     criterion = nn.MSELoss()
     if args.schedule_method.lower() == 'rlrp':
