@@ -86,6 +86,8 @@ def parse_args():
     parser.add_argument('--schedule_method', type=str, default='RLRP', help='Method used for scheduler')
     parser.add_argument('--schedule_factor', type=float, default=0.2, help='Scheduler reduction factor')
     parser.add_argument('--learning_rate', type=float, default=0.001, help='Learning rate')
+    parser.add_argument('--is_gradient_clip', action='store_true', help="Apply gradient clip to training process")
+    parser.add_argument('--max_norm', type=float, default=5.0, help='Value for clipping by Norm')
 
     return parser.parse_args()
 
@@ -213,6 +215,12 @@ def main():
             # Compute loss
             loss = criterion(outputs, targets)
             loss.backward()
+
+            # Apply gradient clipping
+            if args.is_gradient_clip:
+                max_norm = args.max_norm  # Max gradient norm
+                torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm)
+
             optimizer.step()
             
             epoch_loss += loss.item()
