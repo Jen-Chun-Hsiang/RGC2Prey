@@ -120,7 +120,7 @@ def main():
         plt.legend()
 
         # Save the plot
-        save_path = os.path.join(test_save_folder, f'prediction_plot_sample_{batch_idx + 1}.png')
+        save_path = os.path.join(test_save_folder, f'{experiment_name}_prediction_plot_sample_{batch_idx + 1}.png')
         plt.savefig(save_path, bbox_inches="tight")
         plt.close()
 
