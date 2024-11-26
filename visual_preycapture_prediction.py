@@ -51,6 +51,8 @@ def main():
     xlim, ylim = args.xlim, args.ylim
     target_height = xlim[1]-xlim[0]
     target_width = ylim[1]-ylim[0]
+    if not hasattr(args, 'is_input_norm'):
+        args.is_input_norm = False
     train_dataset = Cricket2RGCs(num_samples=num_display, multi_opt_sf=multi_opt_sf, tf=tf, map_func=map_func,
                                 grid2value_mapping=grid2value_mapping, target_width=target_width, target_height=target_height,
                                 movie_generator=movie_generator, grid_size_fac=args.grid_size_fac, is_input_norm=args.is_input_norm)
