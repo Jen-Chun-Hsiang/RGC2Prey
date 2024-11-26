@@ -51,18 +51,20 @@ def main():
     xlim, ylim = args.xlim, args.ylim
     target_height = xlim[1]-xlim[0]
     target_width = ylim[1]-ylim[0]
-    if not hasattr(args, 'is_input_norm'):
-        args.is_input_norm = False
+    
     train_dataset = Cricket2RGCs(num_samples=num_display, multi_opt_sf=multi_opt_sf, tf=tf, map_func=map_func,
                                 grid2value_mapping=grid2value_mapping, target_width=target_width, target_height=target_height,
-                                movie_generator=movie_generator, grid_size_fac=args.grid_size_fac, is_input_norm=args.is_input_norm)
+                                movie_generator=movie_generator, grid_size_fac=args.grid_size_fac)
     test_loader = DataLoader(train_dataset, batch_size=1, shuffle=False)
     #
     grid_width = int(np.round(target_width*args.grid_size_fac))
     grid_height = int(np.round(target_height*args.grid_size_fac))
+    if not hasattr(args, 'is_input_norm'):
+        args.is_input_norm = False
     model = CNN_LSTM_ObjectLocation(cnn_feature_dim=args.cnn_feature_dim, lstm_hidden_size=args.lstm_hidden_size,
                                      lstm_num_layers=args.lstm_num_layers, output_dim=args.output_dim,
-                                    input_height=grid_width, input_width=grid_height, conv_out_channels=args.conv_out_channels)
+                                    input_height=grid_width, input_width=grid_height, conv_out_channels=args.conv_out_channels,
+                                    is_input_norm=args.is_input_norm)
     optimizer = torch.optim.Adam(model.parameters())
     model, optimizer, _ = checkpoint_loader.load_checkpoint(model, optimizer)
 
