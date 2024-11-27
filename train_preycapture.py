@@ -216,6 +216,8 @@ def main():
                 print(f"Batch {batch_idx + 1} Inputs:")
                 print(f'sequence min {torch.min(sequences)}')
                 print(f'sequence max {torch.max(sequences)}')
+                print(f'targets min {torch.min(targets)}')
+                print(f'targets max {torch.max(targets)}')
 
                 outputs = model(sequences)
                 print(f"\nBatch {batch_idx + 1} Outputs:")
