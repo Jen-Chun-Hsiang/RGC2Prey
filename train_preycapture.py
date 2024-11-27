@@ -213,11 +213,13 @@ def main():
 
                 # Print inputs and outputs for the current batch
                 print(f"Batch {batch_idx + 1} Inputs:")
-                print(sequences)
+                print(f'sequence min {torch.min(sequences)}')
+                print(f'sequence max {torch.max(sequences)}')
 
                 outputs = model(sequences)
                 print(f"\nBatch {batch_idx + 1} Outputs:")
-                print(outputs)
+                print(f'output min {torch.min(outputs)}')
+                print(f'output max {torch.max(outputs)}')
                 print("\n" + "-" * 50 + "\n")
 
         

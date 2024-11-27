@@ -80,6 +80,8 @@ class CNN_LSTM_ObjectLocation(nn.Module):
 
         if self.is_input_norm:
             x = self.input_norm(x)  # Normalize entire sample
+        print(f'x norm min {torch.min(x)}')
+        print(f'x norm max {torch.max(x)}')
         batch_size, sequence_length, C, H, W = x.size()
         cnn_features = []
         for t in range(sequence_length):
