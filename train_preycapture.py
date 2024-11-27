@@ -57,6 +57,7 @@ def parse_args():
     # Arguments for Cricket2RGCs (from movies to RGC array activities based on receptive field properties)
     parser.add_argument('--num_samples', type=int, default=20, help="Number of samples in the synthesized dataset")
     parser.add_argument('--is_input_norm', action='store_true', help="Normalize inputs to the CNN.")
+    parser.add_argument('--is_norm_coords', action='store_true', help='normalize the coordinate as inputs')
 
     # Arguments for RGCrfArray
     parser.add_argument('--rgc_array_rf_size', type=tuple, default=default_rg_array_rf_size, help="Receptive field size (height, width).")
@@ -161,7 +162,7 @@ def main():
     target_width = ylim[1]-ylim[0]
     train_dataset = Cricket2RGCs(num_samples=args.num_samples, multi_opt_sf=multi_opt_sf, tf=tf, map_func=map_func,
                                 grid2value_mapping=grid2value_mapping, target_width=target_width, target_height=target_height,
-                                movie_generator=movie_generator, grid_size_fac=args.grid_size_fac)
+                                movie_generator=movie_generator, grid_size_fac=args.grid_size_fac, is_norm_coords=args.is_norm_coords)
     
     if args.num_worker==0:
         train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True)

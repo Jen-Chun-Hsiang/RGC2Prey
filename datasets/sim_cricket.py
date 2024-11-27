@@ -274,7 +274,7 @@ def random_movement(boundary_size, center_ratio, max_steps, prob_stay, prob_mov,
 
 class Cricket2RGCs(Dataset):
     def __init__(self, num_samples, multi_opt_sf, tf, map_func, grid2value_mapping, target_width, target_height,
-                 movie_generator, grid_size_fac=1):
+                 movie_generator, grid_size_fac=1, is_norm_coords=False):
         self.num_samples = num_samples
         self.multi_opt_sf = torch.from_numpy(multi_opt_sf).float()
         self.tf = torch.from_numpy(tf.copy()).float().view(1, 1, -1)
@@ -287,6 +287,7 @@ class Cricket2RGCs(Dataset):
         self.grid_height = int(np.round(self.target_height*grid_size_fac))
         # Accept pre-initialized movie generator
         self.movie_generator = movie_generator
+        self.is_norm_coords = is_norm_coords
 
     def __len__(self):
         return self.num_samples
@@ -304,11 +305,13 @@ class Cricket2RGCs(Dataset):
             self.grid_height
         ) 
         # print(f'path rgc_time: {rgc_time.shape}')
-        path = path[-rgc_time.shape[1]:, :]
-        path_bg = path_bg[-rgc_time.shape[1]:, :]
-        #print(f'path shape: {path.shape}')
-        #print(f'path_bg shape: {path_bg.shape}')
-        #print(f'grid_values_sequence shape: {grid_values_sequence.shape}')
+        if self.is_norm_coords:
+            norm_path_fac = np.array([self.grid_height, self.grid_width]) / 2  
+        else:
+            norm_path_fac = 1
+        path = path[-rgc_time.shape[1]:, :]/norm_path_fac
+        path_bg = path_bg[-rgc_time.shape[1]:, :]/norm_path_fac
+
         return grid_values_sequence.permute(0, 2, 1).unsqueeze(1), torch.tensor(path, dtype=torch.float32), torch.tensor(path_bg, dtype=torch.float32)
     
 
