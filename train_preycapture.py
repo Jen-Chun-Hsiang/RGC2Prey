@@ -88,6 +88,7 @@ def parse_args():
     parser.add_argument('--learning_rate', type=float, default=0.001, help='Learning rate')
     parser.add_argument('--is_gradient_clip', action='store_true', help="Apply gradient clip to training process")
     parser.add_argument('--max_norm', type=float, default=5.0, help='Value for clipping by Norm')
+    parser.add_argument('--do_not_train', action='store_true', help='debug for initialization')
 
     return parser.parse_args()
 
@@ -199,49 +200,72 @@ def main():
     elif args.schedule_method.lower() == 'cawr':
         scheduler = optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer, T_0=5, T_mult=2, eta_min=1e-6)
 
-    training_losses = []  # To store the loss at each epoch
-    num_epochs = args.num_epochs
-    for epoch in range(num_epochs):
-        model.train()
-        epoch_loss = 0.0
+    if args.do_not_train:
+        # Set the number of initial batches to process
+        n = 5  # Change this value to the desired number of batches
+
+        # Loop through the data loader and process the first n batches
+        model.eval()  # Set the model to evaluation mode
+        with torch.no_grad():  # Disable gradient computation
+            for batch_idx, (sequences, targets, _) in enumerate(train_loader):
+                if batch_idx >= n:
+                    break  # Exit after processing n batches
+
+                # Print inputs and outputs for the current batch
+                print(f"Batch {batch_idx + 1} Inputs:")
+                print(sequences)
+
+                outputs = model(sequences)
+                print(f"\nBatch {batch_idx + 1} Outputs:")
+                print(outputs)
+                print("\n" + "-" * 50 + "\n")
+
         
-        start_time = time.time()
-        for sequences, targets, _ in train_loader:
-            optimizer.zero_grad()
-            
-            # Forward pass
-            outputs = model(sequences)
-            
-            # Compute loss
-            loss = criterion(outputs, targets)
-            loss.backward()
 
-            # Apply gradient clipping
-            if args.is_gradient_clip:
-                max_norm = args.max_norm  # Max gradient norm
-                torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm)
-
-            optimizer.step()
+    else:
+        training_losses = []  # To store the loss at each epoch
+        num_epochs = args.num_epochs
+        for epoch in range(num_epochs):
+            model.train()
+            epoch_loss = 0.0
             
-            epoch_loss += loss.item()
-    
-        # Average loss for the epoch
-        avg_train_loss = epoch_loss / len(train_loader)
-        training_losses.append(avg_train_loss)
-        # Scheduler step
-        if args.schedule_method.lower() == 'rlrp':
-            scheduler.step(avg_train_loss)
-        elif args.schedule_method.lower() == 'cawr':
-            scheduler.step(epoch + (epoch / args.epochs))
+            start_time = time.time()
+            for sequences, targets, _ in train_loader:
+                optimizer.zero_grad()
+                
+                # Forward pass
+                outputs = model(sequences)
+                
+                # Compute loss
+                loss = criterion(outputs, targets)
+                loss.backward()
 
-        elapsed_time = time.time()  - start_time
-        logging.info( f"{file_name} Epoch [{epoch + 1}/{num_epochs}], Elapsed time: {elapsed_time:.2f} seconds \n"
-                        f"\tLoss: {avg_train_loss:.4f} \n")
+                # Apply gradient clipping
+                if args.is_gradient_clip:
+                    max_norm = args.max_norm  # Max gradient norm
+                    torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm)
+
+                optimizer.step()
+                
+                epoch_loss += loss.item()
         
-        if (epoch + 1) % 2 == 0:  # Example: Save every 10 epochs
-            checkpoint_filename = f'{file_name}_checkpoint_epoch_{epoch + 1}.pth'
-            save_checkpoint(epoch, model, optimizer, training_losses=training_losses, scheduler=scheduler, args=args,  
-                                file_path=os.path.join(savemodel_dir, checkpoint_filename))
+            # Average loss for the epoch
+            avg_train_loss = epoch_loss / len(train_loader)
+            training_losses.append(avg_train_loss)
+            # Scheduler step
+            if args.schedule_method.lower() == 'rlrp':
+                scheduler.step(avg_train_loss)
+            elif args.schedule_method.lower() == 'cawr':
+                scheduler.step(epoch + (epoch / args.epochs))
+
+            elapsed_time = time.time()  - start_time
+            logging.info( f"{file_name} Epoch [{epoch + 1}/{num_epochs}], Elapsed time: {elapsed_time:.2f} seconds \n"
+                            f"\tLoss: {avg_train_loss:.4f} \n")
+            
+            if (epoch + 1) % 2 == 0:  # Example: Save every 10 epochs
+                checkpoint_filename = f'{file_name}_checkpoint_epoch_{epoch + 1}.pth'
+                save_checkpoint(epoch, model, optimizer, training_losses=training_losses, scheduler=scheduler, args=args,  
+                                    file_path=os.path.join(savemodel_dir, checkpoint_filename))
 
 if __name__ == '__main__':
     main()
