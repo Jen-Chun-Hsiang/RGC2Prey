@@ -287,7 +287,11 @@ class Cricket2RGCs(Dataset):
         self.grid_height = int(np.round(self.target_height*grid_size_fac))
         # Accept pre-initialized movie generator
         self.movie_generator = movie_generator
-        self.is_norm_coords = is_norm_coords
+        if is_norm_coords:
+            self.norm_path_fac = np.array([self.target_height, self.target_width]) / 2  
+        else:
+            self.norm_path_fac = 1
+
 
     def __len__(self):
         return self.num_samples
@@ -305,12 +309,9 @@ class Cricket2RGCs(Dataset):
             self.grid_height
         ) 
         # print(f'path rgc_time: {rgc_time.shape}')
-        if self.is_norm_coords:
-            norm_path_fac = np.array([self.grid_height, self.grid_width]) / 2  
-        else:
-            norm_path_fac = 1
-        path = path[-rgc_time.shape[1]:, :]/norm_path_fac
-        path_bg = path_bg[-rgc_time.shape[1]:, :]/norm_path_fac
+        
+        path = path[-rgc_time.shape[1]:, :]/self.norm_path_fac
+        path_bg = path_bg[-rgc_time.shape[1]:, :]/self.norm_path_fac
 
         return grid_values_sequence.permute(0, 2, 1).unsqueeze(1), torch.tensor(path, dtype=torch.float32), torch.tensor(path_bg, dtype=torch.float32)
     
