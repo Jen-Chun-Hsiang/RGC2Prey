@@ -52,10 +52,10 @@ def main():
     target_height = xlim[1]-xlim[0]
     target_width = ylim[1]-ylim[0]
     
-    train_dataset = Cricket2RGCs(num_samples=num_display, multi_opt_sf=multi_opt_sf, tf=tf, map_func=map_func,
+    test_dataset = Cricket2RGCs(num_samples=num_display, multi_opt_sf=multi_opt_sf, tf=tf, map_func=map_func,
                                 grid2value_mapping=grid2value_mapping, target_width=target_width, target_height=target_height,
-                                movie_generator=movie_generator, grid_size_fac=args.grid_size_fac)
-    test_loader = DataLoader(train_dataset, batch_size=1, shuffle=False)
+                                movie_generator=movie_generator, grid_size_fac=args.grid_size_fac, is_norm_coords=args.is_norm_coords)
+    test_loader = DataLoader(test_dataset, batch_size=1, shuffle=False)
     #
     grid_width = int(np.round(target_width*args.grid_size_fac))
     grid_height = int(np.round(target_height*args.grid_size_fac))
