@@ -13,7 +13,7 @@ from utils.data_handling import CheckpointLoader
 
 def main():
     experiment_name = 1124202405
-    epoch_number = 2
+    epoch_number = 8
     num_display = 5
     checkpoint_path = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/Results/CheckPoints/'
     bottom_img_folder = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/CricketDataset/Images/cropped/grass/'
@@ -124,7 +124,7 @@ def main():
         plt.legend()
 
         # Save the plot
-        save_path = os.path.join(test_save_folder, f'{experiment_name}_prediction_plot_sample_{batch_idx + 1}.png')
+        save_path = os.path.join(test_save_folder, f'{experiment_name}_{epoch_number}_prediction_plot_sample_{batch_idx + 1}.png')
         plt.savefig(save_path, bbox_inches="tight")
         plt.close()
 
