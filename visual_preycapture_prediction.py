@@ -13,7 +13,7 @@ from utils.data_handling import CheckpointLoader
 
 def main():
     experiment_name = 1124202405
-    epoch_number = 8
+    epoch_number = 14
     num_display = 5
     checkpoint_path = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/Results/CheckPoints/'
     bottom_img_folder = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/CricketDataset/Images/cropped/grass/'
