@@ -7,7 +7,7 @@ from torch.utils.data import Dataset
 import torch.nn.functional as F
 
 from datasets.rgc_rf import map_to_fixed_grid_decay_batch, gaussian_multi, gaussian_temporalfilter, get_closest_indices, compute_distance_decay_matrix
-from datasets.rgc_rf import map_to_fixed_grid_closest, map_to_fixed_grid_decay, create_hexagonal_centers, precompute_grid_centers
+from datasets.rgc_rf import map_to_fixed_grid_closest_batch, create_hexagonal_centers, precompute_grid_centers
 from utils.utils import get_random_file_path
 
 
@@ -302,13 +302,12 @@ class Cricket2RGCs(Dataset):
         sf_frame = sf_frame.unsqueeze(0) 
         tf = np.repeat(self.tf, sf_frame.shape[1], axis=0)
         rgc_time = F.conv1d(sf_frame, tf, stride=1, padding=0, groups=sf_frame.shape[1]).squeeze()
-        grid_values_sequence = map_to_fixed_grid_decay_batch(
+        grid_values_sequence = self.map_func(
             rgc_time,  # Shape: (time_steps', num_points)
             self.grid2value_mapping,  # Shape: (num_points, target_width * target_height)
             self.grid_width,
             self.grid_height
         ) 
-        # print(f'path rgc_time: {rgc_time.shape}')
         
         path = path[-rgc_time.shape[1]:, :]/self.norm_path_fac
         path_bg = path_bg[-rgc_time.shape[1]:, :]/self.norm_path_fac
@@ -518,10 +517,10 @@ class RGCrfArray:
         # Generate grid2value mapping and map function
         if grid_generate_method == 'closest':
             self.grid2value_mapping = get_closest_indices(self.grid_centers, self.points)
-            self.map_func = map_to_fixed_grid_closest
+            self.map_func = map_to_fixed_grid_closest_batch
         elif grid_generate_method == 'decay':
             self.grid2value_mapping = compute_distance_decay_matrix(self.grid_centers, self.points, self.tau)
-            self.map_func = map_to_fixed_grid_decay
+            self.map_func = map_to_fixed_grid_decay_batch
         else:
             raise ValueError("Invalid grid_generate_method. Use 'closest' or 'decay'.")
 

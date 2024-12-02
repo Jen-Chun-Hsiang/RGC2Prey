@@ -161,6 +161,31 @@ def map_to_fixed_grid_closest(values, closest_points, target_width, target_heigh
     
     return grid_values
 
+def map_to_fixed_grid_closest_batch(values, closest_points, target_width, target_height):
+    """
+    Maps a batch of grid cells to the values of the closest coordinates using precomputed indices.
+
+    Parameters:
+    - values (np.ndarray or torch.Tensor): Array of shape (T, N), where T is the batch size
+      (time steps) and N is the number of input points (coordinates).
+    - closest_points (np.ndarray): Array of shape (M,) with the index of the closest coordinate
+      for each grid center. Assumes the same closest points apply to all batches.
+    - target_width (int): Width of the target grid.
+    - target_height (int): Height of the target grid.
+
+    Returns:
+    - grid_values_batch (np.ndarray or torch.Tensor): A 3D array of shape (T, target_height, target_width),
+      with values mapped to each grid cell based on the closest coordinates for the entire batch.
+    """
+    # Index the closest values for each batch
+    # values: (T, N), closest_points: (M,)
+    grid_values = values[:, closest_points]  # Shape: (T, M)
+
+    # Reshape to (T, target_height, target_width)
+    grid_values_batch = grid_values.view(-1, target_height, target_width)  # Shape: (T, H, W)
+
+    return grid_values_batch
+
 
 def generate_random_samples(number_samples, x_range=(0, 1), y_range=(0, 1)):
     """
