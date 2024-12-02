@@ -129,6 +129,8 @@ def main():
     )
     multi_opt_sf, tf, grid2value_mapping, map_func = rgc_array.get_results()
     print(f'grid2value_mapping shape: {grid2value_mapping.shape}')
+    print(f'grid2value_mapping min {torch.min(grid2value_mapping)}')
+    print(f'grid2value_mapping max {torch.max(grid2value_mapping)}')
 
     # Check results of RGC array synthesis
     if is_show_rgc_rf_individual:
