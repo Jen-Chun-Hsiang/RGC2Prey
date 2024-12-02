@@ -516,7 +516,7 @@ class RGCrfArray:
 
         # Generate grid2value mapping and map function
         if grid_generate_method == 'closest':
-            self.grid2value_mapping = get_closest_indices(self.grid_centers, self.points)
+            self.grid2value_mapping = torch.tensor(get_closest_indices(self.grid_centers, self.points), dtype=torch.long)
             self.map_func = map_to_fixed_grid_closest_batch
         elif grid_generate_method == 'decay':
             self.grid2value_mapping = compute_distance_decay_matrix(self.grid_centers, self.points, self.tau)
