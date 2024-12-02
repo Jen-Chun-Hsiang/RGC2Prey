@@ -181,7 +181,7 @@ def map_to_fixed_grid_closest_batch(values, closest_points, target_width, target
     # values: (T, N), closest_points: (M,)
     print(f'values shape: {values.shape}')
     print(f'closest_points shape: {closest_points.shape}')
-    grid_values = values[:, closest_points]  # Shape: (T, M)
+    grid_values = values[closest_points, :].T  # Shape: (T, M)
 
     # Reshape to (T, target_height, target_width)
     grid_values_batch = grid_values.view(-1, target_height, target_width)  # Shape: (T, H, W)
