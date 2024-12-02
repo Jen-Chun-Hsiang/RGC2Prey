@@ -128,6 +128,7 @@ def main():
         temporal_filter_len=args.temporal_filter_len, grid_size_fac=args.grid_size_fac
     )
     multi_opt_sf, tf, grid2value_mapping, map_func = rgc_array.get_results()
+    print(f'grid2value_mapping shape: {grid2value_mapping.shape}')
 
     # Check results of RGC array synthesis
     if is_show_rgc_rf_individual:
