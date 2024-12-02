@@ -279,7 +279,7 @@ class Cricket2RGCs(Dataset):
         self.multi_opt_sf = torch.from_numpy(multi_opt_sf).float()
         self.tf = torch.from_numpy(tf.copy()).float().view(1, 1, -1)
         self.map_func = map_func
-        self.grid2value_mapping = torch.from_numpy(grid2value_mapping).float()
+        self.grid2value_mapping = grid2value_mapping
         self.target_width = target_width
         self.target_height = target_height
         self.grid_size_fac = grid_size_fac
@@ -516,13 +516,24 @@ class RGCrfArray:
 
         # Generate grid2value mapping and map function
         if grid_generate_method == 'closest':
-            self.grid2value_mapping = torch.tensor(get_closest_indices(self.grid_centers, self.points), dtype=torch.long)
+            # Ensure `get_closest_indices` works with NumPy or PyTorch and output is a PyTorch tensor
+            closest_indices = get_closest_indices(self.grid_centers, self.points)
+            if isinstance(closest_indices, np.ndarray):
+                closest_indices = torch.tensor(closest_indices, dtype=torch.long)
+            self.grid2value_mapping = closest_indices
             self.map_func = map_to_fixed_grid_closest_batch
+
         elif grid_generate_method == 'decay':
-            self.grid2value_mapping = compute_distance_decay_matrix(self.grid_centers, self.points, self.tau)
+            # Ensure `compute_distance_decay_matrix` works with NumPy or PyTorch and output is a PyTorch tensor
+            decay_matrix = compute_distance_decay_matrix(self.grid_centers, self.points, self.tau)
+            if isinstance(decay_matrix, np.ndarray):
+                decay_matrix = torch.from_numpy(decay_matrix).float()
+            self.grid2value_mapping = decay_matrix
             self.map_func = map_to_fixed_grid_decay_batch
+
         else:
             raise ValueError("Invalid grid_generate_method. Use 'closest' or 'decay'.")
+
 
         # Generate multi_opt_sf and tf arrays
         self.multi_opt_sf = self._create_multi_opt_sf()
