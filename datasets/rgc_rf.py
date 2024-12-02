@@ -308,3 +308,63 @@ def map_to_fixed_grid_decay_batch(values, decay_matrix, target_width, target_hei
     grid_values_batch = weighted_values.view(-1, target_height, target_width)  # Shape: (T, H, W)
 
     return grid_values_batch
+
+
+def compute_circular_mask_matrix(grid_centers, coords, mask_radius):
+    """
+    Computes a binary matrix where each element represents whether a grid center 
+    is within a circular region centered at a given coordinate.
+
+    Parameters:
+    - grid_centers (np.ndarray): Array of shape (M, 2), where M is the number of grid centers.
+    - coords (np.ndarray): Array of shape (N, 2), where N is the number of coordinates.
+    - mask_radius (float): The radius of the circular mask.
+
+    Returns:
+    - mask_matrix (np.ndarray): A binary 2D array of shape (N, M), where each element 
+      is 1 if the grid center is within the circular region of the corresponding coordinate, 0 otherwise.
+    """
+    # Compute pairwise distances between each coordinate and each grid center
+    distances = np.linalg.norm(coords[:, np.newaxis, :] - grid_centers[np.newaxis, :, :], axis=2)
+
+    # Apply the circular mask condition
+    mask_matrix = (distances <= mask_radius).astype(float)
+
+    return mask_matrix
+
+
+def map_to_fixed_grid_circle_batch(values, mask_matrix, target_width, target_height):
+    """
+    Maps a batch of value arrays to a fixed grid using circular masks.
+
+    Parameters:
+    - values (np.ndarray or torch.Tensor): Array of shape (T, N), where T is the batch size
+      (time steps) and N is the number of input points (coordinates).
+    - mask_matrix (np.ndarray or torch.Tensor): 2D array of shape (N, M), where each element
+      indicates whether a grid center is within the circular mask of a coordinate.
+    - target_width (int): Width of the target grid.
+    - target_height (int): Height of the target grid.
+
+    Returns:
+    - grid_values_batch (torch.Tensor): A 3D tensor of shape (T, target_height, target_width),
+      with values mapped to each grid cell based on the circular mask for the entire batch.
+    """
+    # Ensure inputs are PyTorch tensors
+    if isinstance(values, np.ndarray):
+        values = torch.tensor(values, dtype=torch.float32)
+    if isinstance(mask_matrix, np.ndarray):
+        mask_matrix = torch.tensor(mask_matrix, dtype=torch.float32)
+
+    # Normalize the mask to ensure each grid cell receives appropriate contributions
+    # Avoid division by zero using a small epsilon
+    epsilon = 1e-8
+    normalized_mask = mask_matrix / (torch.sum(mask_matrix, dim=0, keepdim=True) + epsilon)
+
+    # Perform batch matrix multiplication to compute masked values for all time steps
+    # values: (T, N), normalized_mask: (N, M)
+    masked_values = torch.matmul(values, normalized_mask)  # Shape: (T, M)
+
+    # Reshape the result to (T, target_height, target_width)
+    grid_values_batch = masked_values.view(-1, target_height, target_width)  # Shape: (T, H, W)
+
+    return grid_values_batch
