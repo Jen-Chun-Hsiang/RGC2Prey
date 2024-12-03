@@ -353,7 +353,7 @@ def map_to_fixed_grid_circle_batch(values, mask_matrix, target_width, target_hei
 
     # Normalize the mask to ensure each grid cell receives appropriate contributions
     # Avoid division by zero using a small epsilon
-    print(f'mask_matrix shape: {mask_matrix.shape}')
+    # print(f'mask_matrix shape: {mask_matrix.shape}')
     epsilon = 1e-8
     normalized_mask = mask_matrix / (torch.sum(mask_matrix, dim=0, keepdim=True) + epsilon)
 
