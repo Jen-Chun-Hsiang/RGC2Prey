@@ -35,7 +35,7 @@ def main():
     rgc_array = RGCrfArray(
         sf_param_table, tf_param_table, rgc_array_rf_size=args.rgc_array_rf_size, xlim=args.xlim, ylim=args.ylim,
         target_num_centers=args.target_num_centers, sf_scalar=args.sf_scalar, grid_generate_method=args.grid_generate_method, 
-        tau=args.tau,rand_seed=args.rand_seed, num_gauss_example=args.num_gauss_example, is_pixelized_rf=args.is_pixelized_rf,
+        tau=args.tau, mask_radius=args.mask_radius,rand_seed=args.rand_seed, num_gauss_example=args.num_gauss_example, is_pixelized_rf=args.is_pixelized_rf,
         temporal_filter_len=args.temporal_filter_len, grid_size_fac=args.grid_size_fac
     )
     multi_opt_sf, tf, grid2value_mapping, map_func = rgc_array.get_results()
