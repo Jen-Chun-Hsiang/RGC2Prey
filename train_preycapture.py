@@ -96,6 +96,7 @@ def parse_args():
     parser.add_argument('--is_GPU', action='store_true', help='Using GPUs for accelaration')
     parser.add_argument('--timer_tau', type=float, default=0.9, help='moving winder constant')
     parser.add_argument('--timer_sample_cicle', type=int, default=1, help='Sample circle for the timer')
+    parser.add_argument('--exam_batch_idx', type=int, default=None, help='examine the timer and stop code in the middle')
 
     return parser.parse_args()
 
@@ -127,6 +128,8 @@ def main():
     
     if args.is_GPU:
         device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    else:
+        device = 'cpu'
 
     
     sf_param_table = pd.read_excel(rf_params_file, sheet_name='SF_params', usecols='A:L')
@@ -248,33 +251,53 @@ def main():
         timer_data_loading = {'min': None, 'max': None, 'moving_avg': None, 'counter': 0}
         timer_data_transfer = {'min': None, 'max': None, 'moving_avg': None, 'counter': 0}
         timer_data_processing = {'min': None, 'max': None, 'moving_avg': None, 'counter': 0}
+        timer_data_backpropagate = {'min': None, 'max': None, 'moving_avg': None, 'counter': 0}
         for epoch in range(num_epochs):
             model.train()
             epoch_loss = 0.0
             
             start_time = time.time()
-            for sequences, targets, _ in train_loader:
+            data_iterator = iter(train_loader)
+            for batch_idx in range(len(train_loader)):
+                with timer(timer_data_loading, tau=args.timer_tau, n=args.timer_sample_cicle):
+                    sequences, targets, _ = next(data_iterator)
+
                 with timer(timer_data_transfer, tau=args.timer_tau, n=args.timer_sample_cicle):
                     sequences, targets = sequences.to(device), targets.to(device)
 
                 optimizer.zero_grad()
                 
                 # Forward pass
-                outputs = model(sequences)
+                with timer(timer_data_processing, tau=args.timer_tau, n=args.timer_sample_cicle):
+                    outputs = model(sequences)
                 
                 # Compute loss
-                loss = criterion(outputs, targets)
-                loss.backward()
+                with timer(timer_data_backpropagate, tau=args.timer_tau, n=args.timer_sample_cicle):
+                    loss = criterion(outputs, targets)
+                    loss.backward()
 
-                # Apply gradient clipping
-                if args.is_gradient_clip:
-                    max_norm = args.max_norm  # Max gradient norm
-                    torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm)
+                    # Apply gradient clipping
+                    if args.is_gradient_clip:
+                        max_norm = args.max_norm  # Max gradient norm
+                        torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm)
 
-                optimizer.step()
+                    optimizer.step()
                 
                 epoch_loss += loss.item()
-        
+
+                # Print timer data at specific batch index
+                if batch_idx == args.exam_batch_idx:
+                    if args.exam_batch_idx is not None:
+                        print(f"Batch {batch_idx}:")
+                        print(f"Data Loading: {timer_data_loading}")
+                        print(f"Data Transfer: {timer_data_transfer}")
+                        print(f"Processing: {timer_data_processing}")
+                        print(f"Backpropagation: {timer_data_backpropagate}")
+                        break
+
+            if args.exam_batch_idx is not None:
+                break
+            
             # Average loss for the epoch
             avg_train_loss = epoch_loss / len(train_loader)
             training_losses.append(avg_train_loss)
