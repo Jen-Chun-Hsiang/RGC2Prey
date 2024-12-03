@@ -7,7 +7,8 @@ from torch.utils.data import Dataset
 import torch.nn.functional as F
 
 from datasets.rgc_rf import map_to_fixed_grid_decay_batch, gaussian_multi, gaussian_temporalfilter, get_closest_indices, compute_distance_decay_matrix
-from datasets.rgc_rf import map_to_fixed_grid_closest_batch, create_hexagonal_centers, precompute_grid_centers
+from datasets.rgc_rf import map_to_fixed_grid_closest_batch, create_hexagonal_centers, precompute_grid_centers, compute_circular_mask_matrix
+from datasets.rgc_rf import map_to_fixed_grid_circle_batch
 from utils.utils import get_random_file_path
 
 
@@ -472,7 +473,7 @@ def synthesize_image_with_params_batch(bottom_img_path, top_img_path, top_img_po
 
 class RGCrfArray:
     def __init__(self, sf_param_table, tf_param_table, rgc_array_rf_size, xlim, ylim, target_num_centers, sf_scalar,
-                 grid_generate_method, tau=None, rand_seed=42, num_gauss_example=1, is_pixelized_rf=False, sf_pixel_thr=99.7,
+                 grid_generate_method, tau=None, mask_radius=None, rand_seed=42, num_gauss_example=1, is_pixelized_rf=False, sf_pixel_thr=99.7,
                  temporal_filter_len=50, grid_size_fac=0.5):
         """
         Args:
@@ -494,6 +495,7 @@ class RGCrfArray:
         self.temporal_filter_len = temporal_filter_len
         self.grid_generate_method = grid_generate_method
         self.tau = tau
+        self.mask_radius = mask_radius
         self.rand_seed = rand_seed
         self.num_gauss_example = num_gauss_example
         self.target_num_centers = target_num_centers
@@ -530,6 +532,17 @@ class RGCrfArray:
                 decay_matrix = torch.from_numpy(decay_matrix).float()
             self.grid2value_mapping = decay_matrix
             self.map_func = map_to_fixed_grid_decay_batch
+
+        elif grid_generate_method == 'circle':
+            # Compute the circular mask matrix
+            mask_matrix = compute_circular_mask_matrix(self.grid_centers, self.points, self.mask_radius)
+
+            # Convert to PyTorch tensor if needed
+            if isinstance(mask_matrix, np.ndarray):
+                mask_matrix = torch.from_numpy(mask_matrix).float()
+
+            self.grid2value_mapping = mask_matrix
+            self.map_func = map_to_fixed_grid_circle_batch  # Define the appropriate mapping function
 
         else:
             raise ValueError("Invalid grid_generate_method. Use 'closest' or 'decay'.")

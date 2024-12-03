@@ -349,20 +349,17 @@ def map_to_fixed_grid_circle_batch(values, mask_matrix, target_width, target_hei
     - grid_values_batch (torch.Tensor): A 3D tensor of shape (T, target_height, target_width),
       with values mapped to each grid cell based on the circular mask for the entire batch.
     """
-    # Ensure inputs are PyTorch tensors
-    if isinstance(values, np.ndarray):
-        values = torch.tensor(values, dtype=torch.float32)
-    if isinstance(mask_matrix, np.ndarray):
-        mask_matrix = torch.tensor(mask_matrix, dtype=torch.float32)
+    
 
     # Normalize the mask to ensure each grid cell receives appropriate contributions
     # Avoid division by zero using a small epsilon
+    print(f'mask_matrix shape: {mask_matrix.shape}')
     epsilon = 1e-8
     normalized_mask = mask_matrix / (torch.sum(mask_matrix, dim=0, keepdim=True) + epsilon)
 
     # Perform batch matrix multiplication to compute masked values for all time steps
     # values: (T, N), normalized_mask: (N, M)
-    masked_values = torch.matmul(values, normalized_mask)  # Shape: (T, M)
+    masked_values = torch.matmul(values.T, normalized_mask)  # Shape: (T, M)
 
     # Reshape the result to (T, target_height, target_width)
     grid_values_batch = masked_values.view(-1, target_height, target_width)  # Shape: (T, H, W)

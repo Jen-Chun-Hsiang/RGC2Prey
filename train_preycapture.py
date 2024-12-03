@@ -65,8 +65,10 @@ def parse_args():
     parser.add_argument('--ylim', type=tuple, default=default_ylim, help="y-axis limits for grid centers.")
     parser.add_argument('--target_num_centers', type=int, default=500, help="Number of target centers to generate.")
     parser.add_argument('--sf_scalar', type=float, default=default_sf_scalar, help="Scaling factor for spatial frequency.")
-    parser.add_argument('--grid_generate_method', type=str, default=default_grid_generate_method, choices=['closest', 'decay'], help="Method for grid generation.")
+    parser.add_argument('--grid_generate_method', type=str, default=default_grid_generate_method, 
+                        choices=['closest', 'decay', 'circle'], help="Method for grid generation.")
     parser.add_argument('--tau', type=float, default=default_tau, help="Decay factor for 'decay' method.")
+    parser.add_argument('--mask_radius', type=float, default=30, help='receptive field radius size in pixel')
     parser.add_argument('--rand_seed', type=int, default=42, help="Random seed for reproducibility.")
     parser.add_argument('--num_gauss_example', type=int, default=1, help="Number of Gaussian examples.")
     parser.add_argument('--temporal_filter_len', type=int, default=50, help="Number of time points for a temporal filter")
@@ -124,8 +126,8 @@ def main():
     rgc_array = RGCrfArray(
         sf_param_table, tf_param_table, rgc_array_rf_size=args.rgc_array_rf_size, xlim=args.xlim, ylim=args.ylim,
         target_num_centers=args.target_num_centers, sf_scalar=args.sf_scalar, grid_generate_method=args.grid_generate_method, 
-        tau=args.tau,rand_seed=args.rand_seed, num_gauss_example=args.num_gauss_example, is_pixelized_rf=args.is_pixelized_rf,
-        temporal_filter_len=args.temporal_filter_len, grid_size_fac=args.grid_size_fac
+        tau=args.tau, mask_radius=args.mask_radius, rand_seed=args.rand_seed, num_gauss_example=args.num_gauss_example, 
+        is_pixelized_rf=args.is_pixelized_rf, temporal_filter_len=args.temporal_filter_len, grid_size_fac=args.grid_size_fac
     )
     multi_opt_sf, tf, grid2value_mapping, map_func = rgc_array.get_results()
     print(f'grid2value_mapping shape: {grid2value_mapping.shape}')
