@@ -14,6 +14,7 @@ from datasets.sim_cricket import RGCrfArray, SynMovieGenerator, Cricket2RGCs
 from utils.utils import plot_tensor_and_save, plot_vector_and_save, plot_two_path_comparison
 from models.rgc2behavior import CNN_LSTM_ObjectLocation
 from utils.data_handling import save_checkpoint
+from utils.tools import timer
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Script for Model Training to get 3D RF in simulation")
@@ -93,6 +94,8 @@ def parse_args():
     parser.add_argument('--max_norm', type=float, default=5.0, help='Value for clipping by Norm')
     parser.add_argument('--do_not_train', action='store_true', help='debug for initialization')
     parser.add_argument('--is_GPU', action='store_true', help='Using GPUs for accelaration')
+    parser.add_argument('--timer_tau', type=float, default=0.9, help='moving winder constant')
+    parser.add_argument('--timer_sample_cicle', type=int, default=1, help='Sample circle for the timer')
 
     return parser.parse_args()
 
@@ -242,14 +245,18 @@ def main():
     else:
         training_losses = []  # To store the loss at each epoch
         num_epochs = args.num_epochs
+        timer_data_loading = {'min': None, 'max': None, 'moving_avg': None, 'counter': 0}
+        timer_data_transfer = {'min': None, 'max': None, 'moving_avg': None, 'counter': 0}
+        timer_data_processing = {'min': None, 'max': None, 'moving_avg': None, 'counter': 0}
         for epoch in range(num_epochs):
             model.train()
             epoch_loss = 0.0
             
             start_time = time.time()
             for sequences, targets, _ in train_loader:
-                sequences, targets = sequences.to(device), targets.to(device)
-                
+                with timer(timer_data_transfer, tau=args.timer_tau, n=args.timer_sample_cicle):
+                    sequences, targets = sequences.to(device), targets.to(device)
+
                 optimizer.zero_grad()
                 
                 # Forward pass
