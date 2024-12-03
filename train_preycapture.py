@@ -92,6 +92,7 @@ def parse_args():
     parser.add_argument('--is_gradient_clip', action='store_true', help="Apply gradient clip to training process")
     parser.add_argument('--max_norm', type=float, default=5.0, help='Value for clipping by Norm')
     parser.add_argument('--do_not_train', action='store_true', help='debug for initialization')
+    parser.add_argument('--is_GPU', action='store_true', help='Using GPUs for accelaration')
 
     return parser.parse_args()
 
@@ -109,6 +110,7 @@ def main():
     savemodel_dir = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/Results/CheckPoints/'
     rf_params_file = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/SimulationParams.xlsx'
 
+
     args = parse_args()
     timestr = datetime.now().strftime('%Y%m%d_%H%M%S')
     # Construct the full path for the log file
@@ -119,6 +121,9 @@ def main():
     logging.basicConfig(filename=log_filename,
                         level=logging.INFO,
                         format='%(asctime)s %(levelname)s:%(message)s')
+    
+    if args.is_GPU:
+        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     
     sf_param_table = pd.read_excel(rf_params_file, sheet_name='SF_params', usecols='A:L')
@@ -199,6 +204,8 @@ def main():
                                      lstm_num_layers=args.lstm_num_layers, output_dim=args.output_dim,
                                     input_height=grid_width, input_width=grid_height, conv_out_channels=args.conv_out_channels,
                                     is_input_norm=args.is_input_norm)
+    
+    model = model.to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate)
     criterion = nn.MSELoss()
     if args.schedule_method.lower() == 'rlrp':
@@ -241,6 +248,8 @@ def main():
             
             start_time = time.time()
             for sequences, targets, _ in train_loader:
+                sequences, targets = sequences.to(device), targets.to(device)
+                
                 optimizer.zero_grad()
                 
                 # Forward pass
