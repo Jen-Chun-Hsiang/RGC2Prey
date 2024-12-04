@@ -12,7 +12,7 @@ from utils.data_handling import CheckpointLoader
 
 
 def main():
-    experiment_name = 1203202410
+    experiment_name = 1203202409
     epoch_number = 50
     num_display = 6
     checkpoint_path = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/Results/CheckPoints/'
