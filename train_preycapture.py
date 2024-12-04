@@ -309,7 +309,7 @@ def main():
             if args.schedule_method.lower() == 'rlrp':
                 scheduler.step(avg_train_loss)
             elif args.schedule_method.lower() == 'cawr':
-                scheduler.step(epoch + (epoch / args.epochs))
+                scheduler.step(epoch + (epoch / num_epochs))
 
             elapsed_time = time.time()  - start_time
             logging.info( f"{file_name} Epoch [{epoch + 1}/{num_epochs}], Elapsed time: {elapsed_time:.2f} seconds \n"
