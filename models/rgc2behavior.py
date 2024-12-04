@@ -93,11 +93,9 @@ class CNN_LSTM_ObjectLocation(nn.Module):
             for t in range(sequence_length):
                 cnn_out = self.cnn(x[:, t, :, :, :])  # Shape: (batch_size, cnn_feature_dim)
                 cnn_features.append(cnn_out)
+            # Stack CNN outputs and pass through LSTM
+            cnn_features = torch.stack(cnn_features, dim=1)
         
-        
-        
-        # Stack CNN outputs and pass through LSTM
-        cnn_features = torch.stack(cnn_features, dim=1)
         lstm_out, _ = self.lstm(cnn_features)
         lstm_out = self.lstm_norm(lstm_out)
         lstm_out = torch.relu(self.fc1(lstm_out))  # (batch_size, sequence_length, output_dim)
