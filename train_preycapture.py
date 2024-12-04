@@ -54,6 +54,7 @@ def parse_args():
     parser.add_argument('--velocity_randomness_bg', type=float, default=0.01, help='Variation in speed change of each step')
     parser.add_argument('--angle_range_ob', type=float, default=0.5, help='Variation in speed change of each step')
     parser.add_argument('--angle_range_bg', type=float, default=0.25, help='Variation in speed change of each step')
+    parser.add_argument('--bg_folder', type=str, default='single-contrast', help='Image background folder name')
 
     # Arguments for Cricket2RGCs (from movies to RGC array activities based on receptive field properties)
     parser.add_argument('--num_samples', type=int, default=20, help="Number of samples in the synthesized dataset")
@@ -97,6 +98,7 @@ def parse_args():
     parser.add_argument('--timer_tau', type=float, default=0.9, help='moving winder constant')
     parser.add_argument('--timer_sample_cicle', type=int, default=1, help='Sample circle for the timer')
     parser.add_argument('--exam_batch_idx', type=int, default=None, help='examine the timer and stop code in the middle')
+    parser.add_argument('--num_epoch_save', type=int, default=5, help='Number of epoch to save a checkpoint')
 
     return parser.parse_args()
 
@@ -106,7 +108,9 @@ def main():
     is_show_movie_frames = True
     is_show_pathes = True
     is_show_grids = True
-    bottom_img_folder = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/CricketDataset/Images/cropped/single-contrast/'  #grass
+
+    args = parse_args()
+    bottom_img_folder = f'/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/CricketDataset/Images/cropped/{args.bg_folder}/'  #grass
     top_img_folder    = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/CricketDataset/Images/cropped/cricket/'
     syn_save_folder  = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/CricketDataset/Images/syn_img/'
     plot_save_folder  = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/CricketDataset/Figures/'
@@ -115,7 +119,7 @@ def main():
     rf_params_file = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/SimulationParams.xlsx'
 
 
-    args = parse_args()
+    
     timestr = datetime.now().strftime('%Y%m%d_%H%M%S')
     # Construct the full path for the log file
     file_name = f'{args.experiment_name}_cricket_location_prediction'
@@ -311,7 +315,7 @@ def main():
             logging.info( f"{file_name} Epoch [{epoch + 1}/{num_epochs}], Elapsed time: {elapsed_time:.2f} seconds \n"
                             f"\tLoss: {avg_train_loss:.4f} \n")
             
-            if (epoch + 1) % 2 == 0:  # Example: Save every 10 epochs
+            if (epoch + 1) % args.num_epoch_save == 0:  # Example: Save every 10 epochs
                 checkpoint_filename = f'{file_name}_checkpoint_epoch_{epoch + 1}.pth'
                 save_checkpoint(epoch, model, optimizer, training_losses=training_losses, scheduler=scheduler, args=args,  
                                     file_path=os.path.join(savemodel_dir, checkpoint_filename))
