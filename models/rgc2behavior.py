@@ -63,7 +63,7 @@ class FullSampleNormalization(nn.Module):
 # Full CNN-LSTM model for predicting (x, y) coordinates
 class CNN_LSTM_ObjectLocation(nn.Module):
     def __init__(self, cnn_feature_dim=128, lstm_hidden_size=64, lstm_num_layers=2, output_dim=2,
-                 input_height=24, input_width=32, conv_out_channels=32, is_input_norm=False, is_reshape=False):
+                 input_height=24, input_width=32, conv_out_channels=32, is_input_norm=False, is_seq_reshape=False):
         super(CNN_LSTM_ObjectLocation, self).__init__()
         self.is_input_norm = is_input_norm
         if is_input_norm:
@@ -75,7 +75,7 @@ class CNN_LSTM_ObjectLocation(nn.Module):
         self.lstm_norm = nn.LayerNorm(lstm_hidden_size)
         self.fc1 = nn.Linear(lstm_hidden_size, lstm_hidden_size)  # Output layer for (x, y) coordinates
         self.fc2 = nn.Linear(lstm_hidden_size, output_dim) 
-        self.is_reshape = is_reshape
+        self.is_seq_reshape = is_seq_reshape
 
     def forward(self, x):
 
@@ -84,7 +84,7 @@ class CNN_LSTM_ObjectLocation(nn.Module):
         # print(f'x norm min {torch.min(x)}')
         # print(f'x norm max {torch.max(x)}')
         batch_size, sequence_length, C, H, W = x.size()
-        if self.is_reshape:
+        if self.is_seq_reshape:
             x = x.view(batch_size * sequence_length, C, H, W)  # Combine batch and sequence dimensions
             cnn_out = self.cnn(x)  # Process all frames at once
             cnn_features = cnn_out.view(batch_size, sequence_length, -1)  # Reshape back
