@@ -292,7 +292,7 @@ def main():
                         optimizer.step()
                         optimizer.zero_grad()
                 
-                epoch_loss += loss.item()
+                    epoch_loss += loss.item()
 
                 # Print timer data at specific batch index
                 if args.exam_batch_idx is not None:
