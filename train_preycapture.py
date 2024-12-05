@@ -100,6 +100,7 @@ def parse_args():
     parser.add_argument('--timer_sample_cicle', type=int, default=1, help='Sample circle for the timer')
     parser.add_argument('--exam_batch_idx', type=int, default=None, help='examine the timer and stop code in the middle')
     parser.add_argument('--num_epoch_save', type=int, default=5, help='Number of epoch to save a checkpoint')
+    parser.add_argument('--accumulation_steps', type=int, default=1, help='Number of mini-batch to optimize (gradient accumulation)')
 
     return parser.parse_args()
 
@@ -259,6 +260,7 @@ def main():
         timer_data_backpropagate = {'min': None, 'max': None, 'moving_avg': None, 'counter': 0}
         for epoch in range(num_epochs):
             model.train()
+            optimizer.zero_grad()
             epoch_loss = 0.0
             
             start_time = time.time()
@@ -270,7 +272,7 @@ def main():
                 with timer(timer_data_transfer, tau=args.timer_tau, n=args.timer_sample_cicle):
                     sequences, targets = sequences.to(device), targets.to(device)
 
-                optimizer.zero_grad()
+                
                 
                 # Forward pass
                 with timer(timer_data_processing, tau=args.timer_tau, n=args.timer_sample_cicle):
@@ -286,7 +288,9 @@ def main():
                         max_norm = args.max_norm  # Max gradient norm
                         torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm)
 
-                    optimizer.step()
+                    if (batch_idx + 1) % args.accumulation_steps == 0 or (batch_idx + 1) == len(train_loader):
+                        optimizer.step()
+                        optimizer.zero_grad()
                 
                 epoch_loss += loss.item()
 
