@@ -291,8 +291,8 @@ def main():
                 epoch_loss += loss.item()
 
                 # Print timer data at specific batch index
-                if batch_idx*args.batch_size > args.exam_batch_idx:
-                    if args.exam_batch_idx is not None:
+                if args.exam_batch_idx is not None:
+                    if batch_idx*args.batch_size > args.exam_batch_idx:
                         print(f"Batch {batch_idx}:")
                         print(f"Data Loading: {timer_data_loading}")
                         print(f"Data Transfer: {timer_data_transfer}")
