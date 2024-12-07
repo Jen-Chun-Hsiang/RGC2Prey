@@ -188,7 +188,7 @@ def main():
             Timg = sequence[i, 0, :, :].squeeze()
             plot_tensor_and_save(Timg, syn_save_folder, f'{args.experiment_name}_RGCgrid_activity_doublecheck_{i + 1}.png')
         if is_show_pathes:
-            plot_two_path_comparison(path[0], path_bg[0], plot_save_folder, file_name=f'{args.experiment_name}_dataset_path.png')
+            plot_two_path_comparison(path, path_bg, plot_save_folder, file_name=f'{args.experiment_name}_dataset_path.png')
     
     train_dataset = Cricket2RGCs(num_samples=args.num_samples, multi_opt_sf=multi_opt_sf, tf=tf, map_func=map_func,
                                 grid2value_mapping=grid2value_mapping, target_width=target_width, target_height=target_height,
