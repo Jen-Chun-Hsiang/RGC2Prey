@@ -120,8 +120,6 @@ def main():
     savemodel_dir = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/Results/CheckPoints/'
     rf_params_file = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/SimulationParams.xlsx'
 
-
-    
     timestr = datetime.now().strftime('%Y%m%d_%H%M%S')
     # Construct the full path for the log file
     file_name = f'{args.experiment_name}_cricket_location_prediction'
@@ -137,7 +135,6 @@ def main():
     else:
         device = 'cpu'
 
-    
     sf_param_table = pd.read_excel(rf_params_file, sheet_name='SF_params', usecols='A:L')
     tf_param_table = pd.read_excel(rf_params_file, sheet_name='TF_params', usecols='A:I')
     rgc_array = RGCrfArray(
@@ -169,36 +166,23 @@ def main():
         velocity_randomness_ob = args.velocity_randomness_ob, velocity_randomness_bg=args.velocity_randomness_bg,
         angle_range_ob=args.angle_range_ob, angle_range_bg=args.angle_range_bg
     )
-    syn_movie, path, path_bg = movie_generator.generate()
-    print(f'syn_movie shape: {syn_movie.shape}')
-    if is_show_movie_frames:
-        for i in range(syn_movie.shape[0]):
-            Timg = syn_movie[i, :, :]
-            plot_tensor_and_save(Timg, syn_save_folder, f'{args.experiment_name}_synthesized_movement_doublecheck_{i + 1}.png')
-    
-    if is_show_pathes:
-        plot_two_path_comparison(path, path_bg, plot_save_folder, file_name=f'{args.experiment_name}_movement_pathes.png')
 
     xlim, ylim = args.xlim, args.ylim
     target_height = xlim[1]-xlim[0]
     target_width = ylim[1]-ylim[0]
     train_dataset = Cricket2RGCs(num_samples=args.num_samples, multi_opt_sf=multi_opt_sf, tf=tf, map_func=map_func,
                                 grid2value_mapping=grid2value_mapping, target_width=target_width, target_height=target_height,
-                                movie_generator=movie_generator, grid_size_fac=args.grid_size_fac, is_norm_coords=args.is_norm_coords)
+                                movie_generator=movie_generator, grid_size_fac=args.grid_size_fac, is_norm_coords=args.is_norm_coords,
+                                is_syn_mov_shown=True)
     
-    if args.num_worker==0:
-        train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True)
-    else:
-        train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True,
-                                        num_workers=args.num_worker, pin_memory=True, persistent_workers=False)
-    
-    start_time = time.perf_counter()
-    data = next(iter(train_loader))
-    elapsed_time = time.perf_counter() - start_time  # Calculate elapsed time
-    print(f"[{elapsed_time:.2f}s] Main Process - Batch 0")
-    sequence, path, path_bg = data
-    print(f'sequence shape: {sequence.shape}')
-    print(f'path shape: {path.shape}')
+    # Visualize one data points
+    sequence, path, path_bg, syn_movie = train_dataset[0]
+    if is_show_movie_frames:
+        for i in range(syn_movie.shape[0]):
+            Timg = syn_movie[i, :, :]
+            plot_tensor_and_save(Timg, syn_save_folder, f'{args.experiment_name}_synthesized_movement_doublecheck_{i + 1}.png')  
+    if is_show_pathes:
+        plot_two_path_comparison(path, path_bg, plot_save_folder, file_name=f'{args.experiment_name}_movement_pathes.png')
     if is_show_grids:
         one_sequence = sequence[0]
         for i in range(one_sequence.shape[0]):
@@ -207,6 +191,15 @@ def main():
         if is_show_pathes:
             plot_two_path_comparison(path[0], path_bg[0], plot_save_folder, file_name=f'{args.experiment_name}_dataset_path.png')
     
+    train_dataset = Cricket2RGCs(num_samples=args.num_samples, multi_opt_sf=multi_opt_sf, tf=tf, map_func=map_func,
+                                grid2value_mapping=grid2value_mapping, target_width=target_width, target_height=target_height,
+                                movie_generator=movie_generator, grid_size_fac=args.grid_size_fac, is_norm_coords=args.is_norm_coords)
+
+    if args.num_worker==0:
+        train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True)
+    else:
+        train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True,
+                                        num_workers=args.num_worker, pin_memory=True, persistent_workers=False)
         
 
     # Sample Training Loop
