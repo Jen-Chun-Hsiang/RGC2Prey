@@ -184,9 +184,8 @@ def main():
     if is_show_pathes:
         plot_two_path_comparison(path, path_bg, plot_save_folder, file_name=f'{args.experiment_name}_movement_pathes.png')
     if is_show_grids:
-        one_sequence = sequence[0]
-        for i in range(one_sequence.shape[0]):
-            Timg = one_sequence[i, 0, :, :].squeeze()
+        for i in range(sequence.shape[0]):
+            Timg = sequence[i, 0, :, :].squeeze()
             plot_tensor_and_save(Timg, syn_save_folder, f'{args.experiment_name}_RGCgrid_activity_doublecheck_{i + 1}.png')
         if is_show_pathes:
             plot_two_path_comparison(path[0], path_bg[0], plot_save_folder, file_name=f'{args.experiment_name}_dataset_path.png')
