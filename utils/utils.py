@@ -115,6 +115,11 @@ def dataframe_to_dict(df, id_column, value_columns):
     for col in value_columns:
         if col not in df.columns:
             raise ValueError(f"Column '{col}' not found in the DataFrame.")
+        
+    # Ensure that all numpy arrays are converted to tuples
+    for col in value_columns:
+        df[col] = df[col].apply(lambda x: tuple(x[0]) if isinstance(x, (list, np.ndarray)) else x)
+
 
     # Create the dictionary
     result_dict = df.set_index(id_column)[value_columns].apply(tuple, axis=1).to_dict()
