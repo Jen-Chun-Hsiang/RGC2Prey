@@ -78,12 +78,10 @@ def mat_to_dataframe(mat_file_path: str, summary_key: str = 'summary') -> pd.Dat
 
     # Extract column names (dtype.names already contains the full names)
     columns = summary_data.dtype.names
-    print(f"Columns detected: {columns}")
 
     # Create a dictionary from the structured array
     data = {col: summary_data[col].flatten() for col in columns}
 
-    print(f"data: {data}")
     # Convert MATLAB cell arrays or byte data to Python-friendly formats
     for col in data:
         if isinstance(data[col][0], (bytes, bytearray)):
@@ -117,11 +115,11 @@ def dataframe_to_dict(df, id_column, value_columns):
         if col not in df.columns:
             raise ValueError(f"Column '{col}' not found in the DataFrame.")
         
-    for col in value_columns:
+    for col in id_column:
         df[col] = df[col].apply(lambda x: x[0] if isinstance(x, list) and len(x) == 1 else x)
 
     # Ensure that all numpy arrays are converted to tuples
-    for col in id_column:
+    for col in value_columns:
         df[col] = df[col].apply(lambda x: x[0][0] if isinstance(x, list) and isinstance(x[0], list) else x)
 
     # Create the dictionary
