@@ -364,10 +364,11 @@ class SynMovieGenerator:
         index_column_name = 'image_id'
         if coord_mat_file is None:
             return None  # Or handle appropriately
+        
+        df = load_mat_to_dataframe(coord_mat_file)  # Specify 'custom_variable_name' if different
         if index_column_name not in df.columns:
             raise ValueError("Expected 'image_id' column in the input data.")
         
-        df = load_mat_to_dataframe(coord_mat_file)  # Specify 'custom_variable_name' if different
         data_dict = df.set_index(index_column_name).to_dict(orient='index')
         return data_dict
 
