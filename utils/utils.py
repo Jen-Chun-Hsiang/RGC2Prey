@@ -51,97 +51,32 @@ def get_image_number(image_path: str) -> int:
         raise ValueError("No number found in the filename")
 
 
-def mat_to_dataframe(mat_file_path: str, summary_key: str = 'summary') -> pd.DataFrame:
-    """
-    Load a .mat file and convert its structured array to a pandas DataFrame.
-
-    Args:
-        mat_file_path (str): The path to the .mat file.
-        summary_key (str): The key name of the MATLAB variable to extract. Default is 'summary'.
-
-    Returns:
-        pd.DataFrame: The converted pandas DataFrame.
-    """
+def load_mat_to_dataframe(mat_file_path):
     # Load the .mat file
     mat_data = loadmat(mat_file_path)
 
+    # Extract the 2D array and column names
+    summary_array = mat_data.get('summary_array')
+    summary_array_name = mat_data.get('summary_array_name')
 
-    # Check if the key exists
-    if summary_key not in mat_data:
-        raise KeyError(f"The .mat file does not contain a key '{summary_key}'.")
+    # Ensure both variables are present
+    if summary_array is None or summary_array_name is None:
+        raise ValueError("The .mat file does not contain the required variables 'summary_array' and 'summary_array_name'.")
 
-    # Extract the MATLAB table (stored as a structured array)
-    summary_data = mat_data[summary_key]
+    # Convert summary_array_name to a list of strings
+    if isinstance(summary_array_name, list):
+        column_names = [str(name[0]) for name in summary_array_name]
+    else:
+        column_names = [str(name[0]) for name in summary_array_name.squeeze()]
 
-    # Extract the MATLAB structured array
-    summary_data = mat_data[summary_key]
+    # Create a pandas DataFrame
+    df = pd.DataFrame(summary_array, columns=column_names)
 
-    # Extract column names (dtype.names already contains the full names)
-    columns = summary_data.dtype.names
+    # Convert the 'image_id' column to int if it exists
+    if 'image_id' in df.columns:
+        df['image_id'] = df['image_id'].astype(int)
 
-    # Create a dictionary from the structured array
-    data = {col: summary_data[col].flatten() for col in columns}
-
-    # Convert MATLAB cell arrays or byte data to Python-friendly formats
-    for col in data:
-        if isinstance(data[col][0], (bytes, bytearray)):
-            data[col] = [x.decode('utf-8') if isinstance(x, (bytes, bytearray)) else x for x in data[col]]
-
-    # Create and return the DataFrame
-    return pd.DataFrame(data)
-
-# Example usage
-# mat_file_path = "selected_points_summary.mat"
-# df = mat_to_dataframe(mat_file_path, summary_key="custom_variable_name")  # Specify 'custom_variable_name' if different
-# print(df)
-
-
-def dataframe_to_dict(df, id_column, value_columns):
-    """
-    Convert a pandas DataFrame to a dictionary.
-
-    Args:
-        df (pd.DataFrame): The DataFrame to convert.
-        id_column (str): The column to use as the dictionary key.
-        value_columns (list): The columns to include in the dictionary values.
-
-    Returns:
-        dict: A dictionary with keys from id_column and values as tuples of the value_columns.
-    """
-    # Validate the columns
-    if id_column not in df.columns:
-        raise ValueError(f"Column '{id_column}' not found in the DataFrame.")
-    for col in value_columns:
-        if col not in df.columns:
-            raise ValueError(f"Column '{col}' not found in the DataFrame.")
-    
-    print(df)
-    for col in id_column:
-        df[col] = df[col].apply(lambda x: x[0][0] if isinstance(x, list) and isinstance(x[0], list) else x)
-
-    # Ensure that all numpy arrays are converted to tuples
-    for col in value_columns:
-        df[col] = df[col].apply(lambda x: x[0][0] if isinstance(x, list) and isinstance(x[0], list) else x)
-    print(df)
-    
-    # Create the dictionary
-    result_dict = df.set_index(id_column)[value_columns].apply(tuple, axis=1).to_dict()
-    return result_dict
-
-# # Example usage
-# data = {
-#     "image_id": [1, 2, 3],
-#     "x": [50, 100, 200],
-#     "y": [75, 150, 300],
-#     "other_column": ["a", "b", "c"]
-# }
-
-# df = pd.DataFrame(data)
-
-# # Convert the DataFrame to a dictionary
-# id_column = "image_id"  # Column to use as the key
-# value_columns = ["x", "y"]  # Columns to use as the values
-# result_dict = dataframe_to_dict(df, id_column, value_columns)
+    return df
 
 
 
