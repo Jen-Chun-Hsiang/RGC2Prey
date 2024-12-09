@@ -73,15 +73,17 @@ def mat_to_dataframe(mat_file_path: str, summary_key: str = 'summary') -> pd.Dat
     # Extract the MATLAB table (stored as a structured array)
     summary_data = mat_data[summary_key]
 
-    print(f'summary_data:{summary_data}')
+    # Extract the MATLAB structured array
+    summary_data = mat_data[summary_key]
 
-    # Convert the structured array to a pandas DataFrame
-    columns = [str(col[0]) for col in summary_data.dtype.names]  # Get column names
+    # Extract column names (dtype.names already contains the full names)
+    columns = summary_data.dtype.names
+    print(f"Columns detected: {columns}")
 
-    print(f'columns:{columns}')
+    # Create a dictionary from the structured array
     data = {col: summary_data[col].flatten() for col in columns}
 
-    # Convert MATLAB cell arrays to Python strings where necessary
+    # Convert MATLAB cell arrays or byte data to Python-friendly formats
     for col in data:
         if isinstance(data[col][0], (bytes, bytearray)):
             data[col] = [x.decode('utf-8') if isinstance(x, (bytes, bytearray)) else x for x in data[col]]
