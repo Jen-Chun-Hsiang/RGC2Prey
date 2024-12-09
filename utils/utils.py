@@ -83,6 +83,7 @@ def mat_to_dataframe(mat_file_path: str, summary_key: str = 'summary') -> pd.Dat
     # Create a dictionary from the structured array
     data = {col: summary_data[col].flatten() for col in columns}
 
+    print(f"data: {data}")
     # Convert MATLAB cell arrays or byte data to Python-friendly formats
     for col in data:
         if isinstance(data[col][0], (bytes, bytearray)):
