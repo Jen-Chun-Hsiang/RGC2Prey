@@ -1,10 +1,12 @@
 import os
-import random
-import matplotlib.pyplot as plt
+import re
 import cv2
-import os
 import torch
+import random
 import numpy as np
+import pandas as pd
+from scipy.io import loadmat
+import matplotlib.pyplot as plt
 
 
 def get_random_file_path(folder_path):
@@ -27,6 +29,106 @@ def get_random_file_path(folder_path):
 
     random_file = random.choice(files)
     return os.path.join(folder_path, random_file)
+
+
+def get_image_number(image_path: str) -> int:
+    """
+    Extracts and returns the number from the image filename.
+
+    Args:
+        image_path (str): The full path to the image file.
+
+    Returns:
+        int: The number extracted from the filename.
+    """
+    # Get the filename from the path
+    filename = os.path.basename(image_path)
+    # Use regex to find the first sequence of digits in the filename
+    match = re.search(r'(\d+)', filename)
+    if match:
+        return int(match.group(1))
+    else:
+        raise ValueError("No number found in the filename")
+
+
+def mat_to_dataframe(mat_file_path: str, summary_key: str = 'summary') -> pd.DataFrame:
+    """
+    Load a .mat file and convert its structured array to a pandas DataFrame.
+
+    Args:
+        mat_file_path (str): The path to the .mat file.
+        summary_key (str): The key name of the MATLAB variable to extract. Default is 'summary'.
+
+    Returns:
+        pd.DataFrame: The converted pandas DataFrame.
+    """
+    # Load the .mat file
+    mat_data = loadmat(mat_file_path)
+
+    # Check if the key exists
+    if summary_key not in mat_data:
+        raise KeyError(f"The .mat file does not contain a key '{summary_key}'.")
+
+    # Extract the MATLAB table (stored as a structured array)
+    summary_data = mat_data[summary_key]
+
+    # Convert the structured array to a pandas DataFrame
+    columns = [str(col[0]) for col in summary_data.dtype.names]  # Get column names
+    data = {col: summary_data[col].flatten() for col in columns}
+
+    # Convert MATLAB cell arrays to Python strings where necessary
+    for col in data:
+        if isinstance(data[col][0], (bytes, bytearray)):
+            data[col] = [x.decode('utf-8') if isinstance(x, (bytes, bytearray)) else x for x in data[col]]
+
+    # Create and return the DataFrame
+    return pd.DataFrame(data)
+
+# Example usage
+# mat_file_path = "selected_points_summary.mat"
+# df = mat_to_dataframe(mat_file_path, summary_key="custom_variable_name")  # Specify 'custom_variable_name' if different
+# print(df)
+
+
+def dataframe_to_dict(df, id_column, value_columns):
+    """
+    Convert a pandas DataFrame to a dictionary.
+
+    Args:
+        df (pd.DataFrame): The DataFrame to convert.
+        id_column (str): The column to use as the dictionary key.
+        value_columns (list): The columns to include in the dictionary values.
+
+    Returns:
+        dict: A dictionary with keys from id_column and values as tuples of the value_columns.
+    """
+    # Validate the columns
+    if id_column not in df.columns:
+        raise ValueError(f"Column '{id_column}' not found in the DataFrame.")
+    for col in value_columns:
+        if col not in df.columns:
+            raise ValueError(f"Column '{col}' not found in the DataFrame.")
+
+    # Create the dictionary
+    result_dict = df.set_index(id_column)[value_columns].apply(tuple, axis=1).to_dict()
+    return result_dict
+
+# # Example usage
+# data = {
+#     "image_id": [1, 2, 3],
+#     "x": [50, 100, 200],
+#     "y": [75, 150, 300],
+#     "other_column": ["a", "b", "c"]
+# }
+
+# df = pd.DataFrame(data)
+
+# # Convert the DataFrame to a dictionary
+# id_column = "image_id"  # Column to use as the key
+# value_columns = ["x", "y"]  # Columns to use as the values
+# result_dict = dataframe_to_dict(df, id_column, value_columns)
+
+
 
 
 def plot_tensor_and_save(tensor, output_folder, file_name='tensor_plot.png'):

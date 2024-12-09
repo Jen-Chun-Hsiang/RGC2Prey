@@ -9,7 +9,7 @@ import torch.nn.functional as F
 from datasets.rgc_rf import map_to_fixed_grid_decay_batch, gaussian_multi, gaussian_temporalfilter, get_closest_indices, compute_distance_decay_matrix
 from datasets.rgc_rf import map_to_fixed_grid_closest_batch, create_hexagonal_centers, precompute_grid_centers, compute_circular_mask_matrix
 from datasets.rgc_rf import map_to_fixed_grid_circle_batch
-from utils.utils import get_random_file_path
+from utils.utils import get_random_file_path, get_image_number
 
 
 
@@ -386,6 +386,9 @@ class SynMovieGenerator:
 
         bottom_img_path = get_random_file_path(self.bottom_img_folder)
         top_img_path = get_random_file_path(self.top_img_folder)
+
+        # Correct for the cricket head position
+        image_id = get_image_number(top_img_path)
 
         # Convert paths to numpy arrays
         top_img_positions = path.round().astype(int)
