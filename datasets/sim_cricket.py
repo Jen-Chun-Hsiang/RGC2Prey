@@ -9,7 +9,7 @@ import torch.nn.functional as F
 from datasets.rgc_rf import map_to_fixed_grid_decay_batch, gaussian_multi, gaussian_temporalfilter, get_closest_indices, compute_distance_decay_matrix
 from datasets.rgc_rf import map_to_fixed_grid_closest_batch, create_hexagonal_centers, precompute_grid_centers, compute_circular_mask_matrix
 from datasets.rgc_rf import map_to_fixed_grid_circle_batch
-from utils.utils import get_random_file_path, get_image_number
+from utils.utils import get_random_file_path, get_image_number, load_mat_to_dataframe
 
 
 
@@ -324,7 +324,8 @@ class Cricket2RGCs(Dataset):
 class SynMovieGenerator:
     def __init__(self, top_img_folder, bottom_img_folder, crop_size, boundary_size, center_ratio, max_steps=200, prob_stay=0.95, 
                  prob_mov=0.975, num_ext=50, initial_velocity=6, momentum_decay_ob=0.95, momentum_decay_bg=0.5, scale_factor=1.0,
-                velocity_randomness_ob=0.02, velocity_randomness_bg=0.01, angle_range_ob=0.5, angle_range_bg=0.25):
+                velocity_randomness_ob=0.02, velocity_randomness_bg=0.01, angle_range_ob=0.5, angle_range_bg=0.25, coord_mat_file=None, 
+                correction_direction=1):
         """
         Initializes the SynMovieGenerator with configuration parameters.
 
@@ -356,6 +357,19 @@ class SynMovieGenerator:
         self.velocity_randomness_bg = velocity_randomness_bg
         self.angle_range_ob = angle_range_ob
         self.angle_range_bg = angle_range_bg
+        self.coord_dic = self._get_coord_dic(coord_mat_file)
+        self.correction_direction = correction_direction
+    
+    def _get_coord_dic(self, coord_mat_file):
+        index_column_name = 'image_id'
+        if coord_mat_file is None:
+            return None  # Or handle appropriately
+        if index_column_name not in df.columns:
+            raise ValueError("Expected 'image_id' column in the input data.")
+        
+        df = load_mat_to_dataframe(coord_mat_file)  # Specify 'custom_variable_name' if different
+        data_dict = df.set_index(index_column_name).to_dict(orient='index')
+        return data_dict
 
     def generate(self):
         """
@@ -387,9 +401,6 @@ class SynMovieGenerator:
         bottom_img_path = get_random_file_path(self.bottom_img_folder)
         top_img_path = get_random_file_path(self.top_img_folder)
 
-        # Correct for the cricket head position
-        image_id = get_image_number(top_img_path)
-
         # Convert paths to numpy arrays
         top_img_positions = path.round().astype(int)
         bottom_img_positions = path_bg.round().astype(int)
@@ -399,6 +410,11 @@ class SynMovieGenerator:
             bottom_img_path, top_img_path, top_img_positions, bottom_img_positions,
             self.scale_factor, self.crop_size, alpha=1.0
         )
+
+        # Correct for the cricket head position
+        image_id = get_image_number(top_img_path)
+        coord_coorection = np.array([self.coord_dic[image_id]['coord_x'], self.coord_dic[image_id]['coord_y']])
+        path = path - self.correction_direction*coord_coorection
 
         return syn_movie[:, 1, :, :], path, path_bg
     
