@@ -55,7 +55,7 @@ def parse_args():
     parser.add_argument('--angle_range_ob', type=float, default=0.5, help='Variation in speed change of each step')
     parser.add_argument('--angle_range_bg', type=float, default=0.25, help='Variation in speed change of each step')
     parser.add_argument('--bg_folder', type=str, default='single-contrast', help='Image background folder name')
-    parser.add_argument('--coord_adj_dir', type='float', default=1.0, help='Sign and value for coordinate correction for the cricket image')
+    parser.add_argument('--coord_adj_dir', type=float, default=1.0, help='Sign and value for coordinate correction for the cricket image')
 
     # Arguments for Cricket2RGCs (from movies to RGC array activities based on receptive field properties)
     parser.add_argument('--num_samples', type=int, default=20, help="Number of samples in the synthesized dataset")
