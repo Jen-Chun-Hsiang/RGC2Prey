@@ -65,6 +65,8 @@ def mat_to_dataframe(mat_file_path: str, summary_key: str = 'summary') -> pd.Dat
     # Load the .mat file
     mat_data = loadmat(mat_file_path)
 
+    print(mat_data)
+
     # Check if the key exists
     if summary_key not in mat_data:
         raise KeyError(f"The .mat file does not contain a key '{summary_key}'.")
