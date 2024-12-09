@@ -65,7 +65,6 @@ def mat_to_dataframe(mat_file_path: str, summary_key: str = 'summary') -> pd.Dat
     # Load the .mat file
     mat_data = loadmat(mat_file_path)
 
-    print(mat_data.keys())
 
     # Check if the key exists
     if summary_key not in mat_data:
@@ -74,8 +73,12 @@ def mat_to_dataframe(mat_file_path: str, summary_key: str = 'summary') -> pd.Dat
     # Extract the MATLAB table (stored as a structured array)
     summary_data = mat_data[summary_key]
 
+    print(f'summary_data:{summary_data}')
+
     # Convert the structured array to a pandas DataFrame
     columns = [str(col[0]) for col in summary_data.dtype.names]  # Get column names
+
+    print(f'columns:{columns}')
     data = {col: summary_data[col].flatten() for col in columns}
 
     # Convert MATLAB cell arrays to Python strings where necessary
