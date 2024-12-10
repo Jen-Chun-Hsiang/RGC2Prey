@@ -56,6 +56,7 @@ def parse_args():
     parser.add_argument('--angle_range_bg', type=float, default=0.25, help='Variation in speed change of each step')
     parser.add_argument('--bg_folder', type=str, default='single-contrast', help='Image background folder name')
     parser.add_argument('--coord_adj_dir', type=float, default=1.0, help='Sign and value for coordinate correction for the cricket image')
+    parser.add_argument('--is_reverse_xy', action='store_true', help="Reverse x, y coordinates in cricket position correction")
 
     # Arguments for Cricket2RGCs (from movies to RGC array activities based on receptive field properties)
     parser.add_argument('--num_samples', type=int, default=20, help="Number of samples in the synthesized dataset")
@@ -167,7 +168,7 @@ def main():
         momentum_decay_ob=args.momentum_decay_ob, momentum_decay_bg=args.momentum_decay_bg, scale_factor=args.scale_factor,
         velocity_randomness_ob = args.velocity_randomness_ob, velocity_randomness_bg=args.velocity_randomness_bg,
         angle_range_ob=args.angle_range_ob, angle_range_bg=args.angle_range_bg, coord_mat_file=coord_mat_file, 
-        correction_direction=args.coord_adj_dir
+        correction_direction=args.coord_adj_dir, is_reverse_xy=args.is_reverse_xy
     )
 
     xlim, ylim = args.xlim, args.ylim

@@ -325,7 +325,7 @@ class SynMovieGenerator:
     def __init__(self, top_img_folder, bottom_img_folder, crop_size, boundary_size, center_ratio, max_steps=200, prob_stay=0.95, 
                  prob_mov=0.975, num_ext=50, initial_velocity=6, momentum_decay_ob=0.95, momentum_decay_bg=0.5, scale_factor=1.0,
                 velocity_randomness_ob=0.02, velocity_randomness_bg=0.01, angle_range_ob=0.5, angle_range_bg=0.25, coord_mat_file=None, 
-                correction_direction=1):
+                correction_direction=1, is_reverse_xy=False):
         """
         Initializes the SynMovieGenerator with configuration parameters.
 
@@ -359,6 +359,7 @@ class SynMovieGenerator:
         self.angle_range_bg = angle_range_bg
         self.coord_dic = self._get_coord_dic(coord_mat_file)
         self.correction_direction = correction_direction
+        self.is_reverse_xy = is_reverse_xy
     
     def _get_coord_dic(self, coord_mat_file):
         index_column_name = 'image_id'
@@ -414,7 +415,10 @@ class SynMovieGenerator:
 
         # Correct for the cricket head position
         image_id = get_image_number(top_img_path)
-        coord_coorection = np.array([self.coord_dic[image_id]['coord_x'], self.coord_dic[image_id]['coord_y']])
+        if self.is_reverse_xy:
+            coord_coorection = np.array([self.coord_dic[image_id]['coord_y'], self.coord_dic[image_id]['coord_x']])
+        else:
+            coord_coorection = np.array([self.coord_dic[image_id]['coord_x'], self.coord_dic[image_id]['coord_y']])
         path = path - self.correction_direction*coord_coorection
 
         return syn_movie[:, 1, :, :], path, path_bg
