@@ -76,6 +76,42 @@ def crop_image(image, crop_size, crop_pos):
     return cropped_image
 
 
+def calculate_scaling_factors(bottom_img_positions, start_scaling=1.0, end_scaling=2.0):
+    """
+    Calculate scaling factors based on shifts in bottom_img_positions.
+
+    Parameters:
+    - bottom_img_positions (np.ndarray): Array of shape (batch_size, 2) representing bottom image positions.
+
+    Returns:
+    - scaling_factors (list): List of scaling factors for each batch step.
+    """
+    batch_size = len(bottom_img_positions)
+
+    # Calculate shifts between consecutive positions
+    shifts = [
+        np.linalg.norm(bottom_img_positions[i] - bottom_img_positions[i - 1])
+        for i in range(1, batch_size)
+    ]
+    
+    # Count steps where the position shifts
+    total_shifting_steps = sum(1 for shift in shifts if shift > 0)
+
+    # Scaling increment for each shifting step
+    scaling_increment = (end_scaling - start_scaling) / max(1, total_shifting_steps)
+
+    # Initialize scaling factors
+    scaling_factors = [start_scaling]  # Start with 1.0
+    current_scaling_factor = start_scaling
+
+    for i in range(1, batch_size):
+        if shifts[i - 1] > 0:  # Check if there is a position shift
+            current_scaling_factor += scaling_increment
+        scaling_factors.append(current_scaling_factor)
+
+    return scaling_factors
+
+
 def overlay_images_with_jitter_and_scaling(bottom_img_path, top_img_path, top_img_pos, bottom_img_pos,
                                            bottom_img_jitter_range, top_img_jitter_range,
                                            top_img_scale_range, crop_size, alpha=1.0):
@@ -325,7 +361,7 @@ class SynMovieGenerator:
     def __init__(self, top_img_folder, bottom_img_folder, crop_size, boundary_size, center_ratio, max_steps=200, prob_stay=0.95, 
                  prob_mov=0.975, num_ext=50, initial_velocity=6, momentum_decay_ob=0.95, momentum_decay_bg=0.5, scale_factor=1.0,
                 velocity_randomness_ob=0.02, velocity_randomness_bg=0.01, angle_range_ob=0.5, angle_range_bg=0.25, coord_mat_file=None, 
-                correction_direction=1, is_reverse_xy=False):
+                correction_direction=1, is_reverse_xy=False, start_scaling=1, end_scaling=2):
         """
         Initializes the SynMovieGenerator with configuration parameters.
 
@@ -360,6 +396,8 @@ class SynMovieGenerator:
         self.coord_dic = self._get_coord_dic(coord_mat_file)
         self.correction_direction = correction_direction
         self.is_reverse_xy = is_reverse_xy
+        self.start_scaling = start_scaling
+        self.end_scaling = end_scaling
     
     def _get_coord_dic(self, coord_mat_file):
         index_column_name = 'image_id'
@@ -407,26 +445,28 @@ class SynMovieGenerator:
         top_img_positions = path.round().astype(int)
         bottom_img_positions = path_bg.round().astype(int)
 
+        scaling_factors = calculate_scaling_factors(bottom_img_positions, start_scaling=self.start_scaling, end_scaling=self.end_scaling)
         # Generate the batch of images
         syn_movie = synthesize_image_with_params_batch(
             bottom_img_path, top_img_path, top_img_positions, bottom_img_positions,
-            self.scale_factor, self.crop_size, alpha=1.0
+            scaling_factors, self.crop_size, alpha=1.0
         )
 
         # Correct for the cricket head position
         image_id = get_image_number(top_img_path)
         if self.is_reverse_xy:
-            coord_coorection = np.array([self.coord_dic[image_id]['coord_y'], self.coord_dic[image_id]['coord_x']])
+            coord_correction = np.array([self.coord_dic[image_id]['coord_y'], self.coord_dic[image_id]['coord_x']])
         else:
-            coord_coorection = np.array([self.coord_dic[image_id]['coord_x'], self.coord_dic[image_id]['coord_y']])
-        path = path - self.correction_direction*coord_coorection
+            coord_correction = np.array([self.coord_dic[image_id]['coord_x'], self.coord_dic[image_id]['coord_y']])
+        scaled_coord_corrections = coord_correction[np.newaxis, :] * scaling_factors[:, np.newaxis]
+        path = path - self.correction_direction*scaled_coord_corrections
 
         return syn_movie[:, 1, :, :], path, path_bg
     
 
 
 def synthesize_image_with_params_batch(bottom_img_path, top_img_path, top_img_positions, bottom_img_positions,
-                                       scale_factor, crop_size, alpha=1.0):
+                                       scaling_factors, crop_size, alpha=1.0):
     """
     Synthesizes a batch of images by overlaying the top image on the bottom image at specific positions.
 
@@ -445,49 +485,47 @@ def synthesize_image_with_params_batch(bottom_img_path, top_img_path, top_img_po
 
     # Open and process the images
     bottom_img = Image.open(bottom_img_path).convert("RGBA")
-    top_img = Image.open(top_img_path).convert("RGBA")
-    top_img = scale_image(top_img, scale_factor)
-
-    # Convert to PyTorch tensors
     bottom_tensor = T.ToTensor()(bottom_img)
-    top_tensor = T.ToTensor()(top_img)
 
-    # Get dimensions
-    bottom_w, bottom_h = bottom_img.size
-    top_w, top_h = top_img.size
-    fill_h = (bottom_h - top_h) // 2
-    fill_w = (bottom_w - top_w) // 2
-    
+    original_top_img = Image.open(top_img_path).convert("RGBA")
     batch_size = len(top_img_positions)
-
-    # Prepare a batch tensor for the final output
+    bottom_w, bottom_h = bottom_img.size
     syn_images = torch.zeros((batch_size, 3, crop_size[1], crop_size[0]))
 
+    # Variables to cache the last scaling factor and scaled image
+    last_scaling_factor = None
+    cached_scaled_image = None
+
     for i in range(batch_size):
+        current_scaling_factor = scaling_factors[i]
+
+        # Check if the scaling factor is the same as the previous step
+        if current_scaling_factor != last_scaling_factor:
+            # Scale the top image
+            scaled_top_img = scale_image(original_top_img, current_scaling_factor)
+            cached_scaled_image = T.ToTensor()(scaled_top_img)
+            last_scaling_factor = current_scaling_factor
+
+        top_tensor = cached_scaled_image
+
+        top_w, top_h = scaled_top_img.size
+        fill_h = (bottom_h - top_h) // 2
+        fill_w = (bottom_w - top_w) // 2
+
         # Compute relative position
         relative_pos = top_img_positions[i] - bottom_img_positions[i]
 
         # Clone the bottom image tensor
         final_tensor = bottom_tensor.clone()
 
-        
-        # Overlay the top image
-        # for c in range(3):  # Iterate over RGB channels
-        #     final_tensor[c, fill_h + relative_pos[1]:fill_h + relative_pos[1] + top_h,
-        #                  fill_w + relative_pos[0]:fill_w + relative_pos[0] + top_w] = (
-        #         top_tensor[c, :, :] * top_tensor[3, :, :] * alpha +
-        #         final_tensor[c, fill_h + relative_pos[1]:fill_h + relative_pos[1] + top_h,
-        #                      fill_w + relative_pos[0]:fill_w + relative_pos[0] + top_w] * (1 - top_tensor[3, :, :] * alpha)
-        #     )
-        
         # Overlay the top image (vectorized for all RGB channels)
-        final_tensor[:3, 
-                    fill_h + relative_pos[1]:fill_h + relative_pos[1] + top_h, 
-                    fill_w + relative_pos[0]:fill_w + relative_pos[0] + top_w] = (
+        final_tensor[:3,
+                     fill_h + relative_pos[1]:fill_h + relative_pos[1] + top_h,
+                     fill_w + relative_pos[0]:fill_w + relative_pos[0] + top_w] = (
             top_tensor[:3, :, :] * top_tensor[3:4, :, :] * alpha +
-            final_tensor[:3, 
-                        fill_h + relative_pos[1]:fill_h + relative_pos[1] + top_h, 
-                        fill_w + relative_pos[0]:fill_w + relative_pos[0] + top_w] * (1 - top_tensor[3:4, :, :] * alpha)
+            final_tensor[:3,
+                         fill_h + relative_pos[1]:fill_h + relative_pos[1] + top_h,
+                         fill_w + relative_pos[0]:fill_w + relative_pos[0] + top_w] * (1 - top_tensor[3:4, :, :] * alpha)
         )
 
         # Convert to PIL and crop
