@@ -451,13 +451,15 @@ class SynMovieGenerator:
             bottom_img_path, top_img_path, top_img_positions, bottom_img_positions,
             scaling_factors, self.crop_size, alpha=1.0
         )
-
+        
         # Correct for the cricket head position
         image_id = get_image_number(top_img_path)
+
         if self.is_reverse_xy:
             coord_correction = np.array([self.coord_dic[image_id]['coord_y'], self.coord_dic[image_id]['coord_x']])
         else:
             coord_correction = np.array([self.coord_dic[image_id]['coord_x'], self.coord_dic[image_id]['coord_y']])
+        scaling_factors = np.array(scaling_factors) 
         scaled_coord_corrections = coord_correction[np.newaxis, :] * scaling_factors[:, np.newaxis]
         path = path - self.correction_direction*scaled_coord_corrections
 
