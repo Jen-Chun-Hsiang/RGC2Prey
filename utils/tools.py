@@ -156,8 +156,16 @@ class MovieGenerator:
         syn_movie = syn_movie[-num_steps:]
         # path = path[:num_steps]
         # path_bg = path_bg[:num_steps]
-        path_predict = path_predict[:num_steps]
+        # path_predict = path_predict[:num_steps]
         scaling_factors = scaling_factors[-num_steps:]
+
+        print(f'image_sequence shape: {image_sequence.shape}')
+        print(f'syn_movie shape: {syn_movie.shape}')
+        print(f'path shape: {path.shape}')
+        print(f'path_bg shape: {path_bg.shape}')
+        print(f'path_predict shape: {path_predict.shape}')
+        print(f'scaling_factors shape: {scaling_factors.shape}')
+
 
         os.makedirs(self.video_save_folder, exist_ok=True)
         output_filename = os.path.join(
