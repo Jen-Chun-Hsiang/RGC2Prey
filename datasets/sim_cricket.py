@@ -361,7 +361,7 @@ class SynMovieGenerator:
     def __init__(self, top_img_folder, bottom_img_folder, crop_size, boundary_size, center_ratio, max_steps=200, prob_stay=0.95, 
                  prob_mov=0.975, num_ext=50, initial_velocity=6, momentum_decay_ob=0.95, momentum_decay_bg=0.5, scale_factor=1.0,
                 velocity_randomness_ob=0.02, velocity_randomness_bg=0.01, angle_range_ob=0.5, angle_range_bg=0.25, coord_mat_file=None, 
-                correction_direction=1, is_reverse_xy=False, start_scaling=1, end_scaling=2):
+                correction_direction=1, is_reverse_xy=False, start_scaling=1, end_scaling=2, dynamic_scaling=0):
         """
         Initializes the SynMovieGenerator with configuration parameters.
 
@@ -396,8 +396,23 @@ class SynMovieGenerator:
         self.coord_dic = self._get_coord_dic(coord_mat_file)
         self.correction_direction = correction_direction
         self.is_reverse_xy = is_reverse_xy
-        self.start_scaling = start_scaling
-        self.end_scaling = end_scaling
+        self.start_scaling = start_scaling 
+        self.end_scaling = end_scaling, 
+        self.dynamic_scaling = dynamic_scaling
+
+    def _modify_scaling(self):
+        start_scaling = self.start_scaling
+        end_scaling = self.end_scaling
+
+        if self.dynamic_scaling != 0:
+            # Modify start_scaling and end_scaling with random adjustments
+            start_scaling += random.uniform(0, self.dynamic_scaling)
+            end_scaling -= random.uniform(0, self.dynamic_scaling)
+
+            # Ensure start_scaling <= end_scaling
+            start_scaling, end_scaling = min(start_scaling, end_scaling), max(start_scaling, end_scaling)
+
+        return start_scaling, end_scaling
     
     def _get_coord_dic(self, coord_mat_file):
         index_column_name = 'image_id'
@@ -445,7 +460,8 @@ class SynMovieGenerator:
         top_img_positions = path.round().astype(int)
         bottom_img_positions = path_bg.round().astype(int)
 
-        scaling_factors = calculate_scaling_factors(bottom_img_positions, start_scaling=self.start_scaling, end_scaling=self.end_scaling)
+        start_scaling, end_scaling = self._modify_scaling()
+        scaling_factors = calculate_scaling_factors(bottom_img_positions, start_scaling=start_scaling, end_scaling=end_scaling)
         # Generate the batch of images
         syn_movie = synthesize_image_with_params_batch(
             bottom_img_path, top_img_path, top_img_positions, bottom_img_positions,
