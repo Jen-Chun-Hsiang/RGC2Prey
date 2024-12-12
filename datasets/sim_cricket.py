@@ -461,6 +461,9 @@ class SynMovieGenerator:
         bottom_img_positions = path_bg.round().astype(int)
 
         start_scaling, end_scaling = self._modify_scaling()
+        print(f'start_scaling type: {type(start_scaling)}')
+        print(f'start_scaling: {start_scaling}')
+        print(f'end_scaling type: {type(end_scaling)}')
         scaling_factors = calculate_scaling_factors(bottom_img_positions, start_scaling=start_scaling, end_scaling=end_scaling)
         # Generate the batch of images
         syn_movie = synthesize_image_with_params_batch(
