@@ -153,11 +153,11 @@ class MovieGenerator:
         """
         # Ensure all inputs have the same length based on the length of `inputs`
         num_steps = image_sequence.shape[0]
-        syn_movie = syn_movie[:num_steps]
-        path = path[:num_steps]
-        path_bg = path_bg[:num_steps]
+        syn_movie = syn_movie[-num_steps:]
+        # path = path[:num_steps]
+        # path_bg = path_bg[:num_steps]
         path_predict = path_predict[:num_steps]
-        scaling_factors = scaling_factors[:num_steps]
+        scaling_factors = scaling_factors[-num_steps:]
 
         os.makedirs(self.video_save_folder, exist_ok=True)
         output_filename = os.path.join(
