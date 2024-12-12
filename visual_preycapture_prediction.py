@@ -101,6 +101,7 @@ def main():
         inputs = inputs.squeeze().permute(0, 2, 1).cpu().numpy()
         data_movie = MovieGenerator(frame_width, frame_height, fps, video_save_folder, bls_tag=f'{experiment_name}-{epoch_number}',
                                  grid_generate_method=args.grid_generate_method)
+                            
         data_movie.generate_movie(inputs, syn_movie, true_path, bg_path, predicted_path, scaling_factors, video_id=batch_idx)
 
         x1, y1 = true_path[:, 0], true_path[:, 1]
