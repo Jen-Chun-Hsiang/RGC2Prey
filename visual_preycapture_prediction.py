@@ -98,7 +98,7 @@ def main():
         sequence_length = len(true_path)
 
         syn_movie = syn_movie.squeeze().cpu().numpy()
-        inputs = inputs.squeeze().permute(0, 2, 1).cpu().numpy()
+        inputs = inputs.squeeze().cpu().numpy()
         scaling_factors = scaling_factors.squeeze().cpu().numpy()
         data_movie = MovieGenerator(frame_width, frame_height, fps, video_save_folder, bls_tag=f'{experiment_name}-{epoch_number}',
                                  grid_generate_method=args.grid_generate_method)
