@@ -397,8 +397,13 @@ class SynMovieGenerator:
         self.correction_direction = correction_direction
         self.is_reverse_xy = is_reverse_xy
         self.start_scaling = start_scaling 
-        self.end_scaling = end_scaling, 
+        self.end_scaling = end_scaling 
         self.dynamic_scaling = dynamic_scaling
+
+        print(f'start_scaling type: {type(start_scaling)}')
+        print(f'start_scaling: {start_scaling}')
+        print(f'end_scaling type: {type(end_scaling)}')
+        print(f'end_scaling: {end_scaling}')
 
     def _modify_scaling(self):
         start_scaling = self.start_scaling
@@ -464,6 +469,7 @@ class SynMovieGenerator:
         print(f'start_scaling type: {type(start_scaling)}')
         print(f'start_scaling: {start_scaling}')
         print(f'end_scaling type: {type(end_scaling)}')
+        print(f'end_scaling: {end_scaling}')
         scaling_factors = calculate_scaling_factors(bottom_img_positions, start_scaling=start_scaling, end_scaling=end_scaling)
         # Generate the batch of images
         syn_movie = synthesize_image_with_params_batch(
@@ -655,6 +661,7 @@ class RGCrfArray:
             ])
             opt_sf = gaussian_multi(sf_params, self.rgc_array_rf_size, self.num_gauss_example)
             opt_sf -= np.median(opt_sf)  
+            opt_sf = opt_sf / np.sum(np.abs(opt_sf))
 
             if self.is_pixelized_rf:
                 threshold_value = np.percentile(opt_sf, self.sf_pixel_thr)
@@ -675,6 +682,7 @@ class RGCrfArray:
             tf_params = np.array([row['sigma1'], row['sigma2'], row['mean1'], row['mean2'], row['amp1'], row['amp2'], row['offset']])
             tf = gaussian_temporalfilter(self.temporal_filter_len, tf_params)
             tf = tf-tf[0]
+            tf = tf / np.sum(np.abs(tf))
         return tf
 
     def get_results(self):
