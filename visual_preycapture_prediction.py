@@ -12,7 +12,7 @@ from utils.data_handling import CheckpointLoader
 
 
 def main():
-    experiment_name = 1210202402
+    experiment_name = 1211202403
     epoch_number = 200
     num_display = 6
     checkpoint_path = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/Results/CheckPoints/'
@@ -48,7 +48,8 @@ def main():
         momentum_decay_ob=args.momentum_decay_ob, momentum_decay_bg=args.momentum_decay_bg, scale_factor=args.scale_factor,
         velocity_randomness_ob = args.velocity_randomness_ob, velocity_randomness_bg=args.velocity_randomness_bg,
         angle_range_ob=args.angle_range_ob, angle_range_bg=args.angle_range_bg, coord_mat_file=coord_mat_file, 
-        correction_direction=args.coord_adj_dir
+        correction_direction=args.coord_adj_dir, is_reverse_xy=args.is_reverse_xy, start_scaling=args.start_scaling, 
+        end_scaling=args.end_scaling
     )
 
     xlim, ylim = args.xlim, args.ylim
