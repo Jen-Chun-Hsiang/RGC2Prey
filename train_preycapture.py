@@ -59,6 +59,7 @@ def parse_args():
     parser.add_argument('--is_reverse_xy', action='store_true', help="Reverse x, y coordinates in cricket position correction")
     parser.add_argument('--start_scaling', type=float, default=1.0, help='Beginning scale factor of the cricket image')
     parser.add_argument('--end_scaling', type=float, default=2.0, help='Final scale factor of the cricket image')
+    parser.add_argument('--dynamic_scaling', type=float, default=0.0, help='Final scale factor of the cricket image')
 
     # Arguments for Cricket2RGCs (from movies to RGC array activities based on receptive field properties)
     parser.add_argument('--num_samples', type=int, default=20, help="Number of samples in the synthesized dataset")
