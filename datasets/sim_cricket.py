@@ -335,7 +335,7 @@ class Cricket2RGCs(Dataset):
         return self.num_samples
 
     def __getitem__(self, idx):
-        syn_movie, path, path_bg = self.movie_generator.generate()
+        syn_movie, path, path_bg, scaling_factors = self.movie_generator.generate()
         sf_frame = torch.einsum('whn,thw->nt', self.multi_opt_sf, syn_movie)
         sf_frame = sf_frame.unsqueeze(0) 
         tf = np.repeat(self.tf, sf_frame.shape[1], axis=0)
@@ -351,7 +351,7 @@ class Cricket2RGCs(Dataset):
         path_bg = path_bg[-rgc_time.shape[1]:, :]/self.norm_path_fac
 
         if self.is_syn_mov_shown:
-            return grid_values_sequence.permute(0, 2, 1).unsqueeze(1), path, path_bg, syn_movie
+            return grid_values_sequence.permute(0, 2, 1).unsqueeze(1), path, path_bg, syn_movie, scaling_factors
     
         else:
             return grid_values_sequence.permute(0, 2, 1).unsqueeze(1), torch.tensor(path, dtype=torch.float32), torch.tensor(path_bg, dtype=torch.float32)
@@ -479,7 +479,7 @@ class SynMovieGenerator:
         scaled_coord_corrections = coord_correction[np.newaxis, :] * scaling_factors[:, np.newaxis]
         path = path - self.correction_direction*scaled_coord_corrections
 
-        return syn_movie[:, 1, :, :], path, path_bg
+        return syn_movie[:, 1, :, :], path, path_bg, scaling_factors
     
 
 

@@ -9,17 +9,20 @@ from datasets.sim_cricket import SynMovieGenerator, Cricket2RGCs, RGCrfArray
 from models.rgc2behavior import CNN_LSTM_ObjectLocation
 from utils.utils import plot_two_path_comparison
 from utils.data_handling import CheckpointLoader
+from utils.tools import MovieGenerator
 
 
 def main():
     experiment_name = 1211202403
     epoch_number = 200
     num_display = 6
+    is_syn_mov_shown = True
     checkpoint_path = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/Results/CheckPoints/'
     top_img_folder    = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/CricketDataset/Images/cropped/cricket/'
     rf_params_file = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/SimulationParams.xlsx'
     test_save_folder = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/Results/Figures/'
     coord_mat_file = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/selected_points_summary.mat'
+    video_save_folder = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/Results/Videos/'
 
     file_name = f'{experiment_name}_cricket_location_prediction'
     checkpoint_filename = os.path.join(checkpoint_path, f'{file_name}_checkpoint_epoch_{epoch_number}.pth')
@@ -60,7 +63,8 @@ def main():
     
     test_dataset = Cricket2RGCs(num_samples=num_display, multi_opt_sf=multi_opt_sf, tf=tf, map_func=map_func,
                                 grid2value_mapping=grid2value_mapping, target_width=target_width, target_height=target_height,
-                                movie_generator=movie_generator, grid_size_fac=args.grid_size_fac, is_norm_coords=args.is_norm_coords)
+                                movie_generator=movie_generator, grid_size_fac=args.grid_size_fac, is_norm_coords=args.is_norm_coords, 
+                                is_syn_mov_shown=is_syn_mov_shown)
     test_loader = DataLoader(test_dataset, batch_size=1, shuffle=False)
     #
     grid_width = int(np.round(target_width*args.grid_size_fac))
@@ -76,8 +80,13 @@ def main():
 
     # model.to(args.device)
     model.eval()
+
+    frame_width = 640
+    frame_height = 480
+    fps = 20
+    
     # Test model on samples
-    for batch_idx, (inputs, true_path, bg_path) in enumerate(test_loader):
+    for batch_idx, (inputs, true_path, bg_path, syn_movie, scaling_factors) in enumerate(test_loader):
         # inputs = inputs.to(args.device)
         true_path = true_path.squeeze(0).cpu().numpy()
         bg_path = bg_path.squeeze(0).cpu().numpy()
@@ -87,6 +96,13 @@ def main():
 
         # Extract x and y coordinates
         sequence_length = len(true_path)
+
+        syn_movie = syn_movie.cpu().numpy()
+        inputs = inputs.squeeze().permute(0, 2, 1).cpu().numpy()
+        data_movie = MovieGenerator(frame_width, frame_height, fps, video_save_folder, bls_tag=f'{experiment_name}-{epoch_number}',
+                                 grid_generate_method=args.grid_generate_method)
+        data_movie.generate_movie(inputs, syn_movie, true_path, bg_path, predicted_path, scaling_factors, video_id=batch_idx)
+
         x1, y1 = true_path[:, 0], true_path[:, 1]
         x2, y2 = predicted_path[:, 0], predicted_path[:, 1]
         x3, y3 = bg_path[:, 0], bg_path[:, 1]
