@@ -129,7 +129,7 @@ def main():
     log_save_folder  = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/Results/Prints/'
     savemodel_dir = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/Results/CheckPoints/'
     rf_params_file = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/SimulationParams.xlsx'
-    coord_mat_file = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/selected_points_summary.mat'
+    coord_mat_file = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/selected_points_summary_body.mat'   #selected_points_summary.mat
     video_save_folder = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/Results/Videos/'
 
     timestr = datetime.now().strftime('%Y%m%d_%H%M%S')
@@ -146,6 +146,9 @@ def main():
         device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     else:
         device = 'cpu'
+
+    
+    np.random.seed(42)
 
     sf_param_table = pd.read_excel(rf_params_file, sheet_name='SF_params', usecols='A:L')
     tf_param_table = pd.read_excel(rf_params_file, sheet_name='TF_params', usecols='A:I')
@@ -171,7 +174,6 @@ def main():
     if is_show_rgc_tf:
         plot_vector_and_save(tf, plot_save_folder, file_name=f'{args.experiment_name}_temporal_filter.png')
 
-    
     movie_generator = SynMovieGenerator(top_img_folder, bottom_img_folder,
         crop_size=args.crop_size, boundary_size=args.boundary_size, center_ratio=args.center_ratio, max_steps=args.max_steps,
         prob_stay=args.prob_stay, prob_mov=args.prob_mov, num_ext=args.num_ext, initial_velocity=args.initial_velocity, 
@@ -229,6 +231,7 @@ def main():
                                 grid_generate_method=args.grid_generate_method)
         data_movie.generate_movie(sequence, syn_movie, path, path_bg, predicted_path, scaling_factors, video_id=1)
     
+    np.random.seed(int(time.time()))
     train_dataset = Cricket2RGCs(num_samples=args.num_samples, multi_opt_sf=multi_opt_sf, tf=tf, map_func=map_func,
                                 grid2value_mapping=grid2value_mapping, target_width=target_width, target_height=target_height,
                                 movie_generator=movie_generator, grid_size_fac=args.grid_size_fac, is_norm_coords=args.is_norm_coords)
