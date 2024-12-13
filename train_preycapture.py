@@ -227,7 +227,7 @@ def main():
         predicted_path = None
         data_movie = MovieGenerator(frame_width, frame_height, fps, video_save_folder, bls_tag=f'{args.experiment_name}',
                                 grid_generate_method=args.grid_generate_method)
-        data_movie.generate_movie(sequence, syn_movie, path, path_bg, predicted_path, scaling_factors, video_id=0)
+        data_movie.generate_movie(sequence, syn_movie, path, path_bg, predicted_path, scaling_factors, video_id=1)
     
     train_dataset = Cricket2RGCs(num_samples=args.num_samples, multi_opt_sf=multi_opt_sf, tf=tf, map_func=map_func,
                                 grid2value_mapping=grid2value_mapping, target_width=target_width, target_height=target_height,
