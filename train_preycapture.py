@@ -14,7 +14,7 @@ from datasets.sim_cricket import RGCrfArray, SynMovieGenerator, Cricket2RGCs
 from utils.utils import plot_tensor_and_save, plot_vector_and_save, plot_two_path_comparison
 from models.rgc2behavior import CNN_LSTM_ObjectLocation
 from utils.data_handling import save_checkpoint
-from utils.tools import timer
+from utils.tools import timer, MovieGenerator
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Script for Model Training to get 3D RF in simulation")
@@ -110,6 +110,7 @@ def parse_args():
     parser.add_argument('--exam_batch_idx', type=int, default=None, help='examine the timer and stop code in the middle')
     parser.add_argument('--num_epoch_save', type=int, default=5, help='Number of epoch to save a checkpoint')
     parser.add_argument('--accumulation_steps', type=int, default=1, help='Number of mini-batch to optimize (gradient accumulation)')
+    parser.add_argument('--is_generate_movie', action='store_true', help="Generate a video to visualize the dataset")
 
     return parser.parse_args()
 
@@ -129,6 +130,7 @@ def main():
     savemodel_dir = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/Results/CheckPoints/'
     rf_params_file = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/SimulationParams.xlsx'
     coord_mat_file = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/selected_points_summary.mat'
+    video_save_folder = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/Results/Videos/'
 
     timestr = datetime.now().strftime('%Y%m%d_%H%M%S')
     # Construct the full path for the log file
@@ -189,7 +191,7 @@ def main():
                                 is_syn_mov_shown=True)
     
     # Visualize one data points
-    sequence, path, path_bg, syn_movie, _ = train_dataset[0]
+    sequence, path, path_bg, syn_movie, scaling_factors = train_dataset[0]
     if is_show_movie_frames:
         for i in range(syn_movie.shape[0]):
             Timg = syn_movie[i, :, :]
@@ -202,6 +204,20 @@ def main():
             plot_tensor_and_save(Timg, syn_save_folder, f'{args.experiment_name}_RGCgrid_activity_doublecheck_{i + 1}.png')
         if is_show_pathes:
             plot_two_path_comparison(path, path_bg, plot_save_folder, file_name=f'{args.experiment_name}_dataset_path.png')
+    
+    if args.is_generate_movie:
+        frame_width = 640
+        frame_height = 480
+        fps = 20
+        path = path.squeeze(0).cpu().numpy()
+        path_bg = path_bg.squeeze(0).cpu().numpy()
+        syn_movie = syn_movie.squeeze().cpu().numpy()
+        sequence = sequence.squeeze().cpu().numpy()
+        scaling_factors = scaling_factors.squeeze().cpu().numpy()
+        predicted_path = None
+        data_movie = MovieGenerator(frame_width, frame_height, fps, video_save_folder, bls_tag=f'{args.experiment_name}',
+                                grid_generate_method=args.grid_generate_method)
+        data_movie.generate_movie(sequence, syn_movie, path, path_bg, predicted_path, scaling_factors, video_id=0)
     
     train_dataset = Cricket2RGCs(num_samples=args.num_samples, multi_opt_sf=multi_opt_sf, tf=tf, map_func=map_func,
                                 grid2value_mapping=grid2value_mapping, target_width=target_width, target_height=target_height,
