@@ -154,23 +154,14 @@ class MovieGenerator:
             path_predict (list): Predicted path data.
             scaling_factors (list): List of scaling factors.
         """
+        # flip y for visualization
+        path[:, 1] *= -1
+        path_bg[:, 1] *= -1
+
         # Ensure all inputs have the same length based on the length of `inputs`
         num_steps = image_sequence.shape[0]
         syn_movie = syn_movie[-num_steps:]
         scaling_factors = scaling_factors[-num_steps:]
-
-        print(f'image_sequence type: {type(image_sequence)}')
-        print(f'syn_movie type: {type(syn_movie)}')
-        print(f'path type: {type(path)}')
-        print(f'path_bg type: {type(path_bg)}')
-        print(f'scaling_factors type: {type(scaling_factors)}')
-
-        print(f'image_sequence shape: {image_sequence.shape}')
-        print(f'syn_movie shape: {syn_movie.shape}')
-        print(f'path shape: {path.shape}')
-        print(f'path_bg shape: {path_bg.shape}')
-        print(f'scaling_factors shape: {scaling_factors.shape}')
-
 
         os.makedirs(self.video_save_folder, exist_ok=True)
         output_filename = os.path.join(
@@ -183,6 +174,7 @@ class MovieGenerator:
 
         if path_predict is not None:
             is_path_predict = True
+            path_predict[:, 1] *= -1
             all_y_values = np.concatenate((path, path_bg, path_predict), axis=0)
         else:
             is_path_predict = False
@@ -198,7 +190,6 @@ class MovieGenerator:
         scaling_history = []
 
         for i, (frame, syn_frame, coord, bg_coord, pred_coord, scaling) in enumerate(zip(image_sequence, syn_movie, path, path_bg, path_predict, scaling_factors)):
-            print(f'i: {i}')
             path_history.append(coord)
             path_bg_history.append(bg_coord)
 
