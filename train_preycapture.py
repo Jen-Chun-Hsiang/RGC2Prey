@@ -221,8 +221,8 @@ def main():
         # print(f'scaling_factors shape:{scaling_factors.shape}')
         # print(f'sequence type:{type(sequence)}')
         # print(f'sequence shape:{sequence.shape}')
-        path = path.squeeze()
-        path_bg = path_bg.squeeze()
+        path = path.squeeze()*train_dataset.norm_path_fac
+        path_bg = path_bg.squeeze()*train_dataset.norm_path_fac
         syn_movie = syn_movie.squeeze().numpy()
         sequence = sequence.squeeze().numpy()
         scaling_factors = scaling_factors.squeeze()
