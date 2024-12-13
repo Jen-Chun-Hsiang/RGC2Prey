@@ -117,9 +117,9 @@ def parse_args():
 def main():
     is_show_rgc_rf_individual = False
     is_show_rgc_tf = False
-    is_show_movie_frames = True
-    is_show_pathes = True
-    is_show_grids = True
+    is_show_movie_frames = False
+    is_show_pathes = False
+    is_show_grids = False
 
     args = parse_args()
     bottom_img_folder = f'/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/CricketDataset/Images/cropped/{args.bg_folder}/'  #grass
