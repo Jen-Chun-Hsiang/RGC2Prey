@@ -179,7 +179,10 @@ class MovieGenerator:
         fourcc = cv2.VideoWriter_fourcc(*"mp4v")
         video_writer = cv2.VideoWriter(output_filename, fourcc, self.fps, (self.frame_width, self.frame_height))
 
-        all_y_values = np.concatenate((path, path_bg, path_predict), axis=0)
+        if path_predict is not None:
+            all_y_values = np.concatenate((path, path_bg, path_predict), axis=0)
+        else:
+            all_y_values = np.concatenate((path, path_bg), axis=0)
         y_min, y_max = np.min(all_y_values), np.max(all_y_values)
 
         path_history = []
