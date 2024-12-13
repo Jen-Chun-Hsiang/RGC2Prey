@@ -99,7 +99,7 @@ class MovieGenerator:
         ax3 = fig.add_subplot(gs[2:4, :3])
         ax3.set_title("Path")
         ax3.plot(path_history[:, 0], path_history[:, 1], label='Ground Truth Path', color='blue')
-        if is_path_predict is not None:
+        if is_path_predict:
             ax3.plot(path_predict_history[:, 0], path_predict_history[:, 1], label='Predicted Path', color='orange')
         ax3.legend()
         ax3.set_ylim(y_min, y_max)
@@ -110,7 +110,7 @@ class MovieGenerator:
         ax4.set_title("Coord X")
         ax4.plot(coord_x_history, label='Ground Truth', color='blue')
         ax4.plot(path_bg_history[:, 0], label='Background Path', color='green')
-        if is_path_predict is not None:
+        if is_path_predict:
             ax4.plot(path_predict_history[:, 0], label='Predicted Path', color='orange')
         # ax4.legend()
         ax4.set_ylim(y_min, y_max)
@@ -120,7 +120,7 @@ class MovieGenerator:
         ax5.set_title("Coord Y")
         ax5.plot(coord_y_history, label='Ground Truth', color='blue')
         ax5.plot(path_bg_history[:, 1], label='Background Path', color='green')
-        if is_path_predict is not None:
+        if is_path_predict:
             ax5.plot(path_predict_history[:, 1], label='Predicted Path', color='orange')
         # ax5.legend()
         ax5.set_ylim(y_min, y_max)
@@ -202,7 +202,7 @@ class MovieGenerator:
             path_history.append(coord)
             path_bg_history.append(bg_coord)
 
-            if path_predict is not None:  #
+            if is_path_predict:  #
                 path_predict_history.append(pred_coord)
 
             coord_x_history.append(coord[0])
