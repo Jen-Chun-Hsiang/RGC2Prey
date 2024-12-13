@@ -209,8 +209,8 @@ def main():
         frame_width = 640
         frame_height = 480
         fps = 20
-        path = path.squeeze(0).cpu().numpy()
-        path_bg = path_bg.squeeze(0).cpu().numpy()
+        path = path.squeeze().cpu().numpy()
+        path_bg = path_bg.squeeze().cpu().numpy()
         syn_movie = syn_movie.squeeze().cpu().numpy()
         sequence = sequence.squeeze().cpu().numpy()
         scaling_factors = scaling_factors.squeeze().cpu().numpy()
