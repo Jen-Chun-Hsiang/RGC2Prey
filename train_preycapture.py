@@ -189,7 +189,7 @@ def main():
                                 is_syn_mov_shown=True)
     
     # Visualize one data points
-    sequence, path, path_bg, syn_movie = train_dataset[0]
+    sequence, path, path_bg, syn_movie, _ = train_dataset[0]
     if is_show_movie_frames:
         for i in range(syn_movie.shape[0]):
             Timg = syn_movie[i, :, :]
