@@ -65,7 +65,7 @@ class MovieGenerator:
         self.grid_generate_method = grid_generate_method
 
     def create_figure(self, syn_movie_frame, rgc_output, path_history, path_predict_history, path_bg_history, coord_x_history, 
-                      coord_y_history, scaling_history, y_min, y_max, path_predict=None):
+                      coord_y_history, scaling_history, y_min, y_max, is_path_predict=True):
         """
         Create the figure layout with subplots for the movie frame.
 
@@ -99,7 +99,7 @@ class MovieGenerator:
         ax3 = fig.add_subplot(gs[2:4, :3])
         ax3.set_title("Path")
         ax3.plot(path_history[:, 0], path_history[:, 1], label='Ground Truth Path', color='blue')
-        if path_predict is not None:
+        if is_path_predict is not None:
             ax3.plot(path_predict_history[:, 0], path_predict_history[:, 1], label='Predicted Path', color='orange')
         ax3.legend()
         ax3.set_ylim(y_min, y_max)
@@ -110,7 +110,7 @@ class MovieGenerator:
         ax4.set_title("Coord X")
         ax4.plot(coord_x_history, label='Ground Truth', color='blue')
         ax4.plot(path_bg_history[:, 0], label='Background Path', color='green')
-        if path_predict is not None:
+        if is_path_predict is not None:
             ax4.plot(path_predict_history[:, 0], label='Predicted Path', color='orange')
         # ax4.legend()
         ax4.set_ylim(y_min, y_max)
@@ -120,7 +120,7 @@ class MovieGenerator:
         ax5.set_title("Coord Y")
         ax5.plot(coord_y_history, label='Ground Truth', color='blue')
         ax5.plot(path_bg_history[:, 1], label='Background Path', color='green')
-        if path_predict is not None:
+        if is_path_predict is not None:
             ax5.plot(path_predict_history[:, 1], label='Predicted Path', color='orange')
         # ax5.legend()
         ax5.set_ylim(y_min, y_max)
@@ -182,8 +182,11 @@ class MovieGenerator:
         video_writer = cv2.VideoWriter(output_filename, fourcc, self.fps, (self.frame_width, self.frame_height))
 
         if path_predict is not None:
+            is_path_predict = True
             all_y_values = np.concatenate((path, path_bg, path_predict), axis=0)
         else:
+            is_path_predict = False
+            path_predict = [None] * len(image_sequence)
             all_y_values = np.concatenate((path, path_bg), axis=0)
         y_min, y_max = np.min(all_y_values), np.max(all_y_values)
 
@@ -194,7 +197,7 @@ class MovieGenerator:
         coord_y_history = []
         scaling_history = []
 
-        for i, (frame, syn_frame, coord, bg_coord, pred_coord, scaling) in enumerate(zip(image_sequence, syn_movie, path, path_bg, path_predict or [], scaling_factors)):
+        for i, (frame, syn_frame, coord, bg_coord, pred_coord, scaling) in enumerate(zip(image_sequence, syn_movie, path, path_bg, path_predict, scaling_factors)):
             print(f'i: {i}')
             path_history.append(coord)
             path_bg_history.append(bg_coord)
@@ -217,7 +220,7 @@ class MovieGenerator:
                 scaling_history=scaling_history, 
                 y_min = y_min,
                 y_max = y_max,
-                path_predict = path_predict
+                is_path_predict = is_path_predict
             )
 
             # Resize the image to fit video dimensions
