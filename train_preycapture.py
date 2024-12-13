@@ -209,6 +209,16 @@ def main():
         frame_width = 640
         frame_height = 480
         fps = 20
+        print(f'path type:{type(path)}')
+        print(f'path shape:{path.shape}')
+        print(f'path_bg type:{type(path_bg)}')
+        print(f'path_bg shape:{path_bg.shape}')
+        print(f'syn_movie type:{type(syn_movie)}')
+        print(f'syn_movie shape:{syn_movie.shape}')
+        print(f'scaling_factors type:{type(scaling_factors)}')
+        print(f'scaling_factors shape:{scaling_factors.shape}')
+        print(f'sequence type:{type(sequence)}')
+        print(f'sequence shape:{sequence.shape}')
         path = path.squeeze()
         path_bg = path_bg.squeeze()
         syn_movie = syn_movie.squeeze()
