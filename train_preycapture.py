@@ -34,7 +34,8 @@ def parse_args():
     default_num_ext = 50
     default_sf_scalar = 0.2
     default_tau = 3
-    default_grid_generate_method = 'decay'
+    default_grid_generate_method = 'circle'
+    default_sf_constraint_method = 'circle'
     default_target_width = 640
     default_target_height = 480
 
@@ -74,7 +75,7 @@ def parse_args():
     parser.add_argument('--sf_scalar', type=float, default=default_sf_scalar, help="Scaling factor for spatial frequency.")
     parser.add_argument('--grid_generate_method', type=str, default=default_grid_generate_method, 
                         choices=['closest', 'decay', 'circle'], help="Method for grid generation.")
-    parser.add_argument('--sf_constraint_method', type=str, default=default_grid_generate_method, 
+    parser.add_argument('--sf_constraint_method', type=str, default=default_sf_constraint_method, 
                         choices=['circle', 'threshold', 'None'], help="Method for grid generation.")
     parser.add_argument('--tau', type=float, default=default_tau, help="Decay factor for 'decay' method.")
     parser.add_argument('--sf_mask_radius', type=float, default=35, help='RGC dendritic receptive field radius size in pixel')
