@@ -162,11 +162,16 @@ class MovieGenerator:
         # path_predict = path_predict[:num_steps]
         scaling_factors = scaling_factors[-num_steps:]
 
+        print(f'image_sequence type: {type(image_sequence)}')
+        print(f'syn_movie type: {type(syn_movie)}')
+        print(f'path type: {type(path)}')
+        print(f'path_bg type: {type(path_bg)}')
+        print(f'scaling_factors type: {type(scaling_factors)}')
+
         print(f'image_sequence shape: {image_sequence.shape}')
         print(f'syn_movie shape: {syn_movie.shape}')
         print(f'path shape: {path.shape}')
         print(f'path_bg shape: {path_bg.shape}')
-        print(f'path_predict shape: {path_predict.shape}')
         print(f'scaling_factors shape: {scaling_factors.shape}')
 
 
