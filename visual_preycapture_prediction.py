@@ -13,10 +13,11 @@ from utils.tools import MovieGenerator
 
 
 def main():
-    experiment_name = 1211202403
+    experiment_name = 1212202401
     epoch_number = 200
     num_display = 6
     is_syn_mov_shown = True
+    is_making_video = False
     checkpoint_path = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/Results/CheckPoints/'
     top_img_folder    = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/CricketDataset/Images/cropped/cricket/'
     rf_params_file = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/SimulationParams.xlsx'
@@ -97,13 +98,14 @@ def main():
         # Extract x and y coordinates
         sequence_length = len(true_path)
 
-        syn_movie = syn_movie.squeeze().cpu().numpy()
-        inputs = inputs.squeeze().cpu().numpy()
-        scaling_factors = scaling_factors.squeeze().cpu().numpy()
-        data_movie = MovieGenerator(frame_width, frame_height, fps, video_save_folder, bls_tag=f'{experiment_name}-{epoch_number}',
-                                 grid_generate_method=args.grid_generate_method)
-                            
-        data_movie.generate_movie(inputs, syn_movie, true_path, bg_path, predicted_path, scaling_factors, video_id=batch_idx)
+        if is_making_video:
+            syn_movie = syn_movie.squeeze().cpu().numpy()
+            inputs = inputs.squeeze().cpu().numpy()
+            scaling_factors = scaling_factors.squeeze().cpu().numpy()
+            data_movie = MovieGenerator(frame_width, frame_height, fps, video_save_folder, bls_tag=f'{experiment_name}-{epoch_number}',
+                                    grid_generate_method=args.grid_generate_method)
+                                
+            data_movie.generate_movie(inputs, syn_movie, true_path, bg_path, predicted_path, scaling_factors, video_id=batch_idx)
 
         x1, y1 = true_path[:, 0], true_path[:, 1]
         x2, y2 = predicted_path[:, 0], predicted_path[:, 1]
