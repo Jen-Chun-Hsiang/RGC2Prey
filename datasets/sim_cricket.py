@@ -558,8 +558,8 @@ def synthesize_image_with_params_batch(bottom_img_path, top_img_path, top_img_po
 
 class RGCrfArray:
     def __init__(self, sf_param_table, tf_param_table, rgc_array_rf_size, xlim, ylim, target_num_centers, sf_scalar,
-                 grid_generate_method, tau=None, mask_radius=None, rand_seed=42, num_gauss_example=1, is_pixelized_rf=False, sf_pixel_thr=99.7,
-                 temporal_filter_len=50, grid_size_fac=0.5):
+                 grid_generate_method, tau=None, mask_radius=None, rand_seed=42, num_gauss_example=1, sf_mask_radius=35, 
+                 sf_pixel_thr=99.7, sf_constraint_method=None, temporal_filter_len=50, grid_size_fac=0.5, is_pixelized_tf=False):
         """
         Args:
             sf_param_table (DataFrame): Table of spatial frequency parameters.
@@ -580,13 +580,15 @@ class RGCrfArray:
         self.temporal_filter_len = temporal_filter_len
         self.grid_generate_method = grid_generate_method
         self.tau = tau
+        self.sf_mask_radius = sf_mask_radius
+        self.sf_constraint_method = sf_constraint_method
         self.mask_radius = mask_radius
         self.rand_seed = rand_seed
         self.num_gauss_example = num_gauss_example
         self.target_num_centers = target_num_centers
-        self.is_pixelized_rf = is_pixelized_rf
         self.sf_pixel_thr = sf_pixel_thr
         self.grid_size_fac = grid_size_fac
+        self.is_pixelized_tf = is_pixelized_tf
 
         # Set random seed
         self.np_rng = np.random.default_rng(self.rand_seed)
@@ -654,16 +656,25 @@ class RGCrfArray:
             opt_sf -= np.median(opt_sf)  
             opt_sf = opt_sf / np.sum(np.abs(opt_sf))
 
-            if self.is_pixelized_rf:
+            if self.sf_constraint_method == 'circle':
+                rows, cols = np.ogrid[-opt_sf.shape[0] // 2:opt_sf.shape[0] // 2, 
+                       -opt_sf.shape[1] // 2:opt_sf.shape[1] // 2]
+                distance_from_center = np.sqrt((rows - point[0])**2 + (cols - point[1])**2)
+                circular_mask = distance_from_center <= self.sf_mask_radius
+                opt_sf = np.where(circular_mask, opt_sf, 0)
+
+            if self.sf_constraint_method == 'threshold':
                 threshold_value = np.percentile(opt_sf, self.sf_pixel_thr)
                 opt_sf = np.where(opt_sf > threshold_value, 1, 0)
+
             multi_opt_sf[:, :, i] = opt_sf
+            
         return multi_opt_sf
 
 
     def _create_temporal_filter(self):
         
-        if self.is_pixelized_rf:
+        if self.is_pixelized_tf:
             tf = np.zeros(self.temporal_filter_len)
             tf[-1] = 1 
         else:
