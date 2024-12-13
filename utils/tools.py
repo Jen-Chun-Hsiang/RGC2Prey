@@ -192,7 +192,7 @@ class MovieGenerator:
         coord_y_history = []
         scaling_history = []
 
-        for i, (frame, syn_frame, coord, bg_coord, pred_coord, scaling) in enumerate(zip(image_sequence, syn_movie, path, path_bg, path_predict, scaling_factors)):
+        for i, (frame, syn_frame, coord, bg_coord, pred_coord, scaling) in enumerate(zip(image_sequence, syn_movie, path, path_bg, path_predict or [], scaling_factors)):
             path_history.append(coord)
             path_bg_history.append(bg_coord)
 
