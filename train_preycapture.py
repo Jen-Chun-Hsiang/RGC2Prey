@@ -209,11 +209,11 @@ def main():
         frame_width = 640
         frame_height = 480
         fps = 20
-        path = path.squeeze().cpu().numpy()
-        path_bg = path_bg.squeeze().cpu().numpy()
-        syn_movie = syn_movie.squeeze().cpu().numpy()
-        sequence = sequence.squeeze().cpu().numpy()
-        scaling_factors = scaling_factors.squeeze().cpu().numpy()
+        path = path.squeeze().numpy()
+        path_bg = path_bg.squeeze().numpy()
+        syn_movie = syn_movie.squeeze().numpy()
+        sequence = sequence.squeeze().numpy()
+        scaling_factors = scaling_factors.squeeze().numpy()
         predicted_path = None
         data_movie = MovieGenerator(frame_width, frame_height, fps, video_save_folder, bls_tag=f'{args.experiment_name}',
                                 grid_generate_method=args.grid_generate_method)
