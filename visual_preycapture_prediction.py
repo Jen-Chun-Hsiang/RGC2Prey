@@ -41,19 +41,21 @@ def main():
     rgc_array = RGCrfArray(
         sf_param_table, tf_param_table, rgc_array_rf_size=args.rgc_array_rf_size, xlim=args.xlim, ylim=args.ylim,
         target_num_centers=args.target_num_centers, sf_scalar=args.sf_scalar, grid_generate_method=args.grid_generate_method, 
-        tau=args.tau, mask_radius=args.mask_radius,rand_seed=args.rand_seed, num_gauss_example=args.num_gauss_example, is_pixelized_rf=args.is_pixelized_rf,
-        temporal_filter_len=args.temporal_filter_len, grid_size_fac=args.grid_size_fac
+        tau=args.tau, mask_radius=args.mask_radius,rand_seed=args.rand_seed, num_gauss_example=args.num_gauss_example, 
+        sf_constraint_method=args.sf_constraint_method, temporal_filter_len=args.temporal_filter_len, grid_size_fac=args.grid_size_fac,
+        sf_mask_radius=args.sf_mask_radius, is_pixelized_tf=args.is_pixelized_tf
+        
     )
     multi_opt_sf, tf, grid2value_mapping, map_func = rgc_array.get_results()
 
     movie_generator = SynMovieGenerator(top_img_folder, bottom_img_folder,
         crop_size=args.crop_size, boundary_size=args.boundary_size, center_ratio=args.center_ratio, max_steps=args.max_steps,
-        prob_stay=args.prob_stay, prob_mov=args.prob_mov, num_ext=args.num_ext, initial_velocity=args.initial_velocity, 
-        momentum_decay_ob=args.momentum_decay_ob, momentum_decay_bg=args.momentum_decay_bg, scale_factor=args.scale_factor,
-        velocity_randomness_ob = args.velocity_randomness_ob, velocity_randomness_bg=args.velocity_randomness_bg,
-        angle_range_ob=args.angle_range_ob, angle_range_bg=args.angle_range_bg, coord_mat_file=coord_mat_file, 
-        correction_direction=args.coord_adj_dir, is_reverse_xy=args.is_reverse_xy, start_scaling=args.start_scaling, 
-        end_scaling=args.end_scaling
+        prob_stay_ob=args.prob_stay_ob, prob_mov_ob=args.prob_mov_ob, prob_stay_bg=args.prob_stay_bg, prob_mov_bg=args.prob_mov_bg, 
+        num_ext=args.num_ext, initial_velocity=args.initial_velocity, momentum_decay_ob=args.momentum_decay_ob, 
+        momentum_decay_bg=args.momentum_decay_bg, scale_factor=args.scale_factor, velocity_randomness_ob = args.velocity_randomness_ob, 
+        velocity_randomness_bg=args.velocity_randomness_bg, angle_range_ob=args.angle_range_ob, angle_range_bg=args.angle_range_bg, 
+        coord_mat_file=coord_mat_file, correction_direction=args.coord_adj_dir, is_reverse_xy=args.is_reverse_xy, 
+        start_scaling=args.start_scaling, end_scaling=args.end_scaling
     )
 
     xlim, ylim = args.xlim, args.ylim
@@ -75,7 +77,7 @@ def main():
     model = CNN_LSTM_ObjectLocation(cnn_feature_dim=args.cnn_feature_dim, lstm_hidden_size=args.lstm_hidden_size,
                                      lstm_num_layers=args.lstm_num_layers, output_dim=args.output_dim,
                                     input_height=grid_width, input_width=grid_height, conv_out_channels=args.conv_out_channels,
-                                    is_input_norm=args.is_input_norm)
+                                    is_input_norm=args.is_input_norm, is_seq_reshape=args.is_seq_reshape)
     optimizer = torch.optim.Adam(model.parameters())
     model, optimizer, _ = checkpoint_loader.load_checkpoint(model, optimizer)
 
