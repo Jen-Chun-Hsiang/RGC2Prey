@@ -100,7 +100,9 @@ class MovieGenerator:
         ax3.set_title("Path")
         ax3.plot(path_history[:, 0], path_history[:, 1], label='Ground Truth Path', color='blue')
         if is_path_predict:
-            ax3.plot(path_predict_history[:, 0], path_predict_history[:, 1], label='Predicted Path', color='orange')
+            ax3.plot(path_predict_history[:, 0], path_predict_history[:, 1], label='Predicted path', color='orange')
+        else:
+            ax3.plot(path_bg_history[:, 0], path_bg_history[:, 1], label='Background path', color='green')
         ax3.legend()
         ax3.set_ylim(y_min, y_max)
         ax3.set_xlim(y_min, y_max)
