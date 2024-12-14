@@ -358,9 +358,9 @@ class Cricket2RGCs(Dataset):
     
 
 class SynMovieGenerator:
-    def __init__(self, top_img_folder, bottom_img_folder, crop_size, boundary_size, center_ratio, max_steps=200, prob_stay=0.95, 
-                 prob_mov=0.975, num_ext=50, initial_velocity=6, momentum_decay_ob=0.95, momentum_decay_bg=0.5, scale_factor=1.0,
-                velocity_randomness_ob=0.02, velocity_randomness_bg=0.01, angle_range_ob=0.5, angle_range_bg=0.25, coord_mat_file=None, 
+    def __init__(self, top_img_folder, bottom_img_folder, crop_size, boundary_size, center_ratio, max_steps=200, prob_stay_ob=0.95, 
+                 prob_mov_ob=0.975, prob_stay_bg=0.95, prob_mov_bg=0.975,num_ext=50, initial_velocity=6, momentum_decay_ob=0.95, 
+                 momentum_decay_bg=0.5, scale_factor=1.0, velocity_randomness_ob=0.02, velocity_randomness_bg=0.01, angle_range_ob=0.5, angle_range_bg=0.25, coord_mat_file=None, 
                 correction_direction=1, is_reverse_xy=False, start_scaling=1, end_scaling=2, dynamic_scaling=0):
         """
         Initializes the SynMovieGenerator with configuration parameters.
@@ -382,8 +382,10 @@ class SynMovieGenerator:
         self.boundary_size = boundary_size
         self.center_ratio = center_ratio
         self.max_steps = max_steps
-        self.prob_stay = prob_stay
-        self.prob_mov = prob_mov
+        self.prob_stay_ob = prob_stay_ob
+        self.prob_mov_ob = prob_mov_ob
+        self.prob_stay_bg = prob_stay_bg
+        self.prob_mov_bg = prob_mov_bg
         self.num_ext = num_ext
         self.initial_velocity = initial_velocity
         self.momentum_decay_ob = momentum_decay_ob
@@ -435,11 +437,11 @@ class SynMovieGenerator:
         - path (np.ndarray): 2D array of object positions (time_steps, 2).
         - path_bg (np.ndarray): 2D array of background positions (time_steps, 2).
         """
-        path, velocity = random_movement(self.boundary_size, self.center_ratio, self.max_steps, prob_stay=self.prob_stay, 
-                                  prob_mov=self.prob_mov,initial_velocity=self.initial_velocity, momentum_decay=self.momentum_decay_ob,
+        path, velocity = random_movement(self.boundary_size, self.center_ratio, self.max_steps, prob_stay=self.prob_stay_ob, 
+                                  prob_mov=self.prob_mov_ob,initial_velocity=self.initial_velocity, momentum_decay=self.momentum_decay_ob,
                                   velocity_randomness=self.velocity_randomness_ob, angle_range=self.angle_range_ob)
-        path_bg, velocity_bg = random_movement(self.boundary_size, self.center_ratio, self.max_steps, prob_stay=self.prob_stay, 
-                                  prob_mov=self.prob_mov, initial_velocity=self.initial_velocity, momentum_decay=self.momentum_decay_bg,
+        path_bg, velocity_bg = random_movement(self.boundary_size, self.center_ratio, self.max_steps, prob_stay=self.prob_stay_bg, 
+                                  prob_mov=self.prob_mov_bg, initial_velocity=self.initial_velocity, momentum_decay=self.momentum_decay_bg,
                                   velocity_randomness=self.velocity_randomness_bg, angle_range=self.angle_range_bg)
 
         # Determine the minimum length for consistency
