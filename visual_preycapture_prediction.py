@@ -13,11 +13,11 @@ from utils.tools import MovieGenerator
 
 
 def main():
-    experiment_name = 1212202402
+    experiment_name = 1213202405
     epoch_number = 200
-    num_display = 6
+    num_display = 3
     is_syn_mov_shown = True
-    is_making_video = False
+    is_making_video = True
     checkpoint_path = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/Results/CheckPoints/'
     top_img_folder    = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/CricketDataset/Images/cropped/cricket/'
     rf_params_file = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/SimulationParams.xlsx'
