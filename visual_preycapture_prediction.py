@@ -13,7 +13,7 @@ from utils.tools import MovieGenerator
 
 
 def main():
-    experiment_name = 1214202401
+    experiment_name = 1214202402
     epoch_number = 200
     num_display = 3
     is_syn_mov_shown = True
