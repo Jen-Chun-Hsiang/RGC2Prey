@@ -593,7 +593,7 @@ class RGCrfArray:
         self.grid_size_fac = grid_size_fac
         self.is_pixelized_tf = is_pixelized_tf
         self.set_s_scale = set_s_scale
-        self.is_rf_median_subtract
+        self.is_rf_median_subtract = is_rf_median_subtract
 
         # Set random seed
         self.np_rng = np.random.default_rng(self.rand_seed)
