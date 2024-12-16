@@ -561,7 +561,8 @@ def synthesize_image_with_params_batch(bottom_img_path, top_img_path, top_img_po
 class RGCrfArray:
     def __init__(self, sf_param_table, tf_param_table, rgc_array_rf_size, xlim, ylim, target_num_centers, sf_scalar,
                  grid_generate_method, tau=None, mask_radius=None, rand_seed=42, num_gauss_example=1, sf_mask_radius=35, 
-                 sf_pixel_thr=99.7, sf_constraint_method=None, temporal_filter_len=50, grid_size_fac=0.5, is_pixelized_tf=False):
+                 sf_pixel_thr=99.7, sf_constraint_method=None, temporal_filter_len=50, grid_size_fac=0.5, is_pixelized_tf=False, 
+                 set_s_scale=[]):
         """
         Args:
             sf_param_table (DataFrame): Table of spatial frequency parameters.
@@ -591,6 +592,7 @@ class RGCrfArray:
         self.sf_pixel_thr = sf_pixel_thr
         self.grid_size_fac = grid_size_fac
         self.is_pixelized_tf = is_pixelized_tf
+        self.set_s_scale = set_s_scale
 
         # Set random seed
         self.np_rng = np.random.default_rng(self.rand_seed)
@@ -648,11 +650,12 @@ class RGCrfArray:
         num_sim_data = len(self.sf_param_table)
         pid = self.rng.randint(0, num_sim_data - 1)
         row = self.sf_param_table.iloc[pid]
+        s_scale = row['s_scale'] if not self.set_s_scale else self.set_s_scale
         for i, point in enumerate(self.points):
             sf_params = np.array([
                 point[1], point[0], row['sigma_x'] * self.sf_scalar, row['sigma_y'] * self.sf_scalar,
                 row['theta'], row['bias'], row['c_scale'], row['s_sigma_x'] * self.sf_scalar,
-                row['s_sigma_y'] * self.sf_scalar, row['s_scale']
+                row['s_sigma_y'] * self.sf_scalar, s_scale
             ])
             opt_sf = gaussian_multi(sf_params, self.rgc_array_rf_size, self.num_gauss_example)
             opt_sf -= np.median(opt_sf)  
