@@ -266,7 +266,7 @@ def main():
     if args.do_not_train:
         # Set the number of initial batches to process
         n = 20  # Change this value to the desired number of batches
-
+        np.random.seed(int(time.time()))
         # Loop through the data loader and process the first n batches
         model.eval()  # Set the model to evaluation mode
 
