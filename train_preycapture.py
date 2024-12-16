@@ -117,7 +117,7 @@ def parse_args():
     return parser.parse_args()
 
 def main():
-    is_show_rgc_rf_individual = False
+    is_show_rgc_rf_individual = True
     is_show_rgc_tf = False
     is_show_movie_frames = False
     is_show_pathes = False
