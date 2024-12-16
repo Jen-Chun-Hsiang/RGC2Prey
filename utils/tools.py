@@ -243,7 +243,7 @@ def save_distributions(train_loader, n, folder_name, file_name, logging=None):
     all_output_value = []
 
     random_id = np.random.randint(0, 10001, size=1)
-    file_name = f'random_id_{file_name}'
+    file_name = f'{random_id}_{file_name}'
 
     # Collect data over n batches
     with torch.no_grad():
