@@ -86,6 +86,7 @@ def parse_args():
     parser.add_argument('--temporal_filter_len', type=int, default=50, help="Number of time points for a temporal filter")
     parser.add_argument('--is_pixelized_tf', action='store_true', help="Flag for pixelized receptive field.")
     parser.add_argument('--grid_size_fac', type=float, default=1, help='Resize the grid size that transformed from RGC outputs')
+    parser.add_argument('--set_s_scale', type=float, nargs='*', default=[], help='Set scale fo surround weight of RF')
 
     # Arguments for CNN_LSTM 
     parser.add_argument('--cnn_feature_dim', type=int, default=256, help="Number of CNN feature dimensions.")
@@ -159,7 +160,7 @@ def main():
         target_num_centers=args.target_num_centers, sf_scalar=args.sf_scalar, grid_generate_method=args.grid_generate_method, 
         tau=args.tau, mask_radius=args.mask_radius, rand_seed=args.rand_seed, num_gauss_example=args.num_gauss_example, 
         sf_constraint_method=args.sf_constraint_method, temporal_filter_len=args.temporal_filter_len, grid_size_fac=args.grid_size_fac,
-        sf_mask_radius=args.sf_mask_radius, is_pixelized_tf=args.is_pixelized_tf
+        sf_mask_radius=args.sf_mask_radius, is_pixelized_tf=args.is_pixelized_tf, set_s_scale=args.set_s_scale
     )
     multi_opt_sf, tf, grid2value_mapping, map_func = rgc_array.get_results()
     print(f'grid2value_mapping shape: {grid2value_mapping.shape}')
