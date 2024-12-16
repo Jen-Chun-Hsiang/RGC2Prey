@@ -14,7 +14,7 @@ from datasets.sim_cricket import RGCrfArray, SynMovieGenerator, Cricket2RGCs
 from utils.utils import plot_tensor_and_save, plot_vector_and_save, plot_two_path_comparison
 from models.rgc2behavior import CNN_LSTM_ObjectLocation
 from utils.data_handling import save_checkpoint
-from utils.tools import timer, MovieGenerator
+from utils.tools import timer, MovieGenerator, save_distributions
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Script for Model Training to get 3D RF in simulation")
@@ -265,27 +265,33 @@ def main():
 
     if args.do_not_train:
         # Set the number of initial batches to process
-        n = 5  # Change this value to the desired number of batches
+        n = 20  # Change this value to the desired number of batches
 
         # Loop through the data loader and process the first n batches
         model.eval()  # Set the model to evaluation mode
-        with torch.no_grad():  # Disable gradient computation
-            for batch_idx, (sequences, targets, _) in enumerate(train_loader):
-                if batch_idx >= n:
-                    break  # Exit after processing n batches
 
-                # Print inputs and outputs for the current batch
-                print(f"Batch {batch_idx + 1} Inputs:")
-                print(f'sequence min {torch.min(sequences)}')
-                print(f'sequence max {torch.max(sequences)}')
-                print(f'targets min {torch.min(targets)}')
-                print(f'targets max {torch.max(targets)}')
+        plot_file_name = f'{file_name}_value_distribution_n{n}.png'
 
-                outputs = model(sequences)
-                print(f"\nBatch {batch_idx + 1} Outputs:")
-                print(f'output min {torch.min(outputs)}')
-                print(f'output max {torch.max(outputs)}')
-                print("\n" + "-" * 50 + "\n")
+        save_distributions(train_loader, n, folder_name=plot_save_folder, file_name=plot_file_name, logging=None)
+
+
+        # with torch.no_grad():  # Disable gradient computation
+        #     for batch_idx, (sequences, targets, _) in enumerate(train_loader):
+        #         if batch_idx >= n:
+        #             break  # Exit after processing n batches
+
+        #         # Print inputs and outputs for the current batch
+        #         print(f"Batch {batch_idx + 1} Inputs:")
+        #         print(f'sequence min {torch.min(sequences)}')
+        #         print(f'sequence max {torch.max(sequences)}')
+        #         print(f'targets min {torch.min(targets)}')
+        #         print(f'targets max {torch.max(targets)}')
+
+        #         outputs = model(sequences)
+        #         print(f"\nBatch {batch_idx + 1} Outputs:")
+        #         print(f'output min {torch.min(outputs)}')
+        #         print(f'output max {torch.max(outputs)}')
+        #         print("\n" + "-" * 50 + "\n")
 
         
 
