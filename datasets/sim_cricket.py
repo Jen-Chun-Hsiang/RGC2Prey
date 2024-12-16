@@ -651,8 +651,8 @@ class RGCrfArray:
         pid = self.rng.randint(0, num_sim_data - 1)
         row = self.sf_param_table.iloc[pid]
         s_scale = row['s_scale'] if not self.set_s_scale else self.set_s_scale[0]
-        print(f's_scale: {s_scale}')
-        print(f's_scale type: {type(s_scale)}')
+        # print(f's_scale: {s_scale}')
+        # print(f's_scale type: {type(s_scale)}')
         for i, point in enumerate(self.points):
             sf_params = np.array([
                 point[1], point[0], row['sigma_x'] * self.sf_scalar, row['sigma_y'] * self.sf_scalar,
