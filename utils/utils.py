@@ -97,6 +97,7 @@ def plot_tensor_and_save(tensor, output_folder, file_name='tensor_plot.png'):
     
     # Save the plot to the assigned folder
     output_path = os.path.join(output_folder, file_name)
+    print(f'{file_name}')
     plt.savefig(output_path)
     plt.close()  # Close the plot to avoid displaying it if running in an interactive environment
 
