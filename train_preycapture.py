@@ -66,7 +66,6 @@ def parse_args():
 
     # Arguments for Cricket2RGCs (from movies to RGC array activities based on receptive field properties)
     parser.add_argument('--num_samples', type=int, default=20, help="Number of samples in the synthesized dataset")
-    parser.add_argument('--is_input_norm', action='store_true', help="Normalize inputs to the CNN.")
     parser.add_argument('--is_norm_coords', action='store_true', help='normalize the coordinate as inputs')
 
     # Arguments for RGCrfArray
@@ -95,6 +94,7 @@ def parse_args():
     parser.add_argument('--output_dim', type=int, default=2, help="Number of output dimension.")
     parser.add_argument('--conv_out_channels', type=int, default=16, help="Number of output channel in convultion layers.")
     parser.add_argument('--is_seq_reshape', action='store_true', help="Use reshape with sequence to remove for loop")
+    parser.add_argument('--is_input_norm', action='store_true', help="Normalize inputs to the CNN.")
 
     # Model training parameters
     parser.add_argument('--batch_size', type=int, default=4, help="Batch size for dataloader")
