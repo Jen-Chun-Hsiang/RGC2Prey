@@ -343,7 +343,9 @@ class Cricket2RGCs(Dataset):
         rgc_time = F.conv1d(sf_frame, tf, stride=1, padding=0, groups=sf_frame.shape[1]).squeeze()
 
         if self.fr2spikes:
-            rgc_time = torch.poisson(torch.clamp_min(rgc_time, 0))
+            time_step_scale = 100  # Corresponds to 10 ms time step
+            rgc_time = torch.poisson(torch.clamp_min(rgc_time * time_step_scale, 0)) / time_step_scale
+
 
         grid_values_sequence = self.map_func(
             rgc_time,  # Shape: (time_steps', num_points)
