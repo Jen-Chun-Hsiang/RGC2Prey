@@ -341,6 +341,10 @@ class Cricket2RGCs(Dataset):
         sf_frame = sf_frame.unsqueeze(0) 
         tf = np.repeat(self.tf, sf_frame.shape[1], axis=0)
         rgc_time = F.conv1d(sf_frame, tf, stride=1, padding=0, groups=sf_frame.shape[1]).squeeze()
+
+        if self.fr2spikes:
+            rgc_time = torch.poisson(torch.clamp_min(rgc_time, 0))
+
         grid_values_sequence = self.map_func(
             rgc_time,  # Shape: (time_steps', num_points)
             self.grid2value_mapping,  # Shape: (num_points, target_width * target_height)
@@ -349,10 +353,7 @@ class Cricket2RGCs(Dataset):
         ) 
         
         path = path[-rgc_time.shape[1]:, :]/self.norm_path_fac
-        path_bg = path_bg[-rgc_time.shape[1]:, :]/self.norm_path_fac
-
-        if self.fr2spikes:
-            grid_values_sequence = torch.poisson(torch.clamp_min(grid_values_sequence, 0))
+        path_bg = path_bg[-rgc_time.shape[1]:, :]/self.norm_path_fac    
 
         if self.is_syn_mov_shown:
             return grid_values_sequence.permute(0, 2, 1).unsqueeze(1), path, path_bg, syn_movie, scaling_factors
