@@ -130,6 +130,7 @@ def main():
     top_img_folder    = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/CricketDataset/Images/cropped/cricket/'
     syn_save_folder  = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/CricketDataset/Images/syn_img/'
     rf_save_folder  = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/CricketDataset/RFs/RGCs/'
+    distribution_save_folder = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/CricketDataset/Distribution/RGC_outputs/'
     plot_save_folder  = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/CricketDataset/Figures/'
     log_save_folder  = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/Results/Prints/'
     savemodel_dir = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/Results/CheckPoints/'
@@ -275,7 +276,7 @@ def main():
 
         plot_file_name = f'{file_name}_value_distribution_n{n}.png'
 
-        save_distributions(train_loader, n, folder_name=plot_save_folder, file_name=plot_file_name, logging=None)
+        save_distributions(train_loader, n, folder_name=distribution_save_folder, file_name=plot_file_name, logging=None)
 
 
         # with torch.no_grad():  # Disable gradient computation
