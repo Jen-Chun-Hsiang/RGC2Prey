@@ -174,7 +174,7 @@ def main():
             temp_sf = multi_opt_sf[:, :, i].copy()
             temp_sf = torch.from_numpy(temp_sf).float()
             plot_tensor_and_save(temp_sf, rf_save_folder, f'{args.experiment_name}_receptive_field_check_{i + 1}.png')
-            if i == 10:
+            if i == 3:
                 break
 
     if is_show_rgc_tf:
