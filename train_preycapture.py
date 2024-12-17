@@ -170,6 +170,9 @@ def main():
     print(f'grid2value_mapping min {torch.min(grid2value_mapping)}')
     print(f'grid2value_mapping max {torch.max(grid2value_mapping)}')
 
+    if not hasattr(args, 'is_both_ON_OFF'):
+        args.is_both_ON_OFF = False
+
     if args.is_both_ON_OFF:
         sf_param_table = pd.read_excel(rf_params_file, sheet_name='SF_params_OFF', usecols='A:L')
         rgc_array = RGCrfArray(
