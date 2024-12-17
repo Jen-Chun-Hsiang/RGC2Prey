@@ -346,7 +346,6 @@ class Cricket2RGCs(Dataset):
             time_step_scale = 100  # Corresponds to 10 ms time step
             rgc_time = torch.poisson(torch.clamp_min(rgc_time * time_step_scale, 0)) / time_step_scale
 
-
         grid_values_sequence = self.map_func(
             rgc_time,  # Shape: (time_steps', num_points)
             self.grid2value_mapping,  # Shape: (num_points, target_width * target_height)
