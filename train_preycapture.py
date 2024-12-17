@@ -67,6 +67,7 @@ def parse_args():
     # Arguments for Cricket2RGCs (from movies to RGC array activities based on receptive field properties)
     parser.add_argument('--num_samples', type=int, default=20, help="Number of samples in the synthesized dataset")
     parser.add_argument('--is_norm_coords', action='store_true', help='normalize the coordinate as inputs')
+    parser.add_argument('--fr2spikes', action='store_true', help='convert firing rate to spikes and keep positive (fr)')
 
     # Arguments for RGCrfArray
     parser.add_argument('--rgc_array_rf_size', type=tuple, default=default_rg_array_rf_size, help="Receptive field size (height, width).")
@@ -198,7 +199,7 @@ def main():
     train_dataset = Cricket2RGCs(num_samples=args.num_samples, multi_opt_sf=multi_opt_sf, tf=tf, map_func=map_func,
                                 grid2value_mapping=grid2value_mapping, target_width=target_width, target_height=target_height,
                                 movie_generator=movie_generator, grid_size_fac=args.grid_size_fac, is_norm_coords=args.is_norm_coords,
-                                is_syn_mov_shown=True)
+                                is_syn_mov_shown=True, fr2spikes=args.fr2spikes)
     
     # Visualize one data points
     sequence, path, path_bg, syn_movie, scaling_factors = train_dataset[0]

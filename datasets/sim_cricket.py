@@ -311,7 +311,7 @@ def random_movement(boundary_size, center_ratio, max_steps, prob_stay, prob_mov,
 
 class Cricket2RGCs(Dataset):
     def __init__(self, num_samples, multi_opt_sf, tf, map_func, grid2value_mapping, target_width, target_height,
-                 movie_generator, grid_size_fac=1, is_norm_coords=False, is_syn_mov_shown=False):
+                 movie_generator, grid_size_fac=1, is_norm_coords=False, is_syn_mov_shown=False, fr2spikes=False):
         self.num_samples = num_samples
         self.multi_opt_sf = torch.from_numpy(multi_opt_sf).float()
         self.tf = torch.from_numpy(tf.copy()).float().view(1, 1, -1)
@@ -329,6 +329,7 @@ class Cricket2RGCs(Dataset):
         else:
             self.norm_path_fac = 1
         self.is_syn_mov_shown = is_syn_mov_shown  # cannot be used for training
+        self.fr2spikes = fr2spikes
 
 
     def __len__(self):
@@ -349,6 +350,9 @@ class Cricket2RGCs(Dataset):
         
         path = path[-rgc_time.shape[1]:, :]/self.norm_path_fac
         path_bg = path_bg[-rgc_time.shape[1]:, :]/self.norm_path_fac
+
+        if self.fr2spikes:
+            grid_values_sequence = torch.poisson(torch.clamp_min(grid_values_sequence, 0))
 
         if self.is_syn_mov_shown:
             return grid_values_sequence.permute(0, 2, 1).unsqueeze(1), path, path_bg, syn_movie, scaling_factors
