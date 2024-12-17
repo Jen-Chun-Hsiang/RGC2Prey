@@ -89,6 +89,7 @@ def parse_args():
     parser.add_argument('--grid_size_fac', type=float, default=1, help='Resize the grid size that transformed from RGC outputs')
     parser.add_argument('--set_s_scale', type=float, nargs='*', default=[], help='Set scale fo surround weight of RF')
     parser.add_argument('--is_rf_median_subtract', action='store_true', help="Flag for substract median of rf")
+    parser.add_argument('--is_both_ON_OFF', action='store_true', help="Flag for including OFF cell")
 
     # Arguments for CNN_LSTM 
     parser.add_argument('--cnn_feature_dim', type=int, default=256, help="Number of CNN feature dimensions.")
@@ -169,6 +170,18 @@ def main():
     print(f'grid2value_mapping min {torch.min(grid2value_mapping)}')
     print(f'grid2value_mapping max {torch.max(grid2value_mapping)}')
 
+    if args.is_both_ON_OFF:
+        sf_param_table = pd.read_excel(rf_params_file, sheet_name='SF_params_OFF', usecols='A:L')
+        rgc_array = RGCrfArray(
+            sf_param_table, tf_param_table, rgc_array_rf_size=args.rgc_array_rf_size, xlim=args.xlim, ylim=args.ylim,
+            target_num_centers=args.target_num_centers, sf_scalar=args.sf_scalar, grid_generate_method=args.grid_generate_method, 
+            tau=args.tau, mask_radius=args.mask_radius, rand_seed=args.rand_seed+1, num_gauss_example=args.num_gauss_example, 
+            sf_constraint_method=args.sf_constraint_method, temporal_filter_len=args.temporal_filter_len, grid_size_fac=args.grid_size_fac,
+            sf_mask_radius=args.sf_mask_radius, is_pixelized_tf=args.is_pixelized_tf, set_s_scale=args.set_s_scale, 
+            is_rf_median_subtract=args.is_rf_median_subtract
+        )
+        multi_opt_sf_off, tf_off, grid2value_mapping_off, map_func_off = rgc_array.get_results()
+
     # Check results of RGC array synthesis
     if is_show_rgc_rf_individual:
         for i in range(multi_opt_sf.shape[2]): 
@@ -177,6 +190,15 @@ def main():
             plot_tensor_and_save(temp_sf, rf_save_folder, f'{args.experiment_name}_receptive_field_check_{i + 1}.png')
             if i == 3:
                 break
+
+        if args.is_both_ON_OFF:
+            for i in range(multi_opt_sf_off.shape[2]): 
+                temp_sf = multi_opt_sf_off[:, :, i].copy()
+                temp_sf = torch.from_numpy(temp_sf).float()
+                plot_tensor_and_save(temp_sf, rf_save_folder, f'{args.experiment_name}_receptive_field_check_OFF_{i + 1}.png')
+                if i == 3:
+                    break
+
 
     if is_show_rgc_tf:
         plot_vector_and_save(tf, plot_save_folder, file_name=f'{args.experiment_name}_temporal_filter.png')
@@ -197,9 +219,11 @@ def main():
     target_height = xlim[1]-xlim[0]
     target_width = ylim[1]-ylim[0]
     train_dataset = Cricket2RGCs(num_samples=args.num_samples, multi_opt_sf=multi_opt_sf, tf=tf, map_func=map_func,
-                                grid2value_mapping=grid2value_mapping, target_width=target_width, target_height=target_height,
-                                movie_generator=movie_generator, grid_size_fac=args.grid_size_fac, is_norm_coords=args.is_norm_coords,
-                                is_syn_mov_shown=True, fr2spikes=args.fr2spikes)
+                                grid2value_mapping=grid2value_mapping, multi_opt_sf_off=multi_opt_sf_off, tf_off=tf_off, 
+                                map_func_off=map_func_off, grid2value_mapping_off=grid2value_mapping_off, target_width=target_width, 
+                                target_height=target_height, movie_generator=movie_generator, grid_size_fac=args.grid_size_fac, 
+                                is_norm_coords=args.is_norm_coords, is_syn_mov_shown=True, fr2spikes=args.fr2spikes,
+                                is_both_ON_OFF=args.is_both_ON_OFF)
     
     # Visualize one data points
     sequence, path, path_bg, syn_movie, scaling_factors = train_dataset[0]
@@ -213,6 +237,9 @@ def main():
         for i in range(sequence.shape[0]):
             Timg = sequence[i, 0, :, :].squeeze()
             plot_tensor_and_save(Timg, syn_save_folder, f'{args.experiment_name}_RGCgrid_activity_doublecheck_{i + 1}.png')
+            if args.is_both_ON_OFF:
+                Timg = sequence[i, 1, :, :].squeeze()
+                plot_tensor_and_save(Timg, syn_save_folder, f'{args.experiment_name}_RGCgrid_activity_doublecheck_OFF_{i + 1}.png')
         if is_show_pathes:
             plot_two_path_comparison(path, path_bg, plot_save_folder, file_name=f'{args.experiment_name}_dataset_path.png')
     
