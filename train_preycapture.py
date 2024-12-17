@@ -153,7 +153,7 @@ def main():
     else:
         device = 'cpu'
 
-    sf_param_table = pd.read_excel(rf_params_file, sheet_name='SF_params', usecols='A:L')
+    sf_param_table = pd.read_excel(rf_params_file, sheet_name='SF_params_modified', usecols='A:L')
     tf_param_table = pd.read_excel(rf_params_file, sheet_name='TF_params', usecols='A:I')
     rgc_array = RGCrfArray(
         sf_param_table, tf_param_table, rgc_array_rf_size=args.rgc_array_rf_size, xlim=args.xlim, ylim=args.ylim,
