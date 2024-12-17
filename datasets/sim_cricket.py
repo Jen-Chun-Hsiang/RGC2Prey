@@ -562,7 +562,7 @@ class RGCrfArray:
     def __init__(self, sf_param_table, tf_param_table, rgc_array_rf_size, xlim, ylim, target_num_centers, sf_scalar,
                  grid_generate_method, tau=None, mask_radius=None, rand_seed=42, num_gauss_example=1, sf_mask_radius=35, 
                  sf_pixel_thr=99.7, sf_constraint_method=None, temporal_filter_len=50, grid_size_fac=0.5, is_pixelized_tf=False, 
-                 set_s_scale=[], is_rf_median_subtract=True):
+                 set_s_scale=[], is_rf_median_subtract=True, is_rescale_diffgaussian=True):
         """
         Args:
             sf_param_table (DataFrame): Table of spatial frequency parameters.
@@ -594,6 +594,7 @@ class RGCrfArray:
         self.is_pixelized_tf = is_pixelized_tf
         self.set_s_scale = set_s_scale
         self.is_rf_median_subtract = is_rf_median_subtract
+        self.is_rescale_diffgaussian=is_rescale_diffgaussian
 
         # Set random seed
         self.np_rng = np.random.default_rng(self.rand_seed)
@@ -660,7 +661,7 @@ class RGCrfArray:
                 row['theta'], row['bias'], row['c_scale'], row['s_sigma_x'] * self.sf_scalar,
                 row['s_sigma_y'] * self.sf_scalar, s_scale
             ])
-            opt_sf = gaussian_multi(sf_params, self.rgc_array_rf_size, self.num_gauss_example)
+            opt_sf = gaussian_multi(sf_params, self.rgc_array_rf_size, self.num_gauss_example, self.is_rescale_diffgaussian)
             if self.is_rf_median_subtract:
                 opt_sf -= np.median(opt_sf)  
             opt_sf = opt_sf / np.sum(np.abs(opt_sf))

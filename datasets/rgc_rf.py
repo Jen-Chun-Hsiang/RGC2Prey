@@ -17,7 +17,7 @@ def gaussian_temporalfilter(n, OptW):
           norm.pdf(x, loc=mean2, scale=sigma2) * amplitude2) + offset
     return tf
 
-def gaussian2d(x, y, params):
+def gaussian2d(x, y, params, is_rescale_diffgaussian=True):
     # Ensure params is a numpy array for element-wise operations
     x_mean, y_mean, sigma_x, sigma_y, theta, bias, c_scale, s_sigma_x, s_sigma_y, s_scale = params
 
@@ -25,13 +25,30 @@ def gaussian2d(x, y, params):
     x_rot = (x - x_mean) * np.cos(theta) + (y - y_mean) * np.sin(theta)
     y_rot = -(x - x_mean) * np.sin(theta) + (y - y_mean) * np.cos(theta)
 
-    # Calculate the Gaussian function
-    z = (c_scale * np.exp(-(x_rot**2 / (2 * sigma_x**2) + y_rot**2 / (2 * sigma_y**2))) +
-         s_scale * np.exp(-(x_rot**2 / (2 * s_sigma_x**2) + y_rot**2 / (2 * s_sigma_y**2))) + bias)
+    if is_rescale_diffgaussian:
+        # Calculate c Gaussian
+        c_gaussian = np.exp(-(x_rot**2 / (2 * sigma_x**2) + y_rot**2 / (2 * sigma_y**2)))
+        c_sum = np.sum(np.abs(c_scale * c_gaussian))  # Sum of absolute values scaled by c_scale
+
+        # Calculate s Gaussian
+        s_gaussian = np.exp(-(x_rot**2 / (2 * s_sigma_x**2) + y_rot**2 / (2 * s_sigma_y**2)))
+        s_sum = np.sum(np.abs(s_scale * s_gaussian))  # Sum of absolute values scaled by s_scale
+
+        # Adjust s_scale to ensure it matches the ratio relative to c_scale
+        if s_sum != 0:  # Avoid division by zero
+            s_scale = s_scale * (c_sum / s_sum)
+
+        # Recompute the Gaussian function with corrected s_scale
+        z = (c_scale * c_gaussian +
+            s_scale * s_gaussian + bias)
+    else:
+        # Calculate the Gaussian function
+        z = (c_scale * np.exp(-(x_rot**2 / (2 * sigma_x**2) + y_rot**2 / (2 * sigma_y**2))) +
+            s_scale * np.exp(-(x_rot**2 / (2 * s_sigma_x**2) + y_rot**2 / (2 * s_sigma_y**2))) + bias)
     return z
 
 
-def gaussian_multi(params, image_size, num_gauss):
+def gaussian_multi(params, image_size, num_gauss, is_rescale_diffgaussian):
     # Create a meshgrid for the image dimensions based on image_size
     height, width = image_size
     grid_x = np.linspace(-height//2, height//2, height)
@@ -42,9 +59,9 @@ def gaussian_multi(params, image_size, num_gauss):
     params = np.reshape(np.array(params), (-1, num_gauss)).T
 
     # Initialize the Gaussian model with the first set of parameters
-    gaussian_model = gaussian2d(X, Y, params[0])
+    gaussian_model = gaussian2d(X, Y, params[0], is_rescale_diffgaussian)
     for i in range(1, num_gauss):
-        gaussian_model += gaussian2d(X, Y, params[i])
+        gaussian_model += gaussian2d(X, Y, params[i], is_rescale_diffgaussian)
 
     return gaussian_model
 
