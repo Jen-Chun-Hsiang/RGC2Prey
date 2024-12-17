@@ -664,7 +664,7 @@ class RGCrfArray:
             opt_sf = gaussian_multi(sf_params, self.rgc_array_rf_size, self.num_gauss_example, self.is_rescale_diffgaussian)
             if self.is_rf_median_subtract:
                 opt_sf -= np.median(opt_sf)  
-                opt_sf = opt_sf / np.sum(np.abs(opt_sf))
+            opt_sf = opt_sf / np.sum(np.abs(opt_sf))
 
             if self.sf_constraint_method == 'circle':
                 rows, cols = np.ogrid[-opt_sf.shape[0] // 2:opt_sf.shape[0] // 2, 
