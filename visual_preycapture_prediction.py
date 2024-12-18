@@ -106,7 +106,7 @@ def main():
         test_losses.append(loss.item())
     
     test_losses = np.array(test_losses)
-    save_path = os.path.join(mat_save_folder, f'{experiment_name}_{epoch_number}_prediction_error.png')
+    save_path = os.path.join(mat_save_folder, f'{experiment_name}_{epoch_number}_prediction_error.mat')
     savemat(save_path, {'test_losses': test_losses})
 
     model.to('cpu')
