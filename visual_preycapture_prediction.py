@@ -4,7 +4,9 @@ import os
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+import torch.nn as nn
 from torch.utils.data import DataLoader
+from scipy.io import savemat
 from datasets.sim_cricket import SynMovieGenerator, Cricket2RGCs, RGCrfArray
 from models.rgc2behavior import CNN_LSTM_ObjectLocation
 from utils.utils import plot_two_path_comparison
@@ -16,7 +18,10 @@ def main():
     experiment_name = 1214202403
     epoch_number = 200
     num_display = 3
-    is_syn_mov_shown = True
+    frame_width = 640
+    frame_height = 480
+    fps = 20
+    num_sample = 1000
     is_making_video = True
     checkpoint_path = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/Results/CheckPoints/'
     top_img_folder    = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/CricketDataset/Images/cropped/cricket/'
@@ -24,6 +29,7 @@ def main():
     test_save_folder = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/Results/Figures/'
     coord_mat_file = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/selected_points_summary.mat'
     video_save_folder = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/Results/Videos/'
+    mat_save_folder = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/Results/Mats/'
 
     file_name = f'{experiment_name}_cricket_location_prediction'
     checkpoint_filename = os.path.join(checkpoint_path, f'{file_name}_checkpoint_epoch_{epoch_number}.pth')
@@ -33,6 +39,11 @@ def main():
     args = checkpoint_loader.load_args()
     training_losses = checkpoint_loader.load_training_losses()
     bottom_img_folder = f'/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/CricketDataset/Images/cropped/{args.bg_folder}/'  #grass
+
+    if args.is_GPU:
+        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    else:
+        device = 'cpu'
 
     if not hasattr(args, 'mask_radius'):
         args.mask_radius = None
@@ -64,11 +75,6 @@ def main():
     if not hasattr(args, 'is_norm_coords'):
         args.is_norm_coords = False
     
-    test_dataset = Cricket2RGCs(num_samples=num_display, multi_opt_sf=multi_opt_sf, tf=tf, map_func=map_func,
-                                grid2value_mapping=grid2value_mapping, target_width=target_width, target_height=target_height,
-                                movie_generator=movie_generator, grid_size_fac=args.grid_size_fac, is_norm_coords=args.is_norm_coords, 
-                                is_syn_mov_shown=is_syn_mov_shown)
-    test_loader = DataLoader(test_dataset, batch_size=1, shuffle=False)
     #
     grid_width = int(np.round(target_width*args.grid_size_fac))
     grid_height = int(np.round(target_height*args.grid_size_fac))
@@ -80,13 +86,36 @@ def main():
                                     is_input_norm=args.is_input_norm, is_seq_reshape=args.is_seq_reshape)
     optimizer = torch.optim.Adam(model.parameters())
     model, optimizer, _ = checkpoint_loader.load_checkpoint(model, optimizer)
-
-    # model.to(args.device)
+    criterion = nn.MSELoss()
+    model.to(device)
     model.eval()
 
-    frame_width = 640
-    frame_height = 480
-    fps = 20
+    test_dataset = Cricket2RGCs(num_samples=num_sample, multi_opt_sf=multi_opt_sf, tf=tf, map_func=map_func,
+                                grid2value_mapping=grid2value_mapping, target_width=target_width, target_height=target_height,
+                                movie_generator=movie_generator, grid_size_fac=args.grid_size_fac, is_norm_coords=args.is_norm_coords, 
+                                is_syn_mov_shown=False)
+    test_loader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=True, 
+                             num_workers=args.num_worker, pin_memory=True, persistent_workers=False)
+
+    test_losses = [] 
+    for batch_idx, (inputs, true_path, _) in enumerate(test_loader):
+        inputs, true_path = inputs.to(device), true_path.to(device)
+        with torch.no_grad():
+            predicted_path = model(inputs)
+            loss = criterion(predicted_path, true_path)
+        test_losses.append(loss.item())
+    
+    test_losses = np.array(test_losses)
+    save_path = os.path.join(mat_save_folder, f'{experiment_name}_{epoch_number}_prediction_error.png')
+    savemat(save_path, {'test_losses': test_losses})
+
+    model.to('cpu')
+    test_dataset = Cricket2RGCs(num_samples=num_display, multi_opt_sf=multi_opt_sf, tf=tf, map_func=map_func,
+                                grid2value_mapping=grid2value_mapping, target_width=target_width, target_height=target_height,
+                                movie_generator=movie_generator, grid_size_fac=args.grid_size_fac, is_norm_coords=args.is_norm_coords, 
+                                is_syn_mov_shown=True)
+    test_loader = DataLoader(test_dataset, batch_size=1, shuffle=False)
+    
     
     # Test model on samples
     for batch_idx, (inputs, true_path, bg_path, syn_movie, scaling_factors) in enumerate(test_loader):
