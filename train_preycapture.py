@@ -186,7 +186,7 @@ def main():
         )
         multi_opt_sf_off, tf_off, grid2value_mapping_off, map_func_off = rgc_array.get_results()
     else:
-        multi_opt_sf_off, tf_off, grid2value_mapping_off, map_func_off = None, None, None, None, None
+        multi_opt_sf_off, tf_off, grid2value_mapping_off, map_func_off = None, None, None, None
 
     # Check results of RGC array synthesis
     if is_show_rgc_rf_individual:
