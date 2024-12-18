@@ -106,8 +106,9 @@ def main():
         test_losses.append(loss.item())
     
     test_losses = np.array(test_losses)
+    training_losses = np.array(training_losses)
     save_path = os.path.join(mat_save_folder, f'{experiment_name}_{epoch_number}_prediction_error.mat')
-    savemat(save_path, {'test_losses': test_losses})
+    savemat(save_path, {'test_losses': test_losses, 'training_losses': training_losses})
 
     model.to('cpu')
     test_dataset = Cricket2RGCs(num_samples=num_display, multi_opt_sf=multi_opt_sf, tf=tf, map_func=map_func,
