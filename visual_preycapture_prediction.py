@@ -21,7 +21,7 @@ def main():
     frame_width = 640
     frame_height = 480
     fps = 20
-    num_sample = 10000
+    num_sample = 1000
     is_making_video = True
     checkpoint_path = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/Results/CheckPoints/'
     top_img_folder    = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/CricketDataset/Images/cropped/cricket/'
