@@ -332,8 +332,8 @@ class Cricket2RGCs(Dataset):
             self.norm_path_fac = 1
         self.is_syn_mov_shown = is_syn_mov_shown  # cannot be used for training
         self.fr2spikes = fr2spikes
-        if is_both_ON_OFF:
-            self.is_both_ON_OFF = is_both_ON_OFF
+        self.is_both_ON_OFF = is_both_ON_OFF
+        if self.is_both_ON_OFF:
             self.multi_opt_sf_off = multi_opt_sf_off
             self.tf_off = tf_off
             self.map_func_off = map_func_off
