@@ -253,16 +253,6 @@ def main():
         frame_width = 640
         frame_height = 480
         fps = 20
-        # print(f'path type:{type(path)}')
-        # print(f'path shape:{path.shape}')
-        # print(f'path_bg type:{type(path_bg)}')
-        # print(f'path_bg shape:{path_bg.shape}')
-        # print(f'syn_movie type:{type(syn_movie)}')
-        # print(f'syn_movie shape:{syn_movie.shape}')
-        # print(f'scaling_factors type:{type(scaling_factors)}')
-        # print(f'scaling_factors shape:{scaling_factors.shape}')
-        # print(f'sequence type:{type(sequence)}')
-        # print(f'sequence shape:{sequence.shape}')
         path = path.squeeze()*train_dataset.norm_path_fac
         path_bg = path_bg.squeeze()*train_dataset.norm_path_fac
         syn_movie = syn_movie.squeeze().numpy()
@@ -275,8 +265,11 @@ def main():
     
     np.random.seed(int(time.time()))
     train_dataset = Cricket2RGCs(num_samples=args.num_samples, multi_opt_sf=multi_opt_sf, tf=tf, map_func=map_func,
-                                grid2value_mapping=grid2value_mapping, target_width=target_width, target_height=target_height,
-                                movie_generator=movie_generator, grid_size_fac=args.grid_size_fac, is_norm_coords=args.is_norm_coords)
+                                grid2value_mapping=grid2value_mapping, multi_opt_sf_off=multi_opt_sf_off, tf_off=tf_off, 
+                                map_func_off=map_func_off, grid2value_mapping_off=grid2value_mapping_off, target_width=target_width, 
+                                target_height=target_height, movie_generator=movie_generator, grid_size_fac=args.grid_size_fac, 
+                                is_norm_coords=args.is_norm_coords, is_syn_mov_shown=False, fr2spikes=args.fr2spikes,
+                                is_both_ON_OFF=args.is_both_ON_OFF, quantize_scale=args.quantize_scale)
 
     if args.num_worker==0:
         train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True)
