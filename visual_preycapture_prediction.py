@@ -15,7 +15,7 @@ from utils.tools import MovieGenerator
 
 
 def main():
-    experiment_name = 1217202402
+    experiment_name = 1217202403
     epoch_number = 200
     num_display = 3
     frame_width = 640
