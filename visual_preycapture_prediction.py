@@ -15,13 +15,13 @@ from utils.tools import MovieGenerator
 
 
 def main():
-    experiment_name = 1214202403
+    experiment_name = 1217202401
     epoch_number = 200
     num_display = 3
     frame_width = 640
     frame_height = 480
     fps = 20
-    num_sample = 1000
+    num_sample = 10000
     is_making_video = True
     checkpoint_path = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/Results/CheckPoints/'
     top_img_folder    = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/CricketDataset/Images/cropped/cricket/'
@@ -54,8 +54,8 @@ def main():
         target_num_centers=args.target_num_centers, sf_scalar=args.sf_scalar, grid_generate_method=args.grid_generate_method, 
         tau=args.tau, mask_radius=args.mask_radius,rand_seed=args.rand_seed, num_gauss_example=args.num_gauss_example, 
         sf_constraint_method=args.sf_constraint_method, temporal_filter_len=args.temporal_filter_len, grid_size_fac=args.grid_size_fac,
-        sf_mask_radius=args.sf_mask_radius, is_pixelized_tf=args.is_pixelized_tf
-        
+        sf_mask_radius=args.sf_mask_radius, is_pixelized_tf=args.is_pixelized_tf, set_s_scale=args.set_s_scale, 
+        is_rf_median_subtract=args.is_rf_median_subtract
     )
     multi_opt_sf, tf, grid2value_mapping, map_func = rgc_array.get_results()
 
