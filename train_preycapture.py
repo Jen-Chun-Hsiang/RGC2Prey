@@ -68,6 +68,7 @@ def parse_args():
     parser.add_argument('--num_samples', type=int, default=20, help="Number of samples in the synthesized dataset")
     parser.add_argument('--is_norm_coords', action='store_true', help='normalize the coordinate as inputs')
     parser.add_argument('--fr2spikes', action='store_true', help='convert firing rate to spikes and keep positive (fr)')
+    parser.add_argument('--quantize_scale', type=float, default=1.0, help="Firing rate to spike - quantization scaling.")
 
     # Arguments for RGCrfArray
     parser.add_argument('--rgc_array_rf_size', type=tuple, default=default_rg_array_rf_size, help="Receptive field size (height, width).")
@@ -226,7 +227,7 @@ def main():
                                 map_func_off=map_func_off, grid2value_mapping_off=grid2value_mapping_off, target_width=target_width, 
                                 target_height=target_height, movie_generator=movie_generator, grid_size_fac=args.grid_size_fac, 
                                 is_norm_coords=args.is_norm_coords, is_syn_mov_shown=True, fr2spikes=args.fr2spikes,
-                                is_both_ON_OFF=args.is_both_ON_OFF)
+                                is_both_ON_OFF=args.is_both_ON_OFF, quantize_scale=args.quantize_scale)
     
     # Visualize one data points
     sequence, path, path_bg, syn_movie, scaling_factors = train_dataset[0]

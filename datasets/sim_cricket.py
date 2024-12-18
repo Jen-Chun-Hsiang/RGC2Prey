@@ -313,7 +313,7 @@ class Cricket2RGCs(Dataset):
     def __init__(self, num_samples, multi_opt_sf, tf, map_func, grid2value_mapping, target_width, target_height,
                  movie_generator, grid_size_fac=1, is_norm_coords=False, is_syn_mov_shown=False, fr2spikes=False,
                  multi_opt_sf_off=None, tf_off=None, map_func_off=None, grid2value_mapping_off=None, 
-                 is_both_ON_OFF=False):
+                 is_both_ON_OFF=False, quantize_scale = 1):
         self.num_samples = num_samples
         self.multi_opt_sf = torch.from_numpy(multi_opt_sf).float()
         self.tf = torch.from_numpy(tf.copy()).float().view(1, 1, -1)
@@ -338,6 +338,7 @@ class Cricket2RGCs(Dataset):
             self.tf_off = tf_off
             self.map_func_off = map_func_off
             self.grid2value_mapping_off = grid2value_mapping_off
+        self.quantize_scale = quantize_scale
 
 
     def __len__(self):
@@ -376,7 +377,7 @@ class Cricket2RGCs(Dataset):
 
             # Combine ON and OFF grid values
             grid_values_sequence = torch.stack(grid_values_sequence_list, dim=0)  # Shape: (2, batch, H, W)
-            
+
         else:
             sf_frame = torch.einsum('whn,thw->nt', self.multi_opt_sf, syn_movie)
             sf_frame = sf_frame.unsqueeze(0) 
@@ -384,8 +385,8 @@ class Cricket2RGCs(Dataset):
             rgc_time = F.conv1d(sf_frame, tf, stride=1, padding=0, groups=sf_frame.shape[1]).squeeze()
 
             if self.fr2spikes:
-                time_step_scale = 100  # Corresponds to 10 ms time step
-                rgc_time = torch.poisson(torch.clamp_min(rgc_time * time_step_scale, 0)) / time_step_scale
+                self.quantize_scale = 100  # Corresponds to 10 ms time step
+                rgc_time = torch.poisson(torch.clamp_min(rgc_time * self.quantize_scale, 0)) / self.quantize_scale
 
             grid_values_sequence = self.map_func(
                 rgc_time,  # Shape: (time_steps', num_points)
