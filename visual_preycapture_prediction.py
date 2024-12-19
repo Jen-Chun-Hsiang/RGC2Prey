@@ -13,6 +13,11 @@ from utils.utils import plot_two_path_comparison
 from utils.data_handling import CheckpointLoader
 from utils.tools import MovieGenerator
 
+def parse_args():
+    parser = argparse.ArgumentParser(description="Script for Model Training to get 3D RF in simulation")
+    parser.add_argument('--experiment_name', type=int, default=None, help="Label of experiment name")
+
+    return parser.parse_args()
 
 def main():
     experiment_name = 1217202401
@@ -30,6 +35,9 @@ def main():
     coord_mat_file = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/selected_points_summary.mat'
     video_save_folder = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/Results/Videos/'
     mat_save_folder = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/Results/Mats/'
+
+    args = parse_args()
+    experiment_name = getattr(args, 'experiment_name', None) or experiment_name
 
     file_name = f'{experiment_name}_cricket_location_prediction'
     checkpoint_filename = os.path.join(checkpoint_path, f'{file_name}_checkpoint_epoch_{epoch_number}.pth')
