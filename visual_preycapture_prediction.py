@@ -20,7 +20,7 @@ def parse_args():
     return parser.parse_args()
 
 def main():
-    experiment_name = 1217202401
+    # experiment_name = 1217202401
     epoch_number = 200
     num_display = 3
     frame_width = 640
