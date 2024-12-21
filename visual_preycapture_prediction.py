@@ -37,7 +37,7 @@ def main():
     mat_save_folder = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/Results/Mats/'
 
     args = parse_args()
-    experiment_name = getattr(args, 'experiment_name', None) or experiment_name
+    experiment_name = args.experiment_name
 
     file_name = f'{experiment_name}_cricket_location_prediction'
     checkpoint_filename = os.path.join(checkpoint_path, f'{file_name}_checkpoint_epoch_{epoch_number}.pth')
