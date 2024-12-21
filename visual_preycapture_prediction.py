@@ -15,13 +15,13 @@ from utils.tools import MovieGenerator
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Script for Model Training to get 3D RF in simulation")
-    parser.add_argument('--experiment_name', type=str, default=None, required=True, help="Label of experiment name")
+    parser.add_argument('--experiment_name', type=int, default=None, required=True, help="Label of experiment name")
 
     return parser.parse_args()
 
 
 def main():
-    # experiment_name = 1217202401
+    experiment_name = 1217202401
     epoch_number = 200
     num_display = 3
     frame_width = 640
@@ -38,7 +38,7 @@ def main():
     mat_save_folder = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/Results/Mats/'
 
     args = parse_args()
-    experiment_name = args.experiment_name
+    experiment_name = getattr(args, 'experiment_name', None) or experiment_name
 
     file_name = f'{experiment_name}_cricket_location_prediction'
     checkpoint_filename = os.path.join(checkpoint_path, f'{file_name}_checkpoint_epoch_{epoch_number}.pth')
