@@ -15,7 +15,7 @@ from utils.tools import MovieGenerator
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Script for Model Training to get 3D RF in simulation")
-    parser.add_argument('--experiment_name', type=int, default=None, help="Label of experiment name")
+    parser.add_argument('--experiment_name', type=str, default=None, help="Label of experiment name")
 
     return parser.parse_args()
 
