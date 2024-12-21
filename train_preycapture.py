@@ -59,6 +59,7 @@ def parse_args():
     parser.add_argument('--angle_range_bg', type=float, default=0.25, help='Variation in speed change of each step')
     parser.add_argument('--bg_folder', type=str, default='single-contrast', help='Image background folder name')
     parser.add_argument('--coord_adj_dir', type=float, default=1.0, help='Sign and value for coordinate correction for the cricket image')
+    parser.add_argument('--coord_adj_type', type=str, default='body', help='Type of center points for coordinate adjustment (body/head)')
     parser.add_argument('--is_reverse_xy', action='store_true', help="Reverse x, y coordinates in cricket position correction")
     parser.add_argument('--start_scaling', type=float, default=1.0, help='Beginning scale factor of the cricket image')
     parser.add_argument('--end_scaling', type=float, default=2.0, help='Final scale factor of the cricket image')
@@ -138,7 +139,7 @@ def main():
     log_save_folder  = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/Results/Prints/'
     savemodel_dir = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/Results/CheckPoints/'
     rf_params_file = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/SimulationParams.xlsx'
-    coord_mat_file = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/selected_points_summary_body.mat'   #selected_points_summary.mat
+    coord_mat_file = f'/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/selected_points_summary_{args.coord_adj_type}.mat'   #selected_points_summary.mat
     video_save_folder = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/Results/Videos/RFs/'
 
     timestr = datetime.now().strftime('%Y%m%d_%H%M%S')
