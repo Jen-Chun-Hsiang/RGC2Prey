@@ -102,7 +102,8 @@ def main():
     test_dataset = Cricket2RGCs(num_samples=num_sample, multi_opt_sf=multi_opt_sf, tf=tf, map_func=map_func,
                                 grid2value_mapping=grid2value_mapping, target_width=target_width, target_height=target_height,
                                 movie_generator=movie_generator, grid_size_fac=args.grid_size_fac, is_norm_coords=args.is_norm_coords, 
-                                is_syn_mov_shown=False)
+                                is_syn_mov_shown=False, fr2spikes=args.fr2spikes, is_both_ON_OFF=args.is_both_ON_OFF, 
+                                quantize_scale=args.quantize_scale)
     test_loader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=True, 
                              num_workers=args.num_worker, pin_memory=True, persistent_workers=False)
 
@@ -123,7 +124,8 @@ def main():
     test_dataset = Cricket2RGCs(num_samples=num_display, multi_opt_sf=multi_opt_sf, tf=tf, map_func=map_func,
                                 grid2value_mapping=grid2value_mapping, target_width=target_width, target_height=target_height,
                                 movie_generator=movie_generator, grid_size_fac=args.grid_size_fac, is_norm_coords=args.is_norm_coords, 
-                                is_syn_mov_shown=True)
+                                is_syn_mov_shown=True, fr2spikes=args.fr2spikes, is_both_ON_OFF=args.is_both_ON_OFF, 
+                                quantize_scale=args.quantize_scale)
     test_loader = DataLoader(test_dataset, batch_size=1, shuffle=False)
     
     
