@@ -234,7 +234,7 @@ def main():
                                 target_height=target_height, movie_generator=movie_generator, grid_size_fac=args.grid_size_fac, 
                                 is_norm_coords=args.is_norm_coords, is_syn_mov_shown=True, fr2spikes=args.fr2spikes,
                                 is_both_ON_OFF=args.is_both_ON_OFF, quantize_scale=args.quantize_scale, 
-                                add_noise=args.add_noise, rgc_noise_std=args.rgc_noise_std)
+                                add_noise=args.add_noise, rgc_noise_std=args.rgc_noise_std, smooth_data=args.smooth_data)
     
     # Visualize one data points
     sequence, path, path_bg, syn_movie, scaling_factors = train_dataset[0]
@@ -275,7 +275,7 @@ def main():
                                 target_height=target_height, movie_generator=movie_generator, grid_size_fac=args.grid_size_fac, 
                                 is_norm_coords=args.is_norm_coords, is_syn_mov_shown=False, fr2spikes=args.fr2spikes,
                                 is_both_ON_OFF=args.is_both_ON_OFF, quantize_scale=args.quantize_scale,
-                                add_noise=args.add_noise, rgc_noise_std=args.rgc_noise_std)
+                                add_noise=args.add_noise, rgc_noise_std=args.rgc_noise_std, smooth_data=args.smooth_data)
 
     if args.num_worker==0:
         train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True)
