@@ -318,7 +318,7 @@ def generate_causal_gaussian_kernel(kernel_length, sampling_rate, gaussian_std):
     return x, gaussian_kernel
 
 
-def gaussian_smooth_1d(input_tensor, dim, gaussian_kernel=None, kernel_size=50, 
+def gaussian_smooth_1d(input_tensor, gaussian_kernel=None, kernel_size=50, 
                        sampleing_rate=100, sigma=0.05):
     """
     Apply Gaussian smoothing along a specified dimension for a 2D tensor.
