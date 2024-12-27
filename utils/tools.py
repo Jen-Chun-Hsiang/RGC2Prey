@@ -9,6 +9,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
+import torch.nn.functional as F
 
 @contextmanager
 def timer(log_values, tau=0.99, n=100):
@@ -285,4 +286,64 @@ def save_distributions(train_loader, n, folder_name, file_name, logging=None):
     plt.close()
 
     print(f"Plot saved to {save_path}")
+
+
+def generate_causal_gaussian_kernel(kernel_length, sampling_rate, gaussian_std):
+    """
+    Generate a 1D causal Gaussian kernel for convolution.
+    Ensures no influence is added to future points (causal).
+    The kernel will always have the specified size `kernel_length`.
+
+    Args:
+        kernel_length (int): The length of the kernel in time points.
+        sampling_rate (float): The sampling rate in Hz (e.g., samples per second).
+        gaussian_std (float): The standard deviation of the Gaussian in seconds.
+
+    Returns:
+        torch.Tensor: A 1D causal Gaussian kernel of shape (kernel_length,).
+    """
+    # Convert standard deviation from seconds to time points
+    std_in_points = gaussian_std * sampling_rate
+    
+    # Generate a range of values: [0, 1, ..., kernel_length - 1]
+    x = torch.arange(kernel_length)
+    center = kernel_length - 1  # Causality: Center shifted to the last index
+    
+    # Compute the Gaussian function (unnormalized, causal)
+    gaussian_kernel = torch.exp(-0.5 * ((x - center) / std_in_points) ** 2)
+    
+    # Normalize the kernel to ensure it sums to 1
+    gaussian_kernel /= gaussian_kernel.sum()
+    
+    return x, gaussian_kernel
+
+
+def gaussian_smooth_1d(input_tensor, dim, gaussian_kernel=None, kernel_size=50, 
+                       sampleing_rate=100, sigma=0.05):
+    """
+    Apply Gaussian smoothing along a specified dimension for a 2D tensor.
+    
+    Args:
+        input_tensor (torch.Tensor): The 2D input tensor to smooth.
+        dim (int): The dimension along which to apply smoothing (0 or 1).
+        kernel_size (int): Size of the Gaussian kernel (must be odd).
+        sigma (float): Standard deviation of the Gaussian kernel.
+        
+    Returns:
+        torch.Tensor: Smoothed tensor.
+    """
+    
+    if gaussian_kernel is None:
+        _, gaussian_kernel = generate_causal_gaussian_kernel(kernel_size, sampleing_rate, sigma)
+    
+    # Ensure kernel is a tensor
+    gaussian_kernel = gaussian_kernel.unsqueeze(0)
+
+    kernel = gaussian_kernel.view(1, 1, -1)  # Shape: (1, 1, kernel_size)
+    input_tensor = input_tensor.unsqueeze(0)  # Add channel dimension for conv1d
+    kernel = np.repeat(kernel, input_tensor.shape[1], axis=0)
+    input_tensor = F.pad(input_tensor, (kernel_size-1, 0))
+    smoothed = F.conv1d(input_tensor, kernel, padding=0, groups=input_tensor.shape[1]).squeeze()
+    
+    return smoothed
 
