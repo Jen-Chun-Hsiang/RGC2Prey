@@ -314,7 +314,8 @@ class Cricket2RGCs(Dataset):
     def __init__(self, num_samples, multi_opt_sf, tf, map_func, grid2value_mapping, target_width, target_height,
                  movie_generator, grid_size_fac=1, is_norm_coords=False, is_syn_mov_shown=False, fr2spikes=False,
                  multi_opt_sf_off=None, tf_off=None, map_func_off=None, grid2value_mapping_off=None, 
-                 is_both_ON_OFF=False, quantize_scale = 1, add_noise=False, smooth_data=False):
+                 is_both_ON_OFF=False, quantize_scale = 1, add_noise=False, smooth_data=False, smooth_kernel_size=20, 
+                 sampleing_rate=100, smooth_sigma=0.05):
         self.num_samples = num_samples
         self.multi_opt_sf = torch.from_numpy(multi_opt_sf).float()
         self.tf = torch.from_numpy(tf.copy()).float().view(1, 1, -1)
@@ -343,7 +344,9 @@ class Cricket2RGCs(Dataset):
         self.add_noise = add_noise
         self.rgc_noise_std = rgc_noise_std
         self.smooth_data = smooth_data
-
+        self.smooth_kernel_size = smooth_kernel_size
+        self.sampleing_rate = sampleing_rate
+        self.smooth_sigma = smooth_sigma
 
 
     def __len__(self):
@@ -398,7 +401,8 @@ class Cricket2RGCs(Dataset):
                 rgc_time = torch.poisson(torch.clamp_min(rgc_time * self.quantize_scale, 0)) / self.quantize_scale
 
             if self.smooth_data:
-                rgc_time = gaussian_smooth_1d(rgc_time, kernel_size=20, sampleing_rate=100, sigma=0.05)
+                rgc_time = gaussian_smooth_1d(rgc_time, kernel_size=self.smooth_kernel_size, sampleing_rate=self.sampleing_rate, 
+                                              sigma=self.smooth_sigma)
             
             if self.add_noise:
                 rgc_time += torch.randn_like(rgc_time) * self.rgc_noise_std
