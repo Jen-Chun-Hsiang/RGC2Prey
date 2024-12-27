@@ -314,8 +314,8 @@ class Cricket2RGCs(Dataset):
     def __init__(self, num_samples, multi_opt_sf, tf, map_func, grid2value_mapping, target_width, target_height,
                  movie_generator, grid_size_fac=1, is_norm_coords=False, is_syn_mov_shown=False, fr2spikes=False,
                  multi_opt_sf_off=None, tf_off=None, map_func_off=None, grid2value_mapping_off=None, 
-                 is_both_ON_OFF=False, quantize_scale = 1, add_noise=False, smooth_data=False, smooth_kernel_size=20, 
-                 sampleing_rate=100, smooth_sigma=0.05):
+                 is_both_ON_OFF=False, quantize_scale = 1, add_noise=False, rgc_noise_std=0.0, smooth_data=False, 
+                 smooth_kernel_size=20, sampleing_rate=100, smooth_sigma=0.05):
         self.num_samples = num_samples
         self.multi_opt_sf = torch.from_numpy(multi_opt_sf).float()
         self.tf = torch.from_numpy(tf.copy()).float().view(1, 1, -1)
