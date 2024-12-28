@@ -18,7 +18,6 @@ def parse_args():
     parser.add_argument('--experiment_names', type=str, nargs='+', required=True, help="List of experiment names")
     parser.add_argument('--noise_levels', type=float, nargs='+', required=True, help="List of noise levels as numbers")
 
-
     return parser.parse_args()
 
 
@@ -47,9 +46,9 @@ def run_experiment(experiment_name, noise_level):
     video_save_folder = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/Results/Videos/'
     mat_save_folder = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/Results/Mats/'
 
-    file_name = f'{experiment_name}_noise{noise_level}_cricket_location_prediction'
+    file_name = f'{experiment_name}_cricket_location_prediction'
     checkpoint_filename = os.path.join(checkpoint_path, f'{file_name}_checkpoint_epoch_{epoch_number}.pth')
-    
+    file_name = f'{experiment_name}_noise{noise_level}_cricket_location_prediction'
     # Load checkpoint
     checkpoint_loader = CheckpointLoader(checkpoint_filename)
     args = checkpoint_loader.load_args()
