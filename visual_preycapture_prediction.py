@@ -16,6 +16,8 @@ from utils.tools import MovieGenerator
 def parse_args():
     parser = argparse.ArgumentParser(description="Script for Model Training to get 3D RF in simulation")
     parser.add_argument('--experiment_names', type=str, nargs='+', required=True, help="List of experiment names")
+    parser.add_argument('--noise_levels', type=float, nargs='+', required=True, help="List of noise levels as numbers")
+
 
     return parser.parse_args()
 
@@ -25,10 +27,11 @@ def main():
 
     # Iterate through experiment names and run them
     for experiment_name in args.experiment_names:
-        run_experiment(experiment_name)
+        for noise_level in args.noise_levels:
+            run_experiment(experiment_name, noise_level)
 
 
-def run_experiment(experiment_name):
+def run_experiment(experiment_name, noise_level):
     epoch_number = 200
     num_display = 3
     frame_width = 640
@@ -44,7 +47,7 @@ def run_experiment(experiment_name):
     video_save_folder = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/Results/Videos/'
     mat_save_folder = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/Results/Mats/'
 
-    file_name = f'{experiment_name}_cricket_location_prediction'
+    file_name = f'{experiment_name}_noise{noise_level}_cricket_location_prediction'
     checkpoint_filename = os.path.join(checkpoint_path, f'{file_name}_checkpoint_epoch_{epoch_number}.pth')
     
     # Load checkpoint
@@ -107,7 +110,8 @@ def run_experiment(experiment_name):
                                 grid2value_mapping=grid2value_mapping, target_width=target_width, target_height=target_height,
                                 movie_generator=movie_generator, grid_size_fac=args.grid_size_fac, is_norm_coords=args.is_norm_coords, 
                                 is_syn_mov_shown=False, fr2spikes=args.fr2spikes, is_both_ON_OFF=args.is_both_ON_OFF, 
-                                quantize_scale=args.quantize_scale)
+                                quantize_scale=args.quantize_scale, add_noise=True, rgc_noise_std=noise_level, 
+                                smooth_data=args.smooth_data)
     test_loader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=True, 
                              num_workers=args.num_worker, pin_memory=True, persistent_workers=False)
 
@@ -129,7 +133,8 @@ def run_experiment(experiment_name):
                                 grid2value_mapping=grid2value_mapping, target_width=target_width, target_height=target_height,
                                 movie_generator=movie_generator, grid_size_fac=args.grid_size_fac, is_norm_coords=args.is_norm_coords, 
                                 is_syn_mov_shown=True, fr2spikes=args.fr2spikes, is_both_ON_OFF=args.is_both_ON_OFF, 
-                                quantize_scale=args.quantize_scale)
+                                quantize_scale=args.quantize_scale, add_noise=True, rgc_noise_std=noise_level, 
+                                smooth_data=args.smooth_data)
     test_loader = DataLoader(test_dataset, batch_size=1, shuffle=False)
     
     
