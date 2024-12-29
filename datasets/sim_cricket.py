@@ -379,6 +379,7 @@ class Cricket2RGCs(Dataset):
 
                 if self.add_noise:
                     rgc_time += torch.randn_like(rgc_time) * self.rgc_noise_std
+                    rgc_time = torch.clamp_min(rgc_time, 0)
 
                 # Map to grid values
                 grid_values_sequence = map_func(
