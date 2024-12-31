@@ -1,10 +1,12 @@
 import argparse
 import torch
 import os
+import logging
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import torch.nn as nn
+from datetime import datetime
 from torch.utils.data import DataLoader
 from scipy.io import savemat
 from datasets.sim_cricket import SynMovieGenerator, Cricket2RGCs, RGCrfArray
@@ -47,12 +49,23 @@ def run_experiment(experiment_name, noise_level=None):
     coord_mat_file = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/selected_points_summary.mat'
     video_save_folder = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/Results/Videos/'
     mat_save_folder = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/Results/Mats/'
+    log_save_folder  = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/Results/Prints/'
 
     file_name = f'{experiment_name}_cricket_location_prediction'
     checkpoint_filename = os.path.join(checkpoint_path, f'{file_name}_checkpoint_epoch_{epoch_number}.pth')
     if noise_level is not None:
         file_name = f'{experiment_name}_noise{noise_level}_cricket_location_prediction'
         is_add_noise = True
+
+    # Setup logging
+    timestr = datetime.now().strftime('%Y%m%d_%H%M%S')
+    log_filename = os.path.join(log_save_folder, f'{file_name}_visualization_log_{timestr}.txt')
+
+    logging.basicConfig(filename=log_filename,
+                        level=logging.INFO,
+                        format='%(asctime)s %(levelname)s:%(message)s')
+    
+    logging.info( f"Exp: {experiment_name} Noise level: {noise_level} type: {type(noise_level)}\n")
     
     # Load checkpoint
     checkpoint_loader = CheckpointLoader(checkpoint_filename)
