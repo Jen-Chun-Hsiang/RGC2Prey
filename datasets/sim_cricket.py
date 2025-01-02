@@ -5,6 +5,7 @@ import torch
 import torchvision.transforms as T
 from torch.utils.data import Dataset
 import torch.nn.functional as F
+import logging
 
 from datasets.rgc_rf import map_to_fixed_grid_decay_batch, gaussian_multi, gaussian_temporalfilter, get_closest_indices, compute_distance_decay_matrix
 from datasets.rgc_rf import map_to_fixed_grid_closest_batch, create_hexagonal_centers, precompute_grid_centers, compute_circular_mask_matrix
@@ -670,6 +671,7 @@ class RGCrfArray:
         self.is_rf_median_subtract = is_rf_median_subtract
         self.is_rescale_diffgaussian=is_rescale_diffgaussian
         
+        logging.info( f"   subprocessing...1.1")
 
         # Generate points and grid centers
         self.points = create_hexagonal_centers(xlim, ylim, target_num_centers=self.target_num_centers, rand_seed=self.rgc_rand_seed)
@@ -677,6 +679,8 @@ class RGCrfArray:
         self.target_width = ylim[1] - ylim[0]
         self.grid_centers = precompute_grid_centers(self.target_height, self.target_width, x_min=xlim[0], x_max=xlim[1],
                                             y_min=ylim[0], y_max=ylim[1], grid_size_fac=grid_size_fac)
+        
+        logging.info( f"   subrocessing...1.2")
 
         # Generate grid2value mapping and map function
         if grid_generate_method == 'closest':
