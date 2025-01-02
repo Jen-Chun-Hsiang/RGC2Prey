@@ -725,10 +725,12 @@ class RGCrfArray:
         # Create multi-optical spatial filters
         multi_opt_sf = np.zeros((self.rgc_array_rf_size[0], self.rgc_array_rf_size[1], len(self.points)))
         num_sim_data = len(self.sf_param_table)
+        logging.info( f"   subprocessing...1.2.1")
         pid = np.random.randint(0, num_sim_data-1)
+        logging.info( f"   subprocessing...1.2.2 pid {pid}")
         row = self.sf_param_table.iloc[pid]
         s_scale = row['s_scale'] if not self.set_s_scale else self.set_s_scale[0]
-        logging.info( f"   subprocessing...1.2.1")
+        logging.info( f"   subprocessing...1.2.3")
         for i, point in enumerate(self.points):
             sf_params = np.array([
                 point[1], point[0], row['sigma_x'] * self.sf_scalar, row['sigma_y'] * self.sf_scalar,
@@ -753,7 +755,7 @@ class RGCrfArray:
 
             multi_opt_sf[:, :, i] = opt_sf
             
-        logging.info( f"   subprocessing...1.2.2")
+        logging.info( f"   subprocessing...1.2.4")
         return multi_opt_sf
 
 
