@@ -80,6 +80,11 @@ def run_experiment(experiment_name, noise_level=None):
         args.mask_radius = None
     if not hasattr(args, 'rgc_rand_seed'):
         args.rgc_rand_seed = 42
+    if not hasattr(args, 'is_norm_coords'):
+        args.is_norm_coords = False
+    if not hasattr(args, 'is_input_norm'):
+        args.is_input_norm = False
+    
     sf_param_table = pd.read_excel(rf_params_file, sheet_name='SF_params', usecols='A:L')
     tf_param_table = pd.read_excel(rf_params_file, sheet_name='TF_params', usecols='A:I')
     rgc_array = RGCrfArray(
@@ -105,14 +110,10 @@ def run_experiment(experiment_name, noise_level=None):
     xlim, ylim = args.xlim, args.ylim
     target_height = xlim[1]-xlim[0]
     target_width = ylim[1]-ylim[0]
-    if not hasattr(args, 'is_norm_coords'):
-        args.is_norm_coords = False
     
-    #
     grid_width = int(np.round(target_width*args.grid_size_fac))
     grid_height = int(np.round(target_height*args.grid_size_fac))
-    if not hasattr(args, 'is_input_norm'):
-        args.is_input_norm = False
+    
     model = CNN_LSTM_ObjectLocation(cnn_feature_dim=args.cnn_feature_dim, lstm_hidden_size=args.lstm_hidden_size,
                                      lstm_num_layers=args.lstm_num_layers, output_dim=args.output_dim,
                                     input_height=grid_width, input_width=grid_height, conv_out_channels=args.conv_out_channels,
