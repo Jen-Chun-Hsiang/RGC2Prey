@@ -634,7 +634,7 @@ def synthesize_image_with_params_batch(bottom_img_path, top_img_path, top_img_po
 
 class RGCrfArray:
     def __init__(self, sf_param_table, tf_param_table, rgc_array_rf_size, xlim, ylim, target_num_centers, sf_scalar,
-                 grid_generate_method, tau=None, mask_radius=None, rand_seed=42, num_gauss_example=1, sf_mask_radius=35, 
+                 grid_generate_method, tau=None, mask_radius=None, rgc_rand_seed=42, num_gauss_example=1, sf_mask_radius=35, 
                  sf_pixel_thr=99.7, sf_constraint_method=None, temporal_filter_len=50, grid_size_fac=0.5, is_pixelized_tf=False, 
                  set_s_scale=[], is_rf_median_subtract=True, is_rescale_diffgaussian=True):
         """
@@ -660,7 +660,7 @@ class RGCrfArray:
         self.sf_mask_radius = sf_mask_radius
         self.sf_constraint_method = sf_constraint_method
         self.mask_radius = mask_radius
-        self.rand_seed = rand_seed
+        self.rgc_rand_seed = rgc_rand_seed
         self.num_gauss_example = num_gauss_example
         self.target_num_centers = target_num_centers
         self.sf_pixel_thr = sf_pixel_thr
@@ -669,15 +669,10 @@ class RGCrfArray:
         self.set_s_scale = set_s_scale
         self.is_rf_median_subtract = is_rf_median_subtract
         self.is_rescale_diffgaussian=is_rescale_diffgaussian
-
-        # Set random seed
-        self.np_rng = np.random.default_rng(self.rand_seed)
-        self.rng = random.Random(self.rand_seed)
-        torch.manual_seed(self.rand_seed)
         
 
         # Generate points and grid centers
-        self.points = create_hexagonal_centers(xlim, ylim, target_num_centers=self.target_num_centers, rand_seed=self.rand_seed)
+        self.points = create_hexagonal_centers(xlim, ylim, target_num_centers=self.target_num_centers, rand_seed=self.rgc_rand_seed)
         self.target_height = xlim[1] - xlim[0]
         self.target_width = ylim[1] - ylim[0]
         self.grid_centers = precompute_grid_centers(self.target_height, self.target_width, x_min=xlim[0], x_max=xlim[1],
@@ -724,7 +719,7 @@ class RGCrfArray:
         # Create multi-optical spatial filters
         multi_opt_sf = np.zeros((self.rgc_array_rf_size[0], self.rgc_array_rf_size[1], len(self.points)))
         num_sim_data = len(self.sf_param_table)
-        pid = self.rng.randint(0, num_sim_data - 1)
+        pid = np.random.randint(0, num_sim_data-1)
         row = self.sf_param_table.iloc[pid]
         s_scale = row['s_scale'] if not self.set_s_scale else self.set_s_scale[0]
         # print(f's_scale: {s_scale}')
@@ -763,7 +758,7 @@ class RGCrfArray:
             tf[-1] = 1 
         else:
             num_sim_data = len(self.tf_param_table)
-            pid = self.rng.randint(0, num_sim_data - 1)
+            pid = np.random.randint(0, num_sim_data-1)
             row = self.tf_param_table.iloc[pid]
             tf_params = np.array([row['sigma1'], row['sigma2'], row['mean1'], row['mean2'], row['amp1'], row['amp2'], row['offset']])
             tf = gaussian_temporalfilter(self.temporal_filter_len, tf_params)
