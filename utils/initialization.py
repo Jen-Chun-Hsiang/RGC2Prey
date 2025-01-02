@@ -2,6 +2,9 @@ import random
 import numpy as np
 import torch
 import time
+import os
+import logging
+from datetime import datetime
 
 def set_seed(seed):
     if seed == "fixed":
@@ -50,3 +53,32 @@ def process_seed(seed_input):
         set_seed(seed_value)
     except ValueError as e:
         print(f"Error: {e}")
+
+
+def initialize_logging(args, log_save_folder):
+    """
+    Initialize logging for the script by creating a timestamped log file.
+
+    Parameters:
+        args: argparse.Namespace
+            The parsed command-line arguments containing `experiment_name`.
+        log_save_folder: str
+            The folder where log files will be saved.
+
+    Returns:
+        None
+    """
+    # Generate timestamp string
+    timestr = datetime.now().strftime('%Y%m%d_%H%M%S')
+
+    # Construct the full path for the log file
+    file_name = f'{args.experiment_name}_cricket_location_prediction'
+    log_filename = os.path.join(log_save_folder, f'{file_name}_training_log_{timestr}.txt')
+
+    # Setup logging
+    logging.basicConfig(
+        filename=log_filename,
+        level=logging.INFO,
+        format='%(asctime)s %(levelname)s:%(message)s'
+    )
+

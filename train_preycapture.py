@@ -15,6 +15,7 @@ from utils.utils import plot_tensor_and_save, plot_vector_and_save, plot_two_pat
 from models.rgc2behavior import CNN_LSTM_ObjectLocation
 from utils.data_handling import save_checkpoint
 from utils.tools import timer, MovieGenerator, save_distributions
+from utils.initialization import process_seed, initialize_logging
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Script for Model Training to get 3D RF in simulation")
@@ -110,6 +111,8 @@ def parse_args():
     parser.add_argument('--batch_size', type=int, default=4, help="Batch size for dataloader")
     parser.add_argument('--num_worker', type=int, default=0, help="Number of worker for dataloader")
     parser.add_argument('--num_epochs', type=int, default=10, help="Number of worker for dataloader")
+    parser.add_argument('--seed', type=str, required=True, help=( "Seed type: 'fixed' for deterministic behavior, "
+                                                                  "'random' for a random seed, or a numeric value for a custom seed."))
     parser.add_argument('--schedule_method', type=str, default='RLRP', help='Method used for scheduler')
     parser.add_argument('--schedule_factor', type=float, default=0.2, help='Scheduler reduction factor')
     parser.add_argument('--learning_rate', type=float, default=0.001, help='Learning rate')
@@ -146,15 +149,8 @@ def main():
     coord_mat_file = f'/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/selected_points_summary_{args.coord_adj_type}.mat'   #selected_points_summary.mat
     video_save_folder = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/Results/Videos/RFs/'
 
-    timestr = datetime.now().strftime('%Y%m%d_%H%M%S')
-    # Construct the full path for the log file
-    file_name = f'{args.experiment_name}_cricket_location_prediction'
-    log_filename = os.path.join(log_save_folder, f'{file_name}_training_log_{timestr}.txt')
-
-    # Setup logging
-    logging.basicConfig(filename=log_filename,
-                        level=logging.INFO,
-                        format='%(asctime)s %(levelname)s:%(message)s')
+    initialize_logging(log_folder=log_save_folder, experiment_name=args.experiment_name)
+    process_seed(args.seed)
     
     if args.is_GPU:
         device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -214,8 +210,6 @@ def main():
     if is_show_rgc_tf:
         plot_vector_and_save(tf, plot_save_folder, file_name=f'{args.experiment_name}_temporal_filter.png')
 
-    np.random.seed(42)
-
     movie_generator = SynMovieGenerator(top_img_folder, bottom_img_folder,
         crop_size=args.crop_size, boundary_size=args.boundary_size, center_ratio=args.center_ratio, max_steps=args.max_steps,
         prob_stay_ob=args.prob_stay_ob, prob_mov_ob=args.prob_mov_ob, prob_stay_bg=args.prob_stay_bg, prob_mov_bg=args.prob_mov_bg, 
@@ -270,7 +264,6 @@ def main():
                                 grid_generate_method=args.grid_generate_method)
         data_movie.generate_movie(sequence, syn_movie, path, path_bg, predicted_path, scaling_factors, video_id=1)
     
-    np.random.seed(int(time.time()))
     train_dataset = Cricket2RGCs(num_samples=args.num_samples, multi_opt_sf=multi_opt_sf, tf=tf, map_func=map_func,
                                 grid2value_mapping=grid2value_mapping, multi_opt_sf_off=multi_opt_sf_off, tf_off=tf_off, 
                                 map_func_off=map_func_off, grid2value_mapping_off=grid2value_mapping_off, target_width=target_width, 
@@ -306,7 +299,6 @@ def main():
     if args.do_not_train:
         # Set the number of initial batches to process
         n = 20  # Change this value to the desired number of batches
-        np.random.seed(int(time.time()))
         # Loop through the data loader and process the first n batches
         model.eval()  # Set the model to evaluation mode
 
