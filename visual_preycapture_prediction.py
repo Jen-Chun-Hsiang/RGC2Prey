@@ -78,6 +78,8 @@ def run_experiment(experiment_name, noise_level=None):
 
     if not hasattr(args, 'mask_radius'):
         args.mask_radius = None
+    if not hasattr(args, 'rgc_rand_seed'):
+        args.rgc_rand_seed = 42
     sf_param_table = pd.read_excel(rf_params_file, sheet_name='SF_params', usecols='A:L')
     tf_param_table = pd.read_excel(rf_params_file, sheet_name='TF_params', usecols='A:I')
     rgc_array = RGCrfArray(
