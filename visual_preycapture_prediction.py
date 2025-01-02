@@ -62,7 +62,6 @@ def run_experiment(experiment_name, noise_level=None):
         noise_flag = f'noise0'
 
     initialize_logging(log_save_folder=log_save_folder, experiment_name=f'{experiment_name}_{noise_flag}')
-    process_seed(args.seed)
     
     # Load checkpoint
     checkpoint_loader = CheckpointLoader(checkpoint_filename)
@@ -75,7 +74,6 @@ def run_experiment(experiment_name, noise_level=None):
     else:
         device = 'cpu'
 
-
     if not hasattr(args, 'mask_radius'):
         args.mask_radius = None
     if not hasattr(args, 'rgc_rand_seed'):
@@ -84,6 +82,9 @@ def run_experiment(experiment_name, noise_level=None):
         args.is_norm_coords = False
     if not hasattr(args, 'is_input_norm'):
         args.is_input_norm = False
+    if not hasattr(args, 'seed'):
+        args.seed = 42
+    process_seed(args.seed)
     
     sf_param_table = pd.read_excel(rf_params_file, sheet_name='SF_params', usecols='A:L')
     tf_param_table = pd.read_excel(rf_params_file, sheet_name='TF_params', usecols='A:I')
