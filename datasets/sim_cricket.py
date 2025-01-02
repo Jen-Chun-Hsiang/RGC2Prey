@@ -726,7 +726,7 @@ class RGCrfArray:
         multi_opt_sf = np.zeros((self.rgc_array_rf_size[0], self.rgc_array_rf_size[1], len(self.points)))
         num_sim_data = len(self.sf_param_table)
         logging.info( f"   subprocessing...1.2.1 num_sim_data:{num_sim_data}")
-        pid = np.random.randint(0, num_sim_data-1)
+        pid = np.random.randint(0, num_sim_data)
         logging.info( f"   subprocessing...1.2.2 pid {pid}")
         row = self.sf_param_table.iloc[pid]
         s_scale = row['s_scale'] if not self.set_s_scale else self.set_s_scale[0]
@@ -766,7 +766,7 @@ class RGCrfArray:
             tf[-1] = 1 
         else:
             num_sim_data = len(self.tf_param_table)
-            pid = np.random.randint(0, num_sim_data-1)
+            pid = np.random.randint(0, num_sim_data)
             row = self.tf_param_table.iloc[pid]
             tf_params = np.array([row['sigma1'], row['sigma2'], row['mean1'], row['mean2'], row['amp1'], row['amp2'], row['offset']])
             tf = gaussian_temporalfilter(self.temporal_filter_len, tf_params)
