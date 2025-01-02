@@ -84,7 +84,7 @@ def run_experiment(experiment_name, noise_level=None):
     if not hasattr(args, 'is_input_norm'):
         args.is_input_norm = False
     if not hasattr(args, 'seed'):
-        args.seed = 42
+        args.seed = '42'
     process_seed(args.seed)
 
     logging.info( f"{file_name} processing...1")
