@@ -305,7 +305,7 @@ def main():
         # Loop through the data loader and process the first n batches
         model.eval()  # Set the model to evaluation mode
 
-        plot_file_name = f'{file_name}_value_distribution_n{n}.png'
+        plot_file_name = f'{args.experiment_name}_value_distribution_n{n}.png'
 
         save_distributions(train_loader, n, folder_name=distribution_save_folder, file_name=plot_file_name, logging=None)
 
@@ -396,11 +396,11 @@ def main():
                 scheduler.step(epoch + (epoch / num_epochs))
 
             elapsed_time = time.time()  - start_time
-            logging.info( f"{file_name} Epoch [{epoch + 1}/{num_epochs}], Elapsed time: {elapsed_time:.2f} seconds \n"
+            logging.info( f"{args.experiment_name} Epoch [{epoch + 1}/{num_epochs}], Elapsed time: {elapsed_time:.2f} seconds \n"
                             f"\tLoss: {avg_train_loss:.4f} \n")
             
             if (epoch + 1) % args.num_epoch_save == 0:  # Example: Save every 10 epochs
-                checkpoint_filename = f'{file_name}_checkpoint_epoch_{epoch + 1}.pth'
+                checkpoint_filename = f'{args.experiment_name}_checkpoint_epoch_{epoch + 1}.pth'
                 save_checkpoint(epoch, model, optimizer, training_losses=training_losses, scheduler=scheduler, args=args,  
                                     file_path=os.path.join(savemodel_dir, checkpoint_filename))
 
