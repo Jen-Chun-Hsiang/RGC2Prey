@@ -57,8 +57,11 @@ def run_experiment(experiment_name, noise_level=None):
     if noise_level is not None:
         file_name = f'{experiment_name}_noise{noise_level}_cricket_location_prediction'
         is_add_noise = True
+        noise_flag = f'noise{noise_level}'
+    else:
+        noise_flag = f'noise0'
 
-    initialize_logging(log_save_folder=log_save_folder, experiment_name=f'{experiment_name}_noise{noise_level}')
+    initialize_logging(log_save_folder=log_save_folder, experiment_name=f'{experiment_name}_{noise_flag}')
     process_seed(args.seed)
     
     # Load checkpoint
