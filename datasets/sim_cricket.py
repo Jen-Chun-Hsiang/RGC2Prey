@@ -714,12 +714,11 @@ class RGCrfArray:
 
 
         # Generate multi_opt_sf and tf arrays
-        logging.info( f"   subrocessing...1.2")
+        logging.info( f"   subprocessing...1.2")
         self.multi_opt_sf = self._create_multi_opt_sf()
-        logging.info( f"   subrocessing...1.3")
+        logging.info( f"   subprocessing...1.3")
         self.tf = self._create_temporal_filter()
-        logging.info( f"   subrocessing...1.4")
-
+        logging.info( f"   subprocessing...1.4")
 
 
     def _create_multi_opt_sf(self):
@@ -729,8 +728,7 @@ class RGCrfArray:
         pid = np.random.randint(0, num_sim_data-1)
         row = self.sf_param_table.iloc[pid]
         s_scale = row['s_scale'] if not self.set_s_scale else self.set_s_scale[0]
-        # print(f's_scale: {s_scale}')
-        # print(f's_scale type: {type(s_scale)}')
+        logging.info( f"   subprocessing...1.2.1")
         for i, point in enumerate(self.points):
             sf_params = np.array([
                 point[1], point[0], row['sigma_x'] * self.sf_scalar, row['sigma_y'] * self.sf_scalar,
@@ -755,6 +753,7 @@ class RGCrfArray:
 
             multi_opt_sf[:, :, i] = opt_sf
             
+        logging.info( f"   subprocessing...1.2.2")
         return multi_opt_sf
 
 
