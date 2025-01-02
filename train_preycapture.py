@@ -88,7 +88,7 @@ def parse_args():
     parser.add_argument('--tau', type=float, default=default_tau, help="Decay factor for 'decay' method.")
     parser.add_argument('--sf_mask_radius', type=float, default=35, help='RGC dendritic receptive field radius size in pixel')
     parser.add_argument('--mask_radius', type=float, default=30, help='RGC axonal in SC radius size in pixel')
-    parser.add_argument('--rand_seed', type=int, default=42, help="Random seed for reproducibility.")
+    parser.add_argument('--rgc_rand_seed', type=int, default=42, help="Random seed for reproducibility.")
     parser.add_argument('--num_gauss_example', type=int, default=1, help="Number of Gaussian examples.")
     parser.add_argument('--temporal_filter_len', type=int, default=50, help="Number of time points for a temporal filter")
     parser.add_argument('--is_pixelized_tf', action='store_true', help="Flag for pixelized receptive field.")
@@ -166,7 +166,7 @@ def main():
     rgc_array = RGCrfArray(
         sf_param_table, tf_param_table, rgc_array_rf_size=args.rgc_array_rf_size, xlim=args.xlim, ylim=args.ylim,
         target_num_centers=args.target_num_centers, sf_scalar=args.sf_scalar, grid_generate_method=args.grid_generate_method, 
-        tau=args.tau, mask_radius=args.mask_radius, rand_seed=args.rand_seed, num_gauss_example=args.num_gauss_example, 
+        tau=args.tau, mask_radius=args.mask_radius, rgc_rand_seed=args.rgc_rand_seed, num_gauss_example=args.num_gauss_example, 
         sf_constraint_method=args.sf_constraint_method, temporal_filter_len=args.temporal_filter_len, grid_size_fac=args.grid_size_fac,
         sf_mask_radius=args.sf_mask_radius, is_pixelized_tf=args.is_pixelized_tf, set_s_scale=args.set_s_scale, 
         is_rf_median_subtract=args.is_rf_median_subtract
@@ -184,7 +184,7 @@ def main():
         rgc_array = RGCrfArray(
             sf_param_table, tf_param_table, rgc_array_rf_size=args.rgc_array_rf_size, xlim=args.xlim, ylim=args.ylim,
             target_num_centers=args.target_num_centers, sf_scalar=args.sf_scalar, grid_generate_method=args.grid_generate_method, 
-            tau=args.tau, mask_radius=args.mask_radius, rand_seed=args.rand_seed+1, num_gauss_example=args.num_gauss_example, 
+            tau=args.tau, mask_radius=args.mask_radius, rgc_rand_seed=args.rgc_rand_seed+1, num_gauss_example=args.num_gauss_example, 
             sf_constraint_method=args.sf_constraint_method, temporal_filter_len=args.temporal_filter_len, grid_size_fac=args.grid_size_fac,
             sf_mask_radius=args.sf_mask_radius, is_pixelized_tf=args.is_pixelized_tf, set_s_scale=args.set_s_scale, 
             is_rf_median_subtract=args.is_rf_median_subtract
