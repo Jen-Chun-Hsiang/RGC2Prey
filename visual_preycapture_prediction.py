@@ -14,7 +14,7 @@ from models.rgc2behavior import CNN_LSTM_ObjectLocation
 from utils.utils import plot_two_path_comparison
 from utils.data_handling import CheckpointLoader
 from utils.tools import MovieGenerator
-from utils.initialization import process_seed, initialize_logging
+from utils.initialization import process_seed, initialize_logging, worker_init_fn
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Script for Model Training to get 3D RF in simulation")
@@ -132,7 +132,7 @@ def run_experiment(experiment_name, noise_level=None):
                                 quantize_scale=args.quantize_scale, add_noise=is_add_noise, rgc_noise_std=noise_level, 
                                 smooth_data=args.smooth_data)
     test_loader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=True, 
-                             num_workers=args.num_worker, pin_memory=True, persistent_workers=False)
+                             num_workers=args.num_worker, pin_memory=True, persistent_workers=False, worker_init_fn=worker_init_fn)
 
     test_losses = [] 
     for batch_idx, (inputs, true_path, _) in enumerate(test_loader):
@@ -154,7 +154,7 @@ def run_experiment(experiment_name, noise_level=None):
                                 is_syn_mov_shown=True, fr2spikes=args.fr2spikes, is_both_ON_OFF=args.is_both_ON_OFF, 
                                 quantize_scale=args.quantize_scale, add_noise=is_add_noise, rgc_noise_std=noise_level, 
                                 smooth_data=args.smooth_data)
-    test_loader = DataLoader(test_dataset, batch_size=1, shuffle=False)
+    test_loader = DataLoader(test_dataset, batch_size=1, shuffle=False, worker_init_fn=worker_init_fn)
     
     
     # Test model on samples

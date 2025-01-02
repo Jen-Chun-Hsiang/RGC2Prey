@@ -25,8 +25,6 @@ def set_seed(seed):
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
 
-    print(f"Random seed set to: {seed}")
-
 def process_seed(seed_input):
     """
     Validate and process the seed input.
@@ -53,6 +51,16 @@ def process_seed(seed_input):
         set_seed(seed_value)
     except ValueError as e:
         print(f"Error: {e}")
+
+
+def worker_init_fn(worker_id):
+    """
+    Initialize a unique seed for each DataLoader worker.
+    """
+    # Ensure each worker has a unique seed
+    worker_seed = torch.initial_seed() % 2**32
+    np.random.seed(worker_seed)
+    random.seed(worker_seed)
 
 
 def initialize_logging(experiment_name, log_save_folder):
