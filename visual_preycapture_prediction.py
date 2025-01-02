@@ -69,6 +69,7 @@ def run_experiment(experiment_name, noise_level=None):
     training_losses = checkpoint_loader.load_training_losses()
     bottom_img_folder = f'/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/CricketDataset/Images/cropped/{args.bg_folder}/'  #grass
 
+    logging.info( f"{file_name} processing...0")
     if args.is_GPU:
         device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     else:
@@ -85,6 +86,8 @@ def run_experiment(experiment_name, noise_level=None):
     if not hasattr(args, 'seed'):
         args.seed = 42
     process_seed(args.seed)
+
+    logging.info( f"{file_name} processing...1")
     
     sf_param_table = pd.read_excel(rf_params_file, sheet_name='SF_params', usecols='A:L')
     tf_param_table = pd.read_excel(rf_params_file, sheet_name='TF_params', usecols='A:I')
@@ -98,6 +101,8 @@ def run_experiment(experiment_name, noise_level=None):
     )
     multi_opt_sf, tf, grid2value_mapping, map_func = rgc_array.get_results()
 
+    logging.info( f"{file_name} processing...2")
+
     movie_generator = SynMovieGenerator(top_img_folder, bottom_img_folder,
         crop_size=args.crop_size, boundary_size=args.boundary_size, center_ratio=args.center_ratio, max_steps=args.max_steps,
         prob_stay_ob=args.prob_stay_ob, prob_mov_ob=args.prob_mov_ob, prob_stay_bg=args.prob_stay_bg, prob_mov_bg=args.prob_mov_bg, 
@@ -108,6 +113,7 @@ def run_experiment(experiment_name, noise_level=None):
         start_scaling=args.start_scaling, end_scaling=args.end_scaling
     )
 
+    logging.info( f"{file_name} processing...3")
     xlim, ylim = args.xlim, args.ylim
     target_height = xlim[1]-xlim[0]
     target_width = ylim[1]-ylim[0]
@@ -125,6 +131,8 @@ def run_experiment(experiment_name, noise_level=None):
     model.to(device)
     model.eval()
 
+    logging.info( f"{file_name} processing...4")
+
     test_dataset = Cricket2RGCs(num_samples=num_sample, multi_opt_sf=multi_opt_sf, tf=tf, map_func=map_func,
                                 grid2value_mapping=grid2value_mapping, target_width=target_width, target_height=target_height,
                                 movie_generator=movie_generator, grid_size_fac=args.grid_size_fac, is_norm_coords=args.is_norm_coords, 
@@ -134,6 +142,7 @@ def run_experiment(experiment_name, noise_level=None):
     test_loader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=True, 
                              num_workers=args.num_worker, pin_memory=True, persistent_workers=False, worker_init_fn=worker_init_fn)
 
+    logging.info( f"{file_name} processing...5")
     test_losses = [] 
     for batch_idx, (inputs, true_path, _) in enumerate(test_loader):
         inputs, true_path = inputs.to(device), true_path.to(device)
@@ -141,11 +150,15 @@ def run_experiment(experiment_name, noise_level=None):
             predicted_path = model(inputs)
             loss = criterion(predicted_path, true_path)
         test_losses.append(loss.item())
+
+    logging.info( f"{file_name} processing...6")
     
     test_losses = np.array(test_losses)
     training_losses = np.array(training_losses)
     save_path = os.path.join(mat_save_folder, f'{experiment_name}_{epoch_number}_prediction_error.mat')
     savemat(save_path, {'test_losses': test_losses, 'training_losses': training_losses})
+
+    logging.info( f"{file_name} processing...7")
 
     model.to('cpu')
     test_dataset = Cricket2RGCs(num_samples=num_display, multi_opt_sf=multi_opt_sf, tf=tf, map_func=map_func,
@@ -155,6 +168,8 @@ def run_experiment(experiment_name, noise_level=None):
                                 quantize_scale=args.quantize_scale, add_noise=is_add_noise, rgc_noise_std=noise_level, 
                                 smooth_data=args.smooth_data)
     test_loader = DataLoader(test_dataset, batch_size=1, shuffle=False, worker_init_fn=worker_init_fn)
+
+    logging.info( f"{file_name} processing...8")
     
     
     # Test model on samples
