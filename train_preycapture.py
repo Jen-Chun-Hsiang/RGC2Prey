@@ -15,7 +15,7 @@ from utils.utils import plot_tensor_and_save, plot_vector_and_save, plot_two_pat
 from models.rgc2behavior import CNN_LSTM_ObjectLocation
 from utils.data_handling import save_checkpoint
 from utils.tools import timer, MovieGenerator, save_distributions
-from utils.initialization import process_seed, initialize_logging
+from utils.initialization import process_seed, initialize_logging, worker_init_fn
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Script for Model Training to get 3D RF in simulation")
@@ -167,13 +167,10 @@ def main():
         sf_mask_radius=args.sf_mask_radius, is_pixelized_tf=args.is_pixelized_tf, set_s_scale=args.set_s_scale, 
         is_rf_median_subtract=args.is_rf_median_subtract
     )
+    logging.info( f"{args.experiment_name} processing...1")
     multi_opt_sf, tf, grid2value_mapping, map_func = rgc_array.get_results()
-    print(f'grid2value_mapping shape: {grid2value_mapping.shape}')
-    print(f'grid2value_mapping min {torch.min(grid2value_mapping)}')
-    print(f'grid2value_mapping max {torch.max(grid2value_mapping)}')
 
-    # if not hasattr(args, 'is_both_ON_OFF'):
-    #     args.is_both_ON_OFF = False
+    logging.info( f"{args.experiment_name} processing...2")
 
     if args.is_both_ON_OFF:
         sf_param_table = pd.read_excel(rf_params_file, sheet_name='SF_params_OFF', usecols='A:L')
@@ -189,6 +186,7 @@ def main():
     else:
         multi_opt_sf_off, tf_off, grid2value_mapping_off, map_func_off = None, None, None, None
 
+    logging.info( f"{args.experiment_name} processing...3")
     # Check results of RGC array synthesis
     if is_show_rgc_rf_individual:
         for i in range(multi_opt_sf.shape[2]): 
@@ -206,7 +204,7 @@ def main():
                 if i == 3:
                     break
 
-
+    logging.info( f"{args.experiment_name} processing...4")
     if is_show_rgc_tf:
         plot_vector_and_save(tf, plot_save_folder, file_name=f'{args.experiment_name}_temporal_filter.png')
 
@@ -219,7 +217,7 @@ def main():
         coord_mat_file=coord_mat_file, correction_direction=args.coord_adj_dir, is_reverse_xy=args.is_reverse_xy, 
         start_scaling=args.start_scaling, end_scaling=args.end_scaling
     )
-
+    logging.info( f"{args.experiment_name} processing...5")
     xlim, ylim = args.xlim, args.ylim
     target_height = xlim[1]-xlim[0]
     target_width = ylim[1]-ylim[0]
@@ -231,7 +229,7 @@ def main():
                                 is_both_ON_OFF=args.is_both_ON_OFF, quantize_scale=args.quantize_scale, 
                                 add_noise=args.add_noise, rgc_noise_std=args.rgc_noise_std, smooth_data=args.smooth_data,
                                 is_rectified=args.is_rectified)
-    
+    logging.info( f"{args.experiment_name} processing...6")
     # Visualize one data points
     sequence, path, path_bg, syn_movie, scaling_factors = train_dataset[0]
     if is_show_movie_frames:
@@ -250,6 +248,7 @@ def main():
         if is_show_pathes:
             plot_two_path_comparison(path, path_bg, plot_save_folder, file_name=f'{args.experiment_name}_dataset_path.png')
     
+    logging.info( f"{args.experiment_name} processing...7")
     if args.is_generate_movie:
         frame_width = 640
         frame_height = 480
@@ -273,13 +272,15 @@ def main():
                                 add_noise=args.add_noise, rgc_noise_std=args.rgc_noise_std, smooth_data=args.smooth_data,
                                 is_rectified=args.is_rectified)
 
+    logging.info( f"{args.experiment_name} processing...8")
     if args.num_worker==0:
-        train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True)
+        train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, worker_init_fn=worker_init_fn)
     else:
         train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True,
-                                        num_workers=args.num_worker, pin_memory=True, persistent_workers=False)
+                                        num_workers=args.num_worker, pin_memory=True, persistent_workers=False, worker_init_fn=worker_init_fn)
         
 
+    logging.info( f"{args.experiment_name} processing...9")
     # Sample Training Loop
     grid_width = int(np.round(target_width*args.grid_size_fac))
     grid_height = int(np.round(target_height*args.grid_size_fac))
@@ -288,6 +289,7 @@ def main():
                                     input_height=grid_width, input_width=grid_height, conv_out_channels=args.conv_out_channels,
                                     is_input_norm=args.is_input_norm, is_seq_reshape=args.is_seq_reshape)
     
+    logging.info( f"{args.experiment_name} processing...10")
     model = model.to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate)
     criterion = nn.MSELoss()
@@ -296,6 +298,7 @@ def main():
     elif args.schedule_method.lower() == 'cawr':
         scheduler = optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer, T_0=5, T_mult=2, eta_min=1e-6)
 
+    logging.info( f"{args.experiment_name} processing...11")
     if args.do_not_train:
         # Set the number of initial batches to process
         n = 20  # Change this value to the desired number of batches
