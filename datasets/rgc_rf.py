@@ -73,6 +73,10 @@ def gaussian_multi(params, image_size, num_gauss, is_rescale_diffgaussian):
 
 
 def create_hexagonal_centers(xlim, ylim, target_num_centers, max_iterations=100, noise_level=0.3, rand_seed=None, num_positions=None, position_indices=None):
+    
+    # Save the current random state
+    current_state = np.random.get_state()
+
     if rand_seed is not None:
         np.random.seed(rand_seed)
 
@@ -133,6 +137,9 @@ def create_hexagonal_centers(xlim, ylim, target_num_centers, max_iterations=100,
     elif num_positions is not None and num_positions < len(points):
         indices = np.random.choice(len(points), num_positions, replace=False)
         points = points[indices]
+
+    # Restore the previous random state
+    np.random.set_state(current_state)
 
     return points
 
