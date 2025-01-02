@@ -99,7 +99,9 @@ def run_experiment(experiment_name, noise_level=None):
         sf_mask_radius=args.sf_mask_radius, is_pixelized_tf=args.is_pixelized_tf, set_s_scale=args.set_s_scale, 
         is_rf_median_subtract=args.is_rf_median_subtract
     )
+    logging.info( f"{file_name} processing...1.5")
     multi_opt_sf, tf, grid2value_mapping, map_func = rgc_array.get_results()
+
 
     logging.info( f"{file_name} processing...2")
 

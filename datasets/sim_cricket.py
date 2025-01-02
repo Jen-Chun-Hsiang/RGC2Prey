@@ -680,7 +680,6 @@ class RGCrfArray:
         self.grid_centers = precompute_grid_centers(self.target_height, self.target_width, x_min=xlim[0], x_max=xlim[1],
                                             y_min=ylim[0], y_max=ylim[1], grid_size_fac=grid_size_fac)
         
-        logging.info( f"   subrocessing...1.2")
 
         # Generate grid2value mapping and map function
         if grid_generate_method == 'closest':
@@ -715,8 +714,12 @@ class RGCrfArray:
 
 
         # Generate multi_opt_sf and tf arrays
+        logging.info( f"   subrocessing...1.2")
         self.multi_opt_sf = self._create_multi_opt_sf()
+        logging.info( f"   subrocessing...1.3")
         self.tf = self._create_temporal_filter()
+        logging.info( f"   subrocessing...1.4")
+
 
 
     def _create_multi_opt_sf(self):
