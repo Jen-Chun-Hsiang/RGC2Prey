@@ -149,7 +149,7 @@ def main():
     coord_mat_file = f'/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/selected_points_summary_{args.coord_adj_type}.mat'   #selected_points_summary.mat
     video_save_folder = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/Results/Videos/RFs/'
 
-    initialize_logging(log_folder=log_save_folder, experiment_name=args.experiment_name)
+    initialize_logging(log_save_folder=log_save_folder, experiment_name=args.experiment_name)
     process_seed(args.seed)
     
     if args.is_GPU:

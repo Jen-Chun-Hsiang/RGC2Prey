@@ -14,6 +14,7 @@ from models.rgc2behavior import CNN_LSTM_ObjectLocation
 from utils.utils import plot_two_path_comparison
 from utils.data_handling import CheckpointLoader
 from utils.tools import MovieGenerator
+from utils.initialization import process_seed, initialize_logging
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Script for Model Training to get 3D RF in simulation")
@@ -57,15 +58,8 @@ def run_experiment(experiment_name, noise_level=None):
         file_name = f'{experiment_name}_noise{noise_level}_cricket_location_prediction'
         is_add_noise = True
 
-    # Setup logging
-    timestr = datetime.now().strftime('%Y%m%d_%H%M%S')
-    log_filename = os.path.join(log_save_folder, f'{file_name}_visualization_log_{timestr}.txt')
-
-    logging.basicConfig(filename=log_filename,
-                        level=logging.INFO,
-                        format='%(asctime)s %(levelname)s:%(message)s')
-    
-    logging.info( f"Exp: {experiment_name} Noise level: {noise_level} type: {type(noise_level)}\n")
+    initialize_logging(log_save_folder=log_save_folder, experiment_name=f'{experiment_name}_noise{noise_level}')
+    process_seed(args.seed)
     
     # Load checkpoint
     checkpoint_loader = CheckpointLoader(checkpoint_filename)

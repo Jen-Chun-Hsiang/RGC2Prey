@@ -55,13 +55,12 @@ def process_seed(seed_input):
         print(f"Error: {e}")
 
 
-def initialize_logging(args, log_save_folder):
+def initialize_logging(experiment_name, log_save_folder):
     """
     Initialize logging for the script by creating a timestamped log file.
 
     Parameters:
-        args: argparse.Namespace
-            The parsed command-line arguments containing `experiment_name`.
+        experiment_name:
         log_save_folder: str
             The folder where log files will be saved.
 
@@ -72,7 +71,7 @@ def initialize_logging(args, log_save_folder):
     timestr = datetime.now().strftime('%Y%m%d_%H%M%S')
 
     # Construct the full path for the log file
-    file_name = f'{args.experiment_name}_cricket_location_prediction'
+    file_name = f'{experiment_name}_cricket_location_prediction'
     log_filename = os.path.join(log_save_folder, f'{file_name}_training_log_{timestr}.txt')
 
     # Setup logging
