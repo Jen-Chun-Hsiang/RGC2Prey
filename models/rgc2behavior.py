@@ -51,6 +51,68 @@ class ParallelCNNFeatureExtractor(nn.Module):
         x = self._forward_conv_layers(x)
         x = self.fc(x)  # Project to feature vector of specified size
         return x
+    
+
+class ParallelCNNFeatureExtractor2(nn.Module):
+    def __init__(self, input_height=24, input_width=32, conv_out_channels=16, fc_out_features=128):
+        super(ParallelCNNFeatureExtractor2, self).__init__()
+        
+        # Define parallel convolution layers with different kernel sizes (Series A)
+        conv_out_channels_a = int(conv_out_channels*0.5)
+        self.conv1_a = nn.Conv2d(1, conv_out_channels_a, kernel_size=4, stride=2, padding=0)
+        self.bn1_a = nn.BatchNorm2d(conv_out_channels_a)
+        
+        self.conv2_a = nn.Conv2d(1, conv_out_channels_a, kernel_size=4, dilation=4, stride=8, padding=4)
+        self.bn2_a = nn.BatchNorm2d(conv_out_channels_a)
+        
+        self.conv3_a = nn.Conv2d(1, conv_out_channels_a, kernel_size=4, dilation=8, stride=16, padding=8)
+        self.bn3_a = nn.BatchNorm2d(conv_out_channels_a)
+        
+        # Define additional parallel convolution layers (Series B)
+        conv_out_channels_b = conv_out_channels
+        self.conv1_b = nn.Conv2d(conv_out_channels_a, conv_out_channels_b, kernel_size=4, stride=1, padding=0)
+        self.bn1_b = nn.BatchNorm2d(conv_out_channels_b)
+        
+        self.conv2_b = nn.Conv2d(conv_out_channels_a, conv_out_channels_b, kernel_size=3, stride=1, padding=0)
+        self.bn2_b = nn.BatchNorm2d(conv_out_channels_b)
+        
+        self.conv3_b = nn.Conv2d(conv_out_channels_a, conv_out_channels_b, kernel_size=2, stride=1, padding=0)
+        self.bn3_b = nn.BatchNorm2d(conv_out_channels_b)
+        
+        # Determine the flattened feature size after the convolution and pooling layers
+        with torch.no_grad():
+            mock_input = torch.zeros(1, 1, input_height, input_width)
+            mock_output = self._forward_conv_layers(mock_input)
+            self.flat_feature_size = mock_output.size(1)  # Total flattened size after concatenation
+
+        # Fully connected layer based on the flattened feature size
+        self.fc = nn.Linear(self.flat_feature_size, fc_out_features)
+
+    def _forward_conv_layers(self, x):
+        """Forward pass through each convolutional layer, flatten, and concatenate their outputs."""
+        # Series A
+        x1 = torch.relu(self.bn1_a(self.conv1_a(x)))
+        x2 = torch.relu(self.bn2_a(self.conv2_a(x)))
+        x3 = torch.relu(self.bn3_a(self.conv3_a(x)))
+        
+        # Series B
+        x1 = torch.relu(self.bn1_b(self.conv1_b(x1)))
+        x2 = torch.relu(self.bn2_b(self.conv2_b(x2)))
+        x3 = torch.relu(self.bn3_b(self.conv3_b(x3)))
+        
+        x1_flat = x1.view(x1.size(0), -1)
+        x2_flat = x2.view(x2.size(0), -1)
+        x3_flat = x3.view(x3.size(0), -1)
+        
+        # Concatenate flattened features from both series
+        x = torch.cat((x1_flat, x2_flat, x3_flat), dim=1)
+        return x
+
+    def forward(self, x):
+        x = self._forward_conv_layers(x)
+        x = self.fc(x)  # Project to feature vector of specified size
+        return x
+
 
 
 class FullSampleNormalization(nn.Module):
