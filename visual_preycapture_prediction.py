@@ -63,7 +63,7 @@ def run_experiment(experiment_name, noise_level=None):
     
     # Load checkpoint
     if experiment_name.startswith('1229'):
-        checkpoint_filename = os.path.join(checkpoint_path, f'{file_name}_checkpoint_epoch_{epoch_number}.pth')
+        checkpoint_filename = os.path.join(checkpoint_path, f'{experiment_name}_cricket_location_prediction_checkpoint_epoch_{epoch_number}.pth')
     else:
         checkpoint_filename = os.path.join(checkpoint_path, f'{experiment_name}_checkpoint_epoch_{epoch_number}.pth')
     checkpoint_loader = CheckpointLoader(checkpoint_filename)
