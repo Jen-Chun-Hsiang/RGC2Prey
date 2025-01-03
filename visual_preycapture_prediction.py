@@ -189,7 +189,7 @@ def run_experiment(experiment_name, noise_level=None):
             syn_movie = syn_movie.squeeze().cpu().numpy()
             inputs = inputs.squeeze().cpu().numpy()
             scaling_factors = scaling_factors.squeeze().cpu().numpy()
-            data_movie = MovieGenerator(frame_width, frame_height, fps, video_save_folder, bls_tag=f'{experiment_name}-{epoch_number}',
+            data_movie = MovieGenerator(frame_width, frame_height, fps, video_save_folder, bls_tag=f'{file_name}_{epoch_number}',
                                     grid_generate_method=args.grid_generate_method)
                                 
             data_movie.generate_movie(inputs, syn_movie, true_path, bg_path, predicted_path, scaling_factors, video_id=batch_idx)
