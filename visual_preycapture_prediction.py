@@ -52,6 +52,9 @@ def run_experiment(experiment_name, noise_level=None):
     mat_save_folder = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/Results/Mats/'
     log_save_folder  = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/Results/Prints/'
 
+    initialize_logging(log_save_folder=log_save_folder, experiment_name=f'{experiment_name}_{noise_flag}')
+
+    logging.info( f"{file_name} processing...-2")
     checkpoint_filename = os.path.join(checkpoint_path, f'{experiment_name}_checkpoint_epoch_{epoch_number}.pth')
     if noise_level is not None:
         file_name = f'{experiment_name}_noise{noise_level}_cricket_location_prediction'
@@ -60,7 +63,7 @@ def run_experiment(experiment_name, noise_level=None):
     else:
         noise_flag = f'noise0'
 
-    initialize_logging(log_save_folder=log_save_folder, experiment_name=f'{experiment_name}_{noise_flag}')
+    logging.info( f"{file_name} processing...-1")
     
     # Load checkpoint
     checkpoint_loader = CheckpointLoader(checkpoint_filename)
