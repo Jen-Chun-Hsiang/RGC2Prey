@@ -86,7 +86,7 @@ def run_experiment(experiment_name, noise_level=None):
         args.seed = '42'
     process_seed(args.seed)
 
-    logging.info( f"{file_name} processing...1")
+    logging.info( f"{file_name} processing...1 seed:{args.seed}")
     
     sf_param_table = pd.read_excel(rf_params_file, sheet_name='SF_params', usecols='A:L')
     tf_param_table = pd.read_excel(rf_params_file, sheet_name='TF_params', usecols='A:I')
@@ -156,7 +156,7 @@ def run_experiment(experiment_name, noise_level=None):
     
     test_losses = np.array(test_losses)
     training_losses = np.array(training_losses)
-    save_path = os.path.join(mat_save_folder, f'{experiment_name}_{epoch_number}_prediction_error.mat')
+    save_path = os.path.join(mat_save_folder, f'{file_name}_{epoch_number}_prediction_error.mat')
     savemat(save_path, {'test_losses': test_losses, 'training_losses': training_losses})
 
     logging.info( f"{file_name} processing...7")
