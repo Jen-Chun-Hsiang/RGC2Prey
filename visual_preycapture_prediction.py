@@ -237,7 +237,7 @@ def run_experiment(experiment_name, noise_level=None):
         plt.legend()
 
         # Save the plot
-        save_path = os.path.join(test_save_folder, f'{experiment_name}_{epoch_number}_prediction_plot_sample_{batch_idx + 1}.png')
+        save_path = os.path.join(test_save_folder, f'{file_name}_{epoch_number}_prediction_plot_sample_{batch_idx + 1}.png')
         plt.savefig(save_path, bbox_inches="tight")
         plt.close()
 
