@@ -57,7 +57,7 @@ def run_experiment(experiment_name, noise_level=None):
         is_add_noise = True
         noise_flag = f'noise{noise_level}'
     else:
-        noise_flag = f'noise0'
+        noise_flag = 'noise0'
     initialize_logging(log_save_folder=log_save_folder, experiment_name=f'{experiment_name}_{noise_flag}')
 
     logging.info( f"{file_name} processing...-1")
