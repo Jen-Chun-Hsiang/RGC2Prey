@@ -59,7 +59,7 @@ def run_experiment(experiment_name, noise_level=None):
         file_name = f'{experiment_name}_cricket_location_prediction'
     initialize_logging(log_save_folder=log_save_folder, experiment_name=file_name)
 
-    logging.info( f"{file_name} processing...-1")
+    logging.info( f"{file_name} processing...-1 noise:{noise_level} type:{type(noise_level)}")
     
     # Load checkpoint
     checkpoint_filename = os.path.join(checkpoint_path, f'{experiment_name}_checkpoint_epoch_{epoch_number}.pth')
