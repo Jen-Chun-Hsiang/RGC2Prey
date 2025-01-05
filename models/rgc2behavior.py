@@ -125,14 +125,19 @@ class FullSampleNormalization(nn.Module):
 # Full CNN-LSTM model for predicting (x, y) coordinates
 class CNN_LSTM_ObjectLocation(nn.Module):
     def __init__(self, cnn_feature_dim=128, lstm_hidden_size=64, lstm_num_layers=2, output_dim=2,
-                 input_height=24, input_width=32, conv_out_channels=32, is_input_norm=False, is_seq_reshape=False):
+                 input_height=24, input_width=32, conv_out_channels=32, is_input_norm=False, is_seq_reshape=False, CNNextractor_version=1):
         super(CNN_LSTM_ObjectLocation, self).__init__()
         self.is_input_norm = is_input_norm
         if is_input_norm:
             #self.input_norm = nn.InstanceNorm2d(1)  # Normalize each sample independently on (C, H, W)
             self.input_norm = FullSampleNormalization()  # Normalizes entire sample
-        self.cnn = ParallelCNNFeatureExtractor(input_height=input_height, input_width=input_width,conv_out_channels=conv_out_channels,
-                                       fc_out_features=cnn_feature_dim)  # Assume CNNFeatureExtractor outputs cnn_feature_dim
+        self.CNNextractor_version = CNNextractor_version
+        if self.CNNextractor_version == 1:
+            self.cnn = ParallelCNNFeatureExtractor(input_height=input_height, input_width=input_width,conv_out_channels=conv_out_channels,
+                                        fc_out_features=cnn_feature_dim)  # Assume CNNFeatureExtractor outputs cnn_feature_dim
+        elif self.CNNextractor_version == 2:
+            self.cnn = ParallelCNNFeatureExtractor2(input_height=input_height, input_width=input_width,conv_out_channels=conv_out_channels,
+                                        fc_out_features=cnn_feature_dim)  # Assume CNNFeatureExtractor outputs cnn_feature_dim
         self.lstm = nn.LSTM(input_size=cnn_feature_dim, hidden_size=lstm_hidden_size, num_layers=lstm_num_layers, batch_first=True)
         self.lstm_norm = nn.LayerNorm(lstm_hidden_size)
         self.fc1 = nn.Linear(lstm_hidden_size, lstm_hidden_size)  # Output layer for (x, y) coordinates

@@ -106,6 +106,7 @@ def parse_args():
     parser.add_argument('--conv_out_channels', type=int, default=16, help="Number of output channel in convultion layers.")
     parser.add_argument('--is_seq_reshape', action='store_true', help="Use reshape with sequence to remove for loop")
     parser.add_argument('--is_input_norm', action='store_true', help="Normalize inputs to the CNN.")
+    parser.add_argument('--cnn_extractor_version', type=int, default=1, help="Versioin of CNN extractor")
 
     # Model training parameters
     parser.add_argument('--batch_size', type=int, default=4, help="Batch size for dataloader")
@@ -287,7 +288,7 @@ def main():
     model = CNN_LSTM_ObjectLocation(cnn_feature_dim=args.cnn_feature_dim, lstm_hidden_size=args.lstm_hidden_size,
                                      lstm_num_layers=args.lstm_num_layers, output_dim=args.output_dim,
                                     input_height=grid_width, input_width=grid_height, conv_out_channels=args.conv_out_channels,
-                                    is_input_norm=args.is_input_norm, is_seq_reshape=args.is_seq_reshape)
+                                    is_input_norm=args.is_input_norm, is_seq_reshape=args.is_seq_reshape, CNNextractor_version=args.cnn_extractor_version)
     
     logging.info( f"{args.experiment_name} processing...10")
     model = model.to(device)
