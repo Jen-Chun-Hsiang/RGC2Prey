@@ -243,9 +243,9 @@ class ParallelCNNFeatureExtractor4(nn.Module):
         x3 = torch.relu(self.bn3_b(self.conv3_b(x3)))
 
         # Series C
-        x1 = torch.relu(self.bn1_c(self.conv1_b(x1)))
-        x2 = torch.relu(self.bn2_c(self.conv2_b(x2)))
-        x3 = torch.relu(self.bn3_c(self.conv3_b(x3)))
+        x1 = torch.relu(self.bn1_c(self.conv1_c(x1)))
+        x2 = torch.relu(self.bn2_c(self.conv2_c(x2)))
+        x3 = torch.relu(self.bn3_c(self.conv3_c(x3)))
         
         x1_flat = x1.view(x1.size(0), -1)
         x2_flat = x2.view(x2.size(0), -1)
@@ -319,9 +319,9 @@ class ParallelCNNFeatureExtractor5(nn.Module):
         x3_b = torch.relu(self.bn3_b(self.conv3_b(x3)))
 
         # Series C
-        x1_c = torch.relu(self.bn1_c(self.conv1_b(x1_b)))
-        x2_c = torch.relu(self.bn2_c(self.conv2_b(x2_b)))
-        x3_c = torch.relu(self.bn3_c(self.conv3_b(x3_b)))
+        x1_c = torch.relu(self.bn1_c(self.conv1_c(x1_b)))
+        x2_c = torch.relu(self.bn2_c(self.conv2_c(x2_b)))
+        x3_c = torch.relu(self.bn3_c(self.conv3_c(x3_b)))
         
         x1_b_flat = x1_b.view(x1_b.size(0), -1)
         x2_b_flat = x2_b.view(x2_b.size(0), -1)
