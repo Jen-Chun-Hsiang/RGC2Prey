@@ -116,7 +116,7 @@ class ParallelCNNFeatureExtractor2(nn.Module):
 
 class ParallelCNNFeatureExtractor3(nn.Module):
     def __init__(self, input_height=24, input_width=32, conv_out_channels=16, fc_out_features=128):
-        super(ParallelCNNFeatureExtractor2, self).__init__()
+        super(ParallelCNNFeatureExtractor3, self).__init__()
         
         # Define parallel convolution layers with different kernel sizes (Series A)
         conv_out_channels_a = int(conv_out_channels*0.5)
@@ -187,7 +187,7 @@ class ParallelCNNFeatureExtractor3(nn.Module):
 
 class ParallelCNNFeatureExtractor4(nn.Module):
     def __init__(self, input_height=24, input_width=32, conv_out_channels=16, fc_out_features=128):
-        super(ParallelCNNFeatureExtractor2, self).__init__()
+        super(ParallelCNNFeatureExtractor4, self).__init__()
         
         # Define parallel convolution layers with different kernel sizes (Series A)
         conv_out_channels_a = int(conv_out_channels*0.5)
@@ -263,7 +263,7 @@ class ParallelCNNFeatureExtractor4(nn.Module):
 
 class ParallelCNNFeatureExtractor5(nn.Module):
     def __init__(self, input_height=24, input_width=32, conv_out_channels=16, fc_out_features=128):
-        super(ParallelCNNFeatureExtractor2, self).__init__()
+        super(ParallelCNNFeatureExtractor5, self).__init__()
         
         # Define parallel convolution layers with different kernel sizes (Series A)
         conv_out_channels_a = int(conv_out_channels*0.5)
@@ -358,15 +358,22 @@ class CNN_LSTM_ObjectLocation(nn.Module):
             #self.input_norm = nn.InstanceNorm2d(1)  # Normalize each sample independently on (C, H, W)
             self.input_norm = FullSampleNormalization()  # Normalizes entire sample
         self.CNNextractor_version = CNNextractor_version
-        if self.CNNextractor_version == 1:
+        if self.CNNextractor_version == 1:  # single layer
             self.cnn = ParallelCNNFeatureExtractor(input_height=input_height, input_width=input_width,conv_out_channels=conv_out_channels,
-                                        fc_out_features=cnn_feature_dim)  # Assume CNNFeatureExtractor outputs cnn_feature_dim
-        elif self.CNNextractor_version == 2:
+                                        fc_out_features=cnn_feature_dim)  
+        elif self.CNNextractor_version == 2:  # double layer
             self.cnn = ParallelCNNFeatureExtractor2(input_height=input_height, input_width=input_width,conv_out_channels=conv_out_channels,
                                         fc_out_features=cnn_feature_dim)  
-        elif self.CNNextractor_version == 3:
+        elif self.CNNextractor_version == 3:  # double layers + both flattern
             self.cnn = ParallelCNNFeatureExtractor3(input_height=input_height, input_width=input_width,conv_out_channels=conv_out_channels,
                                         fc_out_features=cnn_feature_dim)  
+        elif self.CNNextractor_version == 4:  # triple layers
+            self.cnn = ParallelCNNFeatureExtractor4(input_height=input_height, input_width=input_width,conv_out_channels=conv_out_channels,
+                                        fc_out_features=cnn_feature_dim)     
+        elif self.CNNextractor_version == 5:  # triple layers + 2 flatterned
+            self.cnn = ParallelCNNFeatureExtractor5(input_height=input_height, input_width=input_width,conv_out_channels=conv_out_channels,
+                                        fc_out_features=cnn_feature_dim)     
+
         self.lstm = nn.LSTM(input_size=cnn_feature_dim, hidden_size=lstm_hidden_size, num_layers=lstm_num_layers, batch_first=True)
         self.lstm_norm = nn.LayerNorm(lstm_hidden_size)
         self.fc1 = nn.Linear(lstm_hidden_size, lstm_hidden_size)  # Output layer for (x, y) coordinates
