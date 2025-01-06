@@ -112,7 +112,77 @@ class ParallelCNNFeatureExtractor2(nn.Module):
         x = self._forward_conv_layers(x)
         x = self.fc(x)  # Project to feature vector of specified size
         return x
+    
 
+class ParallelCNNFeatureExtractor3(nn.Module):
+    def __init__(self, input_height=24, input_width=32, conv_out_channels=16, fc_out_features=128):
+        super(ParallelCNNFeatureExtractor2, self).__init__()
+        
+        # Define parallel convolution layers with different kernel sizes (Series A)
+        conv_out_channels_a = int(conv_out_channels*0.5)
+        self.conv1_a = nn.Conv2d(1, conv_out_channels_a, kernel_size=4, stride=2, padding=0)
+        self.bn1_a = nn.BatchNorm2d(conv_out_channels_a)
+        
+        self.conv2_a = nn.Conv2d(1, conv_out_channels_a, kernel_size=4, dilation=4, stride=8, padding=4)
+        self.bn2_a = nn.BatchNorm2d(conv_out_channels_a)
+        
+        self.conv3_a = nn.Conv2d(1, conv_out_channels_a, kernel_size=4, dilation=8, stride=16, padding=8)
+        self.bn3_a = nn.BatchNorm2d(conv_out_channels_a)
+        
+        # Define additional parallel convolution layers (Series B)
+        conv_out_channels_b = conv_out_channels
+        self.conv1_b = nn.Conv2d(conv_out_channels_a, conv_out_channels_b, kernel_size=4, stride=1, padding=0)
+        self.bn1_b = nn.BatchNorm2d(conv_out_channels_b)
+        
+        self.conv2_b = nn.Conv2d(conv_out_channels_a, conv_out_channels_b, kernel_size=3, stride=1, padding=0)
+        self.bn2_b = nn.BatchNorm2d(conv_out_channels_b)
+        
+        self.conv3_b = nn.Conv2d(conv_out_channels_a, conv_out_channels_b, kernel_size=2, stride=1, padding=0)
+        self.bn3_b = nn.BatchNorm2d(conv_out_channels_b)
+
+        # Pooling layer to reduce spatial dimensions
+        self.pool = nn.MaxPool2d(2, 2)
+        
+        # Determine the flattened feature size after the convolution and pooling layers
+        with torch.no_grad():
+            mock_input = torch.zeros(1, 1, input_height, input_width)
+            mock_output = self._forward_conv_layers(mock_input)
+            self.flat_feature_size = mock_output.size(1)  # Total flattened size after concatenation
+
+        # Fully connected layer based on the flattened feature size
+        self.fc = nn.Linear(self.flat_feature_size, fc_out_features)
+
+    def _forward_conv_layers(self, x):
+        """Forward pass through each convolutional layer, flatten, and concatenate their outputs."""
+        # Series A
+        x1_a = torch.relu(self.bn1_a(self.conv1_a(x)))
+        x2_a = torch.relu(self.bn2_a(self.conv2_a(x)))
+        x3_a = torch.relu(self.bn3_a(self.conv3_a(x)))
+        
+        # Series B
+        x1_b = torch.relu(self.bn1_b(self.conv1_b(x1_a)))
+        x2_b = torch.relu(self.bn2_b(self.conv2_b(x2_a)))
+        x3_b = torch.relu(self.bn3_b(self.conv3_b(x3_a)))
+
+        x1_a = self.pool(x1_a)
+        x2_a = self.pool(x2_a)
+        x3_a = self.pool(x3_a)
+        x1_a_flat = x1_a.view(x1_a.size(0), -1)
+        x2_a_flat = x1_a.view(x1_a.size(0), -1)
+        x3_a_flat = x1_a.view(x1_a.size(0), -1)
+        
+        x1_b_flat = x1_b.view(x1_b.size(0), -1)
+        x2_b_flat = x2_b.view(x2_b.size(0), -1)
+        x3_b_flat = x3_b.view(x3_b.size(0), -1)
+        
+        # Concatenate flattened features from both series
+        x = torch.cat((x1_a_flat, x2_a_flat, x3_a_flat, x1_b_flat, x2_b_flat, x3_b_flat), dim=1)
+        return x
+
+    def forward(self, x):
+        x = self._forward_conv_layers(x)
+        x = self.fc(x)  # Project to feature vector of specified size
+        return x
 
 
 class FullSampleNormalization(nn.Module):
@@ -137,7 +207,10 @@ class CNN_LSTM_ObjectLocation(nn.Module):
                                         fc_out_features=cnn_feature_dim)  # Assume CNNFeatureExtractor outputs cnn_feature_dim
         elif self.CNNextractor_version == 2:
             self.cnn = ParallelCNNFeatureExtractor2(input_height=input_height, input_width=input_width,conv_out_channels=conv_out_channels,
-                                        fc_out_features=cnn_feature_dim)  # Assume CNNFeatureExtractor outputs cnn_feature_dim
+                                        fc_out_features=cnn_feature_dim)  
+        elif self.CNNextractor_version == 3:
+            self.cnn = ParallelCNNFeatureExtractor3(input_height=input_height, input_width=input_width,conv_out_channels=conv_out_channels,
+                                        fc_out_features=cnn_feature_dim)  
         self.lstm = nn.LSTM(input_size=cnn_feature_dim, hidden_size=lstm_hidden_size, num_layers=lstm_num_layers, batch_first=True)
         self.lstm_norm = nn.LayerNorm(lstm_hidden_size)
         self.fc1 = nn.Linear(lstm_hidden_size, lstm_hidden_size)  # Output layer for (x, y) coordinates
