@@ -128,7 +128,7 @@ def run_experiment(experiment_name, noise_level=None):
     model = CNN_LSTM_ObjectLocation(cnn_feature_dim=args.cnn_feature_dim, lstm_hidden_size=args.lstm_hidden_size,
                                      lstm_num_layers=args.lstm_num_layers, output_dim=args.output_dim,
                                     input_height=grid_width, input_width=grid_height, conv_out_channels=args.conv_out_channels,
-                                    is_input_norm=args.is_input_norm, is_seq_reshape=args.is_seq_reshape, cnn_extractor_version=args.cnn_extractor_version)
+                                    is_input_norm=args.is_input_norm, is_seq_reshape=args.is_seq_reshape, CNNextractor_version=args.cnn_extractor_version)
     optimizer = torch.optim.Adam(model.parameters())
     model, optimizer, _ = checkpoint_loader.load_checkpoint(model, optimizer)
     criterion = nn.MSELoss()
