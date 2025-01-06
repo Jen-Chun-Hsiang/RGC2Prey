@@ -168,8 +168,8 @@ class ParallelCNNFeatureExtractor3(nn.Module):
         x2_a = self.pool(x2_a)
         x3_a = self.pool(x3_a)
         x1_a_flat = x1_a.view(x1_a.size(0), -1)
-        x2_a_flat = x1_a.view(x1_a.size(0), -1)
-        x3_a_flat = x1_a.view(x1_a.size(0), -1)
+        x2_a_flat = x1_a.view(x2_a.size(0), -1)
+        x3_a_flat = x1_a.view(x3_a.size(0), -1)
         
         x1_b_flat = x1_b.view(x1_b.size(0), -1)
         x2_b_flat = x2_b.view(x2_b.size(0), -1)
