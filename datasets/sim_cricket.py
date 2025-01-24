@@ -356,8 +356,8 @@ class Cricket2RGCs(Dataset):
 
     def __getitem__(self, idx):
         syn_movie, path, path_bg, scaling_factors = self.movie_generator.generate()
-        logging.info( f"   subprocessing...5.1")
-        logging.info( f"    syn_movie size {syn_movie.shape()}")
+        logging.info( f"   subprocessing...6.1")
+        logging.info( f"    syn_movie size {syn_movie.shape}")
         if self.is_both_ON_OFF:  # Unified processing for ON and OFF
             grid_values_sequence_list = []
             multi_opt_sfs = [self.multi_opt_sf, self.multi_opt_sf_off]  # Combine ON and OFF
@@ -424,8 +424,8 @@ class Cricket2RGCs(Dataset):
                 self.grid_height
             ) 
                 
-        logging.info( f"    rgc_time size {rgc_time.shape()}")
-        logging.info( f"    grid_values_sequence size {grid_values_sequence.shape()}")
+        logging.info( f"    rgc_time size {rgc_time.shape}")
+        logging.info( f"    grid_values_sequence size {grid_values_sequence.shape}")
         path = path[-rgc_time.shape[1]:, :]/self.norm_path_fac
         path_bg = path_bg[-rgc_time.shape[1]:, :]/self.norm_path_fac    
 

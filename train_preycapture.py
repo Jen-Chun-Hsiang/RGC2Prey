@@ -231,10 +231,11 @@ def main():
                                 add_noise=args.add_noise, rgc_noise_std=args.rgc_noise_std, smooth_data=args.smooth_data,
                                 is_rectified=args.is_rectified)
     
-    raise ValueError(f"Temporal close exam processing...")
+    
     logging.info( f"{args.experiment_name} processing...6")
     # Visualize one data points
     sequence, path, path_bg, syn_movie, scaling_factors = train_dataset[0]
+    raise ValueError(f"Temporal close exam processing...")
     if is_show_movie_frames:
         for i in range(syn_movie.shape[0]):
             Timg = syn_movie[i, :, :]
