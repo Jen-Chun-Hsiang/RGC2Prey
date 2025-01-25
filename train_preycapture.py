@@ -117,6 +117,7 @@ def parse_args():
     parser.add_argument('--schedule_method', type=str, default='RLRP', help='Method used for scheduler')
     parser.add_argument('--schedule_factor', type=float, default=0.2, help='Scheduler reduction factor')
     parser.add_argument('--learning_rate', type=float, default=0.001, help='Learning rate')
+    parser.add_argument('--min_lr', type='float', default=1e-6, help="minimum learning rate for CAWR")
     parser.add_argument('--is_gradient_clip', action='store_true', help="Apply gradient clip to training process")
     parser.add_argument('--max_norm', type=float, default=5.0, help='Value for clipping by Norm')
     parser.add_argument('--do_not_train', action='store_true', help='debug for initialization')
@@ -300,7 +301,7 @@ def main():
     if args.schedule_method.lower() == 'rlrp':
         scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=args.schedule_factor, patience=5)
     elif args.schedule_method.lower() == 'cawr':
-        scheduler = optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer, T_0=5, T_mult=2, eta_min=1e-6)
+        scheduler = optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer, T_0=5, T_mult=2, eta_min=args.min_lr)
 
     logging.info( f"{args.experiment_name} processing...11")
     if args.do_not_train:
