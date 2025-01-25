@@ -316,7 +316,7 @@ class Cricket2RGCs(Dataset):
                  movie_generator, grid_size_fac=1, is_norm_coords=False, is_syn_mov_shown=False, fr2spikes=False,
                  multi_opt_sf_off=None, tf_off=None, map_func_off=None, grid2value_mapping_off=None, 
                  is_both_ON_OFF=False, quantize_scale = 1, add_noise=False, rgc_noise_std=0.0, smooth_data=False, 
-                 smooth_kernel_size=20, sampleing_rate=100, smooth_sigma=0.05, is_rectified=True):
+                 smooth_kernel_size=20, sampleing_rate=100, smooth_sigma=0.05, is_rectified=True, is_direct_image=False):
         self.num_samples = num_samples
         self.multi_opt_sf = torch.from_numpy(multi_opt_sf).float()
         self.tf = torch.from_numpy(tf.copy()).float().view(1, 1, -1)
@@ -349,6 +349,7 @@ class Cricket2RGCs(Dataset):
         self.sampleing_rate = sampleing_rate
         self.smooth_sigma = smooth_sigma
         self.is_rectified = is_rectified
+        self.is_direct_image = is_direct_image
 
 
     def __len__(self):
@@ -358,7 +359,20 @@ class Cricket2RGCs(Dataset):
         syn_movie, path, path_bg, scaling_factors = self.movie_generator.generate()
         logging.info( f"   subprocessing...6.1")
         logging.info( f"    syn_movie size {syn_movie.shape}")
-        if self.is_both_ON_OFF:  # Unified processing for ON and OFF
+        
+        if self.is_direct_image:
+            sf_frame = torch.einsum('whn,thw->nt', self.multi_opt_sf, syn_movie)
+            sf_frame = sf_frame.unsqueeze(0) 
+            tf = np.repeat(self.tf, sf_frame.shape[1], axis=0)
+            rgc_time = F.conv1d(sf_frame, tf, stride=1, padding=0, groups=sf_frame.shape[1]).squeeze()
+            grid_values_sequence = self.map_func(
+                rgc_time,  # Shape: (time_steps', num_points)
+                self.grid2value_mapping,  # Shape: (num_points, target_width * target_height)
+                self.grid_width,
+                self.grid_height
+            ) 
+
+        elif self.is_both_ON_OFF:  # Unified processing for ON and OFF
             grid_values_sequence_list = []
             multi_opt_sfs = [self.multi_opt_sf, self.multi_opt_sf_off]  # Combine ON and OFF
             map_funcs = [self.map_func, self.map_func_off]
