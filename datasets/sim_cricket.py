@@ -369,7 +369,7 @@ class Cricket2RGCs(Dataset):
             tf = np.repeat(self.tf, sf_frame.shape[1], axis=0)
             rgc_time = F.conv1d(sf_frame, tf, stride=1, padding=0, groups=sf_frame.shape[1]).squeeze().view(height, width, -1)  #[240, 320, 202]
             rgc_time = rgc_time.permute(2, 1, 0).unsqueeze(0)  # Shape: [1, 202, 320, 240]
-            rgc_time = F.interpolate(rgc_time, size=(120, 90), mode='bilinear', align_corners=False)
+            rgc_time = F.interpolate(rgc_time, size=(120, 90), mode='bilinear', align_corners=False).squeeze()
 
 
             logging.info( f"    rgc_time size {rgc_time.shape}")
