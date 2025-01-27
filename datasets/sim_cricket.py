@@ -358,26 +358,14 @@ class Cricket2RGCs(Dataset):
     def __getitem__(self, idx):
         syn_movie, path, path_bg, scaling_factors = self.movie_generator.generate()
         logging.info( f"   subprocessing...6.1")
-        logging.info( f"    syn_movie size {syn_movie.shape}")
-        # logging.info( f"    tf size {tf.shape}")
 
         if self.is_direct_image:
-            logging.info("direct image...")
-            logging.info(f'grid_width: {self.grid_width}')
-            logging.info(f'grid_height: {self.grid_height}')
             time, height, width = syn_movie.shape[0], syn_movie.shape[1], syn_movie.shape[2]
             sf_frame = syn_movie.permute(1, 2, 0).view(-1, time).unsqueeze(0) 
             tf = np.repeat(self.tf, sf_frame.shape[1], axis=0)
             rgc_time = F.conv1d(sf_frame, tf, stride=1, padding=0, groups=sf_frame.shape[1]).squeeze().view(height, width, -1)  #[240, 320, 202]
             rgc_time = rgc_time.permute(2, 1, 0).unsqueeze(0)  # Shape: [1, 202, 320, 240]
-            logging.info( f"    rgc_time size {rgc_time.shape}")
             grid_values_sequence = F.interpolate(rgc_time, size=(self.grid_height, self.grid_width), mode='bilinear', align_corners=False).squeeze()
-            # grid_values_sequence = self.map_func(
-            #     rgc_time,  # Shape: (time_steps', num_points)
-            #     self.grid2value_mapping,  # Shape: (num_points, target_width * target_height)
-            #     self.grid_width,
-            #     self.grid_height
-            # ) 
 
         elif self.is_both_ON_OFF:  # Unified processing for ON and OFF
             grid_values_sequence_list = []
@@ -444,9 +432,7 @@ class Cricket2RGCs(Dataset):
                 self.grid_width,
                 self.grid_height
             ) 
-                
-        logging.info( f"    rgc_time size {rgc_time.shape}")
-        logging.info( f"    grid_values_sequence size {grid_values_sequence.shape}")
+            
         path = path[-rgc_time.shape[1]:, :]/self.norm_path_fac
         path_bg = path_bg[-rgc_time.shape[1]:, :]/self.norm_path_fac    
 
