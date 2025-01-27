@@ -365,7 +365,7 @@ class Cricket2RGCs(Dataset):
             time, height, width = syn_movie.shape[0], syn_movie.shape[1], syn_movie.shape[2]
             sf_frame = syn_movie.permute(1, 2, 0).view(-1, time).unsqueeze(0) 
             tf = np.repeat(self.tf, sf_frame.shape[1], axis=0)
-            rgc_time = F.conv1d(sf_frame, tf, stride=1, padding=0, groups=sf_frame.shape[1]).squeeze()
+            rgc_time = F.conv1d(sf_frame, tf, stride=1, padding=0, groups=sf_frame.shape[1]).squeeze().view(height, width, -1)
 
             logging.info( f"    rgc_time size {rgc_time.shape}")
             # grid_values_sequence = self.map_func(
