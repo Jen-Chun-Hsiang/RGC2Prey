@@ -316,7 +316,8 @@ class Cricket2RGCs(Dataset):
                  movie_generator, grid_size_fac=1, is_norm_coords=False, is_syn_mov_shown=False, fr2spikes=False,
                  multi_opt_sf_off=None, tf_off=None, map_func_off=None, grid2value_mapping_off=None, 
                  is_both_ON_OFF=False, quantize_scale = 1, add_noise=False, rgc_noise_std=0.0, smooth_data=False, 
-                 smooth_kernel_size=20, sampleing_rate=100, smooth_sigma=0.05, is_rectified=True, is_direct_image=False):
+                 smooth_kernel_size=20, sampleing_rate=100, smooth_sigma=0.05, is_rectified=True, is_direct_image=False,
+                 grid_size_fac=1):
         self.num_samples = num_samples
         self.multi_opt_sf = torch.from_numpy(multi_opt_sf).float()
         self.tf = torch.from_numpy(tf.copy()).float().view(1, 1, -1)
@@ -350,6 +351,7 @@ class Cricket2RGCs(Dataset):
         self.smooth_sigma = smooth_sigma
         self.is_rectified = is_rectified
         self.is_direct_image = is_direct_image
+        self.grid_size_fac = grid_size_fac
 
 
     def __len__(self):
@@ -365,7 +367,10 @@ class Cricket2RGCs(Dataset):
             time, height, width = syn_movie.shape[0], syn_movie.shape[1], syn_movie.shape[2]
             sf_frame = syn_movie.permute(1, 2, 0).view(-1, time).unsqueeze(0) 
             tf = np.repeat(self.tf, sf_frame.shape[1], axis=0)
-            rgc_time = F.conv1d(sf_frame, tf, stride=1, padding=0, groups=sf_frame.shape[1]).squeeze().view(height, width, -1)
+            rgc_time = F.conv1d(sf_frame, tf, stride=1, padding=0, groups=sf_frame.shape[1]).squeeze().view(height, width, -1)  #[240, 320, 202]
+            rgc_time = rgc_time.permute(2, 1, 0).unsqueeze(0)  # Shape: [1, 202, 320, 240]
+            rgc_time = F.interpolate(rgc_time, size=(120, 90), mode='bilinear', align_corners=False)
+
 
             logging.info( f"    rgc_time size {rgc_time.shape}")
             # grid_values_sequence = self.map_func(
