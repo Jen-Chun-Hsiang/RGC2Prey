@@ -371,10 +371,7 @@ class Cricket2RGCs(Dataset):
             rgc_time = F.conv1d(sf_frame, tf, stride=1, padding=0, groups=sf_frame.shape[1]).squeeze().view(height, width, -1)  #[240, 320, 202]
             rgc_time = rgc_time.permute(2, 1, 0).unsqueeze(0)  # Shape: [1, 202, 320, 240]
             logging.info( f"    rgc_time size {rgc_time.shape}")
-            rgc_time = F.interpolate(rgc_time, size=(120, 90), mode='bilinear', align_corners=False).squeeze()
-
-
-            logging.info( f"    rgc_time size {rgc_time.shape}")
+            grid_values_sequence = F.interpolate(rgc_time, size=(self.grid_height, self.grid_width), mode='bilinear', align_corners=False).squeeze()
             # grid_values_sequence = self.map_func(
             #     rgc_time,  # Shape: (time_steps', num_points)
             #     self.grid2value_mapping,  # Shape: (num_points, target_width * target_height)
