@@ -75,6 +75,7 @@ def parse_args():
     parser.add_argument('--rgc_noise_std', type=float, default=0.0, help="Level of noise added to the RGC outputs")
     parser.add_argument('--smooth_data', action='store_true', help='Smooth data of RGC outputs, especially quantized one')
     parser.add_argument('--is_rectified', action='store_true', help='Rectify the RGC outputs')
+    parser.add_argument('--is_direct_image', action='store_true', help='By passing RGC convolution')
     
     # Arguments for RGCrfArray
     parser.add_argument('--rgc_array_rf_size', type=tuple, default=default_rg_array_rf_size, help="Receptive field size (height, width).")
@@ -230,7 +231,7 @@ def main():
                                 is_norm_coords=args.is_norm_coords, is_syn_mov_shown=True, fr2spikes=args.fr2spikes,
                                 is_both_ON_OFF=args.is_both_ON_OFF, quantize_scale=args.quantize_scale, 
                                 add_noise=args.add_noise, rgc_noise_std=args.rgc_noise_std, smooth_data=args.smooth_data,
-                                is_rectified=args.is_rectified)
+                                is_rectified=args.is_rectified, is_direct_image=args.is_direct_image)
     
     
     logging.info( f"{args.experiment_name} processing...6")
