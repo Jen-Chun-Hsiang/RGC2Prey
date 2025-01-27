@@ -359,7 +359,7 @@ class Cricket2RGCs(Dataset):
         syn_movie, path, path_bg, scaling_factors = self.movie_generator.generate()
         logging.info( f"   subprocessing...6.1")
         logging.info( f"    syn_movie size {syn_movie.shape}")
-        logging.info( f"    tf size {tf.shape}")
+        # logging.info( f"    tf size {tf.shape}")
 
         if self.is_direct_image:
             time, height, width = syn_movie.shape[0], syn_movie.shape[1], syn_movie.shape[2]
