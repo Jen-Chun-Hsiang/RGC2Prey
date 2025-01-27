@@ -359,10 +359,12 @@ class Cricket2RGCs(Dataset):
         syn_movie, path, path_bg, scaling_factors = self.movie_generator.generate()
         logging.info( f"   subprocessing...6.1")
         logging.info( f"    syn_movie size {syn_movie.shape}")
+        logging.info( f"    tf size {tf.shape}")
         
         if self.is_direct_image:
             sf_frame = torch.einsum('whn,thw->nt', self.multi_opt_sf, syn_movie)
-            sf_frame = sf_frame.unsqueeze(0) 
+            syn_movie.permute(0, 2, 3, 1)
+            sf_frame = syn_movie.permute(1, 2, 0).unsqueeze(0) 
             tf = np.repeat(self.tf, sf_frame.shape[1], axis=0)
             rgc_time = F.conv1d(sf_frame, tf, stride=1, padding=0, groups=sf_frame.shape[1]).squeeze()
             grid_values_sequence = self.map_func(
