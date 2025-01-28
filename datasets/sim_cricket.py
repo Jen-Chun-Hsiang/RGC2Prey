@@ -357,7 +357,7 @@ class Cricket2RGCs(Dataset):
 
     def __getitem__(self, idx):
         syn_movie, path, path_bg, scaling_factors = self.movie_generator.generate()
-        logging.info( f"   subprocessing...6.1")
+        # logging.info( f"   subprocessing...6.1")
 
         if self.is_direct_image:
             time, height, width = syn_movie.shape[0], syn_movie.shape[1], syn_movie.shape[2]
@@ -432,7 +432,7 @@ class Cricket2RGCs(Dataset):
                 self.grid_width,
                 self.grid_height
             ) 
-            
+
         path = path[-rgc_time.shape[1]:, :]/self.norm_path_fac
         path_bg = path_bg[-rgc_time.shape[1]:, :]/self.norm_path_fac    
 
