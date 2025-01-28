@@ -87,6 +87,9 @@ def run_experiment(experiment_name, noise_level=None):
         args.is_input_norm = False
     if not hasattr(args, 'seed'):
         args.seed = '42'
+    if not hasattr(args, 'is_direct_image'):
+        args.is_direct_image = False
+        
     process_seed(args.seed)
 
     logging.info( f"{file_name} processing...1 seed:{args.seed}")
