@@ -142,7 +142,7 @@ def run_experiment(experiment_name, noise_level=None):
                                 movie_generator=movie_generator, grid_size_fac=args.grid_size_fac, is_norm_coords=args.is_norm_coords, 
                                 is_syn_mov_shown=False, fr2spikes=args.fr2spikes, is_both_ON_OFF=args.is_both_ON_OFF, 
                                 quantize_scale=args.quantize_scale, add_noise=is_add_noise, rgc_noise_std=noise_level, 
-                                smooth_data=args.smooth_data)
+                                smooth_data=args.smooth_data, is_rectified=args.is_rectified, is_direct_image=args.is_direct_image)
     test_loader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=True, 
                              num_workers=args.num_worker, pin_memory=True, persistent_workers=False, worker_init_fn=worker_init_fn)
 
@@ -170,7 +170,7 @@ def run_experiment(experiment_name, noise_level=None):
                                 movie_generator=movie_generator, grid_size_fac=args.grid_size_fac, is_norm_coords=args.is_norm_coords, 
                                 is_syn_mov_shown=True, fr2spikes=args.fr2spikes, is_both_ON_OFF=args.is_both_ON_OFF, 
                                 quantize_scale=args.quantize_scale, add_noise=is_add_noise, rgc_noise_std=noise_level, 
-                                smooth_data=args.smooth_data)
+                                smooth_data=args.smooth_data, is_rectified=args.is_rectified, is_direct_image=args.is_direct_image)
     test_loader = DataLoader(test_dataset, batch_size=1, shuffle=False, worker_init_fn=worker_init_fn)
 
     logging.info( f"{file_name} processing...8")
