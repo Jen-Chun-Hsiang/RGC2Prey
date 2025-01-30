@@ -152,7 +152,7 @@ def run_experiment(experiment_name, noise_level=None):
     logging.info( f"{file_name} processing...5")
     test_losses = [] 
 
-    for batch_idx, (inputs, true_path, _, _, _, _, _) in enumerate(test_loader):
+    for batch_idx, (inputs, true_path, _) in enumerate(test_loader):
         inputs, true_path = inputs.to(device), true_path.to(device)
         with torch.no_grad():
             predicted_path = model(inputs)
