@@ -89,7 +89,7 @@ def run_experiment(experiment_name, noise_level=None):
         args.seed = '42'
     if not hasattr(args, 'is_direct_image'):
         args.is_direct_image = False
-        
+
     process_seed(args.seed)
 
     logging.info( f"{file_name} processing...1 seed:{args.seed}")
@@ -151,7 +151,20 @@ def run_experiment(experiment_name, noise_level=None):
 
     logging.info( f"{file_name} processing...5")
     test_losses = [] 
-    for batch_idx, (inputs, true_path, _) in enumerate(test_loader):
+    all_paths = []
+    all_paths_bg = []
+    all_scaling_factors = []
+    for batch_idx, (inputs, true_path, path_bg, _, scaling_factors) in enumerate(test_loader):
+
+        path = true_path.reshape(1, -1)  # Ensure row vector
+        path_bg = path_bg.reshape(1, -1)  # Ensure row vector
+        scaling_factors = scaling_factors.reshape(1, -1)  # Ensure row vector
+
+        all_paths.append(path)
+        all_paths_bg.append(path_bg)
+        all_scaling_factors.append(scaling_factors)
+
+        true_path = torch.tensor(true_path, dtype=torch.float32)  # convert to torch due to different processing
         inputs, true_path = inputs.to(device), true_path.to(device)
         with torch.no_grad():
             predicted_path = model(inputs)
@@ -160,10 +173,16 @@ def run_experiment(experiment_name, noise_level=None):
 
     logging.info( f"{file_name} processing...6")
     
+    # Concatenate along rows
+    all_paths = np.vstack(all_paths)
+    all_paths_bg = np.vstack(all_paths_bg)
+    all_scaling_factors = np.vstack(all_scaling_factors)
+
     test_losses = np.array(test_losses)
     training_losses = np.array(training_losses)
     save_path = os.path.join(mat_save_folder, f'{file_name}_{epoch_number}_prediction_error.mat')
-    savemat(save_path, {'test_losses': test_losses, 'training_losses': training_losses})
+    savemat(save_path, {'test_losses': test_losses, 'training_losses': training_losses, 'all_paths': all_paths,
+                        'all_paths_bg': all_paths_bg, 'all_scaling_factors': all_scaling_factors})
 
     logging.info( f"{file_name} processing...7")
 
