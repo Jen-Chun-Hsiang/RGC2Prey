@@ -10,7 +10,7 @@ import logging
 from datasets.rgc_rf import map_to_fixed_grid_decay_batch, gaussian_multi, gaussian_temporalfilter, get_closest_indices, compute_distance_decay_matrix
 from datasets.rgc_rf import map_to_fixed_grid_closest_batch, create_hexagonal_centers, precompute_grid_centers, compute_circular_mask_matrix
 from datasets.rgc_rf import map_to_fixed_grid_circle_batch
-from utils.utils import get_random_file_path, get_image_number, load_mat_to_dataframe
+from utils.utils import get_random_file_path, get_image_number, load_mat_to_dataframe, get_filename_without_extension
 from utils.tools import gaussian_smooth_1d
 
 
@@ -356,7 +356,7 @@ class Cricket2RGCs(Dataset):
         return self.num_samples
 
     def __getitem__(self, idx):
-        syn_movie, path, path_bg, scaling_factors = self.movie_generator.generate()
+        syn_movie, path, path_bg, scaling_factors, bg_image_name, image_id = self.movie_generator.generate()
         # logging.info( f"   subprocessing...6.1")
 
         if self.is_direct_image:
@@ -437,7 +437,7 @@ class Cricket2RGCs(Dataset):
         path_bg = path_bg[-rgc_time.shape[1]:, :]/self.norm_path_fac    
 
         if self.is_syn_mov_shown:
-            return grid_values_sequence.permute(0, 2, 1).unsqueeze(1), path, path_bg, syn_movie, scaling_factors
+            return grid_values_sequence.permute(0, 2, 1).unsqueeze(1), path, path_bg, syn_movie, scaling_factors, bg_image_name, image_id
     
         else:
             return grid_values_sequence.permute(0, 2, 1).unsqueeze(1), torch.tensor(path, dtype=torch.float32), torch.tensor(path_bg, dtype=torch.float32)
@@ -557,6 +557,7 @@ class SynMovieGenerator:
         )
         
         # Correct for the cricket head position
+        bg_image_name = get_filename_without_extension(bottom_img_path)
         image_id = get_image_number(top_img_path)
 
         if self.is_reverse_xy:
@@ -567,7 +568,7 @@ class SynMovieGenerator:
         scaled_coord_corrections = coord_correction[np.newaxis, :] * scaling_factors[:, np.newaxis]
         path = path - self.correction_direction*scaled_coord_corrections
 
-        return syn_movie[:, 1, :, :], path, path_bg, scaling_factors
+        return syn_movie[:, 1, :, :], path, path_bg, scaling_factors, bg_image_name, image_id
     
 
 

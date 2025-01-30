@@ -154,7 +154,10 @@ def run_experiment(experiment_name, noise_level=None):
     all_paths = []
     all_paths_bg = []
     all_scaling_factors = []
-    for batch_idx, (inputs, true_path, path_bg, _, scaling_factors) in enumerate(test_loader):
+    all_bg_file = []
+    all_id_numbers = []
+
+    for batch_idx, (inputs, true_path, path_bg, _, scaling_factors, bg_image_name, image_id) in enumerate(test_loader):
 
         path = true_path.reshape(1, -1)  # Ensure row vector
         path_bg = path_bg.reshape(1, -1)  # Ensure row vector
@@ -163,6 +166,8 @@ def run_experiment(experiment_name, noise_level=None):
         all_paths.append(path)
         all_paths_bg.append(path_bg)
         all_scaling_factors.append(scaling_factors)
+        all_bg_file.append(bg_image_name)
+        all_id_numbers.append(image_id)
 
         true_path = torch.tensor(true_path, dtype=torch.float32)  # convert to torch due to different processing
         inputs, true_path = inputs.to(device), true_path.to(device)
@@ -177,12 +182,15 @@ def run_experiment(experiment_name, noise_level=None):
     all_paths = np.vstack(all_paths)
     all_paths_bg = np.vstack(all_paths_bg)
     all_scaling_factors = np.vstack(all_scaling_factors)
+    all_bg_file = np.array(all_bg_file, dtype=object)  # Keep as string array
+    all_id_numbers = np.array(all_id_numbers, dtype=int)  # Convert to int array
 
     test_losses = np.array(test_losses)
     training_losses = np.array(training_losses)
     save_path = os.path.join(mat_save_folder, f'{file_name}_{epoch_number}_prediction_error.mat')
     savemat(save_path, {'test_losses': test_losses, 'training_losses': training_losses, 'all_paths': all_paths,
-                        'all_paths_bg': all_paths_bg, 'all_scaling_factors': all_scaling_factors})
+                        'all_paths_bg': all_paths_bg, 'all_scaling_factors': all_scaling_factors, 'all_bg_file': all_bg_file,
+                        'all_id_numbers': all_id_numbers})
 
     logging.info( f"{file_name} processing...7")
 

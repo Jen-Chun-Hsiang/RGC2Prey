@@ -9,6 +9,19 @@ from scipy.io import loadmat
 import matplotlib.pyplot as plt
 
 
+def get_filename_without_extension(image_path: str) -> str:
+    """
+    Extracts the file name without the extension from an image path.
+
+    Args:
+        image_path (str): The full path of the image.
+
+    Returns:
+        str: The file name without extension.
+    """
+    return os.path.splitext(os.path.basename(image_path))[0]
+
+
 def get_random_file_path(folder_path):
     """
     Returns the path of a randomly sampled file from the specified folder.
