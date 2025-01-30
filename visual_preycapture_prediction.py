@@ -143,7 +143,7 @@ def run_experiment(experiment_name, noise_level=None):
     test_dataset = Cricket2RGCs(num_samples=num_sample, multi_opt_sf=multi_opt_sf, tf=tf, map_func=map_func,
                                 grid2value_mapping=grid2value_mapping, target_width=target_width, target_height=target_height,
                                 movie_generator=movie_generator, grid_size_fac=args.grid_size_fac, is_norm_coords=args.is_norm_coords, 
-                                is_syn_mov_shown=False, fr2spikes=args.fr2spikes, is_both_ON_OFF=args.is_both_ON_OFF, 
+                                is_syn_mov_shown=True, fr2spikes=args.fr2spikes, is_both_ON_OFF=args.is_both_ON_OFF, 
                                 quantize_scale=args.quantize_scale, add_noise=is_add_noise, rgc_noise_std=noise_level, 
                                 smooth_data=args.smooth_data, is_rectified=args.is_rectified, is_direct_image=args.is_direct_image)
     test_loader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=True, 
@@ -207,7 +207,7 @@ def run_experiment(experiment_name, noise_level=None):
     
     
     # Test model on samples
-    for batch_idx, (inputs, true_path, bg_path, syn_movie, scaling_factors) in enumerate(test_loader):
+    for batch_idx, (inputs, true_path, bg_path, syn_movie, scaling_factors, bg_image_name, image_id) in enumerate(test_loader):
         # inputs = inputs.to(args.device)
         true_path = true_path.squeeze(0).cpu().numpy()
         bg_path = bg_path.squeeze(0).cpu().numpy()
