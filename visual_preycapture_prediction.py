@@ -143,7 +143,7 @@ def run_experiment(experiment_name, noise_level=None):
     test_dataset = Cricket2RGCs(num_samples=num_sample, multi_opt_sf=multi_opt_sf, tf=tf, map_func=map_func,
                                 grid2value_mapping=grid2value_mapping, target_width=target_width, target_height=target_height,
                                 movie_generator=movie_generator, grid_size_fac=args.grid_size_fac, is_norm_coords=args.is_norm_coords, 
-                                is_syn_mov_shown=True, fr2spikes=args.fr2spikes, is_both_ON_OFF=args.is_both_ON_OFF, 
+                                is_syn_mov_shown=False, fr2spikes=args.fr2spikes, is_both_ON_OFF=args.is_both_ON_OFF, 
                                 quantize_scale=args.quantize_scale, add_noise=is_add_noise, rgc_noise_std=noise_level, 
                                 smooth_data=args.smooth_data, is_rectified=args.is_rectified, is_direct_image=args.is_direct_image)
     test_loader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=True, 
@@ -151,7 +151,34 @@ def run_experiment(experiment_name, noise_level=None):
 
     logging.info( f"{file_name} processing...5")
     test_losses = [] 
+
+    for batch_idx, (inputs, true_path, _, _, _, _, _) in enumerate(test_loader):
+        inputs, true_path = inputs.to(device), true_path.to(device)
+        with torch.no_grad():
+            predicted_path = model(inputs)
+            loss = criterion(predicted_path, true_path)
+        test_losses.append(loss.item())
+
+    logging.info( f"{file_name} processing...6")
+
+    test_losses = np.array(test_losses)
+    training_losses = np.array(training_losses)
+    save_path = os.path.join(mat_save_folder, f'{file_name}_{epoch_number}_prediction_error.mat')
+    savemat(save_path, {'test_losses': test_losses, 'training_losses': training_losses})
+    
+    # Get path
+    test_dataset = Cricket2RGCs(num_samples=int(num_sample*0.1), multi_opt_sf=multi_opt_sf, tf=tf, map_func=map_func,
+                                grid2value_mapping=grid2value_mapping, target_width=target_width, target_height=target_height,
+                                movie_generator=movie_generator, grid_size_fac=args.grid_size_fac, is_norm_coords=args.is_norm_coords, 
+                                is_syn_mov_shown=True, fr2spikes=args.fr2spikes, is_both_ON_OFF=args.is_both_ON_OFF, 
+                                quantize_scale=args.quantize_scale, add_noise=is_add_noise, rgc_noise_std=noise_level, 
+                                smooth_data=args.smooth_data, is_rectified=args.is_rectified, is_direct_image=args.is_direct_image)
+    test_loader = DataLoader(test_dataset, batch_size=1, shuffle=True, worker_init_fn=worker_init_fn))
+
+    logging.info( f"{file_name} processing...7")
+    test_losses = [] 
     all_paths = []
+    all_paths_pred = []
     all_paths_bg = []
     all_scaling_factors = []
     all_bg_file = []
@@ -175,8 +202,9 @@ def run_experiment(experiment_name, noise_level=None):
             predicted_path = model(inputs)
             loss = criterion(predicted_path, true_path)
         test_losses.append(loss.item())
+        all_paths_pred.append(predicted_path)
 
-    logging.info( f"{file_name} processing...6")
+    logging.info( f"{file_name} processing...8")
     
     # Concatenate along rows
     all_paths = np.vstack(all_paths)
@@ -184,15 +212,16 @@ def run_experiment(experiment_name, noise_level=None):
     all_scaling_factors = np.vstack(all_scaling_factors)
     all_bg_file = np.array(all_bg_file, dtype=object)  # Keep as string array
     all_id_numbers = np.array(all_id_numbers, dtype=int)  # Convert to int array
+    all_paths_pred = np.array(all_paths_pred)
 
     test_losses = np.array(test_losses)
     training_losses = np.array(training_losses)
-    save_path = os.path.join(mat_save_folder, f'{file_name}_{epoch_number}_prediction_error.mat')
+    save_path = os.path.join(mat_save_folder, f'{file_name}_{epoch_number}_prediction_error_with_path.mat')
     savemat(save_path, {'test_losses': test_losses, 'training_losses': training_losses, 'all_paths': all_paths,
                         'all_paths_bg': all_paths_bg, 'all_scaling_factors': all_scaling_factors, 'all_bg_file': all_bg_file,
-                        'all_id_numbers': all_id_numbers})
+                        'all_id_numbers': all_id_numbers, 'all_paths_pred': all_paths_pred})
 
-    logging.info( f"{file_name} processing...7")
+    logging.info( f"{file_name} processing...9")
 
     model.to('cpu')
     test_dataset = Cricket2RGCs(num_samples=num_display, multi_opt_sf=multi_opt_sf, tf=tf, map_func=map_func,
@@ -203,7 +232,7 @@ def run_experiment(experiment_name, noise_level=None):
                                 smooth_data=args.smooth_data, is_rectified=args.is_rectified, is_direct_image=args.is_direct_image)
     test_loader = DataLoader(test_dataset, batch_size=1, shuffle=False, worker_init_fn=worker_init_fn)
 
-    logging.info( f"{file_name} processing...8")
+    logging.info( f"{file_name} processing...10")
     
     
     # Test model on samples
