@@ -202,7 +202,7 @@ def run_experiment(experiment_name, noise_level=None):
             predicted_path = model(inputs)
             loss = criterion(predicted_path, true_path)
         test_losses.append(loss.item())
-        all_paths_pred.append(predicted_path.item())
+        all_paths_pred.append(predicted_path.cpu().numpy())
 
     logging.info( f"{file_name} processing...8")
     
