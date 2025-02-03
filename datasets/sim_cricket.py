@@ -437,19 +437,19 @@ class Cricket2RGCs(Dataset):
         
         
         if self.grid_coords is not None:
-            print(f'path: {path.shape}')
-            print(f'rgc_time: {rgc_time.shape}')       # Should be (t, n) 
-            print(f'self.grid_coords: {self.grid_coords.shape}') # Should be (n, c)
+            # print(f'path: {path.shape}')
+            # print(f'rgc_time: {rgc_time.shape}')       # Should be (t, n) 
+            # print(f'self.grid_coords: {self.grid_coords.shape}') # Should be (n, c)
             weighted_sum = torch.einsum('nt,nc->tc', rgc_time, self.grid_coords)
 
-            print(f'weighted_sum: {weighted_sum.shape}')
+            # print(f'weighted_sum: {weighted_sum.shape}')
             
             sum_firing_rates = torch.sum(rgc_time, dim=0, keepdim=True)
-            sum_firing_rates = torch.clamp(sum_firing_rates, min=1e-6)  # Avoid division by zero
+            sum_firing_rates = torch.clamp(sum_firing_rates, min=1e-6).view(weighted_sum.shape[0], 1)  # Avoid division by zero
 
-            print(sum_firing_rates.shape)
+            # print(sum_firing_rates.shape)
             weighted_coords = weighted_sum / sum_firing_rates
-            print(weighted_coords.shape)
+            # print(weighted_coords.shape)
         else:
             weighted_coords = None
 
