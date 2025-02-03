@@ -450,6 +450,7 @@ class Cricket2RGCs(Dataset):
             # print(sum_firing_rates.shape)
             weighted_coords = weighted_sum / sum_firing_rates
             # print(weighted_coords.shape)
+            weighted_coords = weighted_coords.detach().numpy()
         else:
             weighted_coords = None
 
