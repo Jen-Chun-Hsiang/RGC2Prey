@@ -43,6 +43,7 @@ def run_experiment(experiment_name, noise_level=None):
     num_sample = 1000
     is_making_video = True
     is_add_noise = False
+    is_fr_center_pred = True
     checkpoint_path = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/Results/CheckPoints/'
     top_img_folder    = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/CricketDataset/Images/cropped/cricket/'
     rf_params_file = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/SimulationParams.xlsx'
@@ -105,7 +106,7 @@ def run_experiment(experiment_name, noise_level=None):
         is_rf_median_subtract=args.is_rf_median_subtract
     )
     logging.info( f"{file_name} processing...1.5")
-    multi_opt_sf, tf, grid2value_mapping, map_func = rgc_array.get_results()
+    multi_opt_sf, tf, grid2value_mapping, map_func, grid_centers = rgc_array.get_results()
 
 
     logging.info( f"{file_name} processing...2")
@@ -172,7 +173,8 @@ def run_experiment(experiment_name, noise_level=None):
                                 movie_generator=movie_generator, grid_size_fac=args.grid_size_fac, is_norm_coords=args.is_norm_coords, 
                                 is_syn_mov_shown=True, fr2spikes=args.fr2spikes, is_both_ON_OFF=args.is_both_ON_OFF, 
                                 quantize_scale=args.quantize_scale, add_noise=is_add_noise, rgc_noise_std=noise_level, 
-                                smooth_data=args.smooth_data, is_rectified=args.is_rectified, is_direct_image=args.is_direct_image)
+                                smooth_data=args.smooth_data, is_rectified=args.is_rectified, is_direct_image=args.is_direct_image, 
+                                is_fr_center_pred=is_fr_center_pred, grid_coords=grid_centers)
     test_loader = DataLoader(test_dataset, batch_size=1, shuffle=True, worker_init_fn=worker_init_fn)
 
     logging.info( f"{file_name} processing...7")
@@ -184,7 +186,7 @@ def run_experiment(experiment_name, noise_level=None):
     all_bg_file = []
     all_id_numbers = []
 
-    for batch_idx, (inputs, true_path, path_bg, _, scaling_factors, bg_image_name, image_id) in enumerate(test_loader):
+    for batch_idx, (inputs, true_path, path_bg, _, scaling_factors, bg_image_name, image_id, weighted_coords) in enumerate(test_loader):
 
         path = true_path.reshape(1, -1)  # Ensure row vector
         path_bg = path_bg.reshape(1, -1)  # Ensure row vector
