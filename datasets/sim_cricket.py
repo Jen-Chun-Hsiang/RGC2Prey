@@ -802,5 +802,5 @@ class RGCrfArray:
         return tf
 
     def get_results(self):
-        return self.multi_opt_sf, self.tf, self.grid2value_mapping, self.map_func, self.grid_centers
+        return self.multi_opt_sf, self.tf, self.grid2value_mapping, self.map_func, self.points
 
