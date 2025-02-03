@@ -317,7 +317,7 @@ class Cricket2RGCs(Dataset):
                  multi_opt_sf_off=None, tf_off=None, map_func_off=None, grid2value_mapping_off=None, 
                  is_both_ON_OFF=False, quantize_scale = 1, add_noise=False, rgc_noise_std=0.0, smooth_data=False, 
                  smooth_kernel_size=20, sampleing_rate=100, smooth_sigma=0.05, is_rectified=True, is_direct_image=False,
-                 is_fr_center_pred=False, grid_coords=None):
+                grid_coords=None):
         self.num_samples = num_samples
         self.multi_opt_sf = torch.from_numpy(multi_opt_sf).float()
         self.tf = torch.from_numpy(tf.copy()).float().view(1, 1, -1)
@@ -351,8 +351,8 @@ class Cricket2RGCs(Dataset):
         self.smooth_sigma = smooth_sigma
         self.is_rectified = is_rectified
         self.is_direct_image = is_direct_image
-        self.is_fr_center_pred = is_fr_center_pred
-        self.grid_coords = torch.tensor(grid_coords, dtype=torch.float32)
+        if grid_coords is not None:
+            self.grid_coords = torch.tensor(grid_coords, dtype=torch.float32)
 
 
     def __len__(self):
@@ -437,11 +437,13 @@ class Cricket2RGCs(Dataset):
             ) 
         
 
-        if self.is_fr_center_pred:
-            weighted_sum = torch.einsum('tn,nc->tc', rgc_time, self.grid_centers)
+        if self.grid_coords is not None:
+            weighted_sum = torch.einsum('tn,nc->tc', rgc_time, self.grid_coords)
             sum_firing_rates = torch.sum(rgc_time, dim=1, keepdim=True)
             sum_firing_rates = torch.clamp(sum_firing_rates, min=1e-6)  # Avoid division by zero
             weighted_coords = weighted_sum / sum_firing_rates
+        else:
+            weighted_coords = None
 
         path = path[-rgc_time.shape[1]:, :]/self.norm_path_fac
         path_bg = path_bg[-rgc_time.shape[1]:, :]/self.norm_path_fac    

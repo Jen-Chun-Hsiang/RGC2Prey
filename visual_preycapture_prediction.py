@@ -43,7 +43,6 @@ def run_experiment(experiment_name, noise_level=None):
     num_sample = 1000
     is_making_video = True
     is_add_noise = False
-    is_fr_center_pred = True
     checkpoint_path = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/Results/CheckPoints/'
     top_img_folder    = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/CricketDataset/Images/cropped/cricket/'
     rf_params_file = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/SimulationParams.xlsx'
@@ -174,7 +173,7 @@ def run_experiment(experiment_name, noise_level=None):
                                 is_syn_mov_shown=True, fr2spikes=args.fr2spikes, is_both_ON_OFF=args.is_both_ON_OFF, 
                                 quantize_scale=args.quantize_scale, add_noise=is_add_noise, rgc_noise_std=noise_level, 
                                 smooth_data=args.smooth_data, is_rectified=args.is_rectified, is_direct_image=args.is_direct_image, 
-                                is_fr_center_pred=is_fr_center_pred, grid_coords=grid_centers)
+                                grid_coords=grid_centers)
     test_loader = DataLoader(test_dataset, batch_size=1, shuffle=True, worker_init_fn=worker_init_fn)
 
     logging.info( f"{file_name} processing...7")
