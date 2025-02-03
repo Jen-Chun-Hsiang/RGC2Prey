@@ -182,6 +182,7 @@ def run_experiment(experiment_name, noise_level=None):
     all_paths = []
     all_paths_pred = []
     all_paths_bg = []
+    all_path_cm = []
     all_scaling_factors = []
     all_bg_file = []
     all_id_numbers = []
@@ -190,10 +191,12 @@ def run_experiment(experiment_name, noise_level=None):
 
         path = true_path.reshape(1, -1)  # Ensure row vector
         path_bg = path_bg.reshape(1, -1)  # Ensure row vector
+        path_cm = weighted_coords.reshape(1, -1)
         scaling_factors = scaling_factors.reshape(1, -1)  # Ensure row vector
 
         all_paths.append(path)
         all_paths_bg.append(path_bg)
+        all_path_cm.append(path_cm)
         all_scaling_factors.append(scaling_factors)
         all_bg_file.append(bg_image_name)
         all_id_numbers.append(image_id)
@@ -211,6 +214,7 @@ def run_experiment(experiment_name, noise_level=None):
     # Concatenate along rows
     all_paths = np.vstack(all_paths)
     all_paths_bg = np.vstack(all_paths_bg)
+    all_path_cm = np.vstack(all_path_cm)
     all_scaling_factors = np.vstack(all_scaling_factors)
     all_bg_file = np.array(all_bg_file, dtype=object)  # Keep as string array
     all_id_numbers = np.array(all_id_numbers, dtype=int)  # Convert to int array
@@ -221,7 +225,7 @@ def run_experiment(experiment_name, noise_level=None):
     save_path = os.path.join(mat_save_folder, f'{file_name}_{epoch_number}_prediction_error_with_path.mat')
     savemat(save_path, {'test_losses': test_losses, 'training_losses': training_losses, 'all_paths': all_paths,
                         'all_paths_bg': all_paths_bg, 'all_scaling_factors': all_scaling_factors, 'all_bg_file': all_bg_file,
-                        'all_id_numbers': all_id_numbers, 'all_paths_pred': all_paths_pred})
+                        'all_id_numbers': all_id_numbers, 'all_paths_pred': all_paths_pred, 'all_path_cm':all_path_cm})
 
     logging.info( f"{file_name} processing...9")
 
@@ -238,7 +242,7 @@ def run_experiment(experiment_name, noise_level=None):
     
     
     # Test model on samples
-    for batch_idx, (inputs, true_path, bg_path, syn_movie, scaling_factors, bg_image_name, image_id) in enumerate(test_loader):
+    for batch_idx, (inputs, true_path, bg_path, syn_movie, scaling_factors, bg_image_name, image_id, _) in enumerate(test_loader):
         # inputs = inputs.to(args.device)
         true_path = true_path.squeeze(0).cpu().numpy()
         bg_path = bg_path.squeeze(0).cpu().numpy()
