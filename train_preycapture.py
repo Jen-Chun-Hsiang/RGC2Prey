@@ -98,6 +98,7 @@ def parse_args():
     parser.add_argument('--set_s_scale', type=float, nargs='*', default=[], help='Set scale fo surround weight of RF')
     parser.add_argument('--is_rf_median_subtract', action='store_true', help="Flag for substract median of rf")
     parser.add_argument('--is_both_ON_OFF', action='store_true', help="Flag for including OFF cell")
+    parser.add_argument('--tf_sheet_name', type=str, default='TF_params', help='Excel sheet name for the temporal filter')
 
     # Arguments for CNN_LSTM 
     parser.add_argument('--cnn_feature_dim', type=int, default=256, help="Number of CNN feature dimensions.")
@@ -134,7 +135,7 @@ def parse_args():
 
 def main():
     is_show_rgc_rf_individual = True
-    is_show_rgc_tf = False
+    is_show_rgc_tf = True
     is_show_movie_frames = False
     is_show_pathes = False
     is_show_grids = False
@@ -145,7 +146,7 @@ def main():
     syn_save_folder  = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/CricketDataset/Images/syn_img/'
     rf_save_folder  = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/CricketDataset/RFs/RGCs/'
     distribution_save_folder = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/CricketDataset/Distribution/RGC_outputs/'
-    plot_save_folder  = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/CricketDataset/Figures/'
+    plot_save_folder =  '/storage1/fs1/kerschensteinerD/Active/Emily/RISserver/RGC2Prey/Results/Figures/TFs/'
     log_save_folder  = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/Results/Prints/'
     savemodel_dir = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/Results/CheckPoints/'
     rf_params_file = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/SimulationParams.xlsx'
@@ -161,7 +162,7 @@ def main():
         device = 'cpu'
 
     sf_param_table = pd.read_excel(rf_params_file, sheet_name='SF_params_modified', usecols='A:L')
-    tf_param_table = pd.read_excel(rf_params_file, sheet_name='TF_params', usecols='A:I')
+    tf_param_table = pd.read_excel(rf_params_file, sheet_name=args.tf_sheet_name, usecols='A:I')
     rgc_array = RGCrfArray(
         sf_param_table, tf_param_table, rgc_array_rf_size=args.rgc_array_rf_size, xlim=args.xlim, ylim=args.ylim,
         target_num_centers=args.target_num_centers, sf_scalar=args.sf_scalar, grid_generate_method=args.grid_generate_method, 
