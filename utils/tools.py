@@ -114,17 +114,19 @@ class MovieGenerator:
         # Path Subplot
         ax3 = fig.add_subplot(gs[2:4, :3])
         ax3.set_title("Path")
-        scaled_path_history = path_history * np.array([240, 180])
+        scalar_width = 120
+        scalar_height = 90
+        scaled_path_history = path_history * np.array([scalar_width, scalar_height])
         ax3.plot(scaled_path_history[:, 0], scaled_path_history[:, 1], label='Ground Truth Path', color='blue')
         if is_path_predict:
-            scaled_path_predict_history = path_predict_history * np.array([240, 180])
+            scaled_path_predict_history = path_predict_history * np.array([scalar_width, scalar_height])
             ax3.plot(scaled_path_predict_history[:, 0], scaled_path_predict_history[:, 1], label='Predicted path', color='orange')
         else:
-            scaled_path_bg_history = path_bg_history * np.array([240, 180])
+            scaled_path_bg_history = path_bg_history * np.array([scalar_width, scalar_height])
             ax3.plot(scaled_path_bg_history[:, 0], scaled_path_bg_history[:, 1], label='Background path', color='green')
         ax3.legend()
-        ax3.set_xlim(-120, 120)  # X-axis range
-        ax3.set_ylim(-90, 90)    # Y-axis range
+        ax3.set_xlim(-scalar_width, scalar_width)  # X-axis range
+        ax3.set_ylim(-scalar_height, scalar_height)    # Y-axis range
 
         # Coordinate X Subplot
         ax4 = fig.add_subplot(gs[2:3, 3:5])
