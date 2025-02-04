@@ -108,8 +108,10 @@ def run_experiment(experiment_name, noise_level=None):
     )
     logging.info( f"{file_name} processing...1.5")
     multi_opt_sf, tf, grid2value_mapping, map_func, grid_centers = rgc_array.get_results()
+    logging.info(f"Maximum value: {np.amax(grid_centers)}")
+    logging.info(f"Maximum value: {np.amin(grid_centers)}")
 
-
+    raise ValueError(f"Temporal close exam processing...")
     logging.info( f"{file_name} processing...2")
 
     movie_generator = SynMovieGenerator(top_img_folder, bottom_img_folder,
