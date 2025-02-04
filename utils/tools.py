@@ -170,7 +170,7 @@ class MovieGenerator:
         plt.close(fig)  # Close the figure to free memory
         return img
 
-    def generate_movie(self, image_sequence, syn_movie, path, path_bg, path_predict, scaling_factors, video_id):
+    def generate_movie(self, image_sequence, syn_movie, path, path_bg, path_predict, scaling_factors, video_id, weighted_coords):
         """
         Generate the video based on the provided input data.
 
@@ -208,6 +208,13 @@ class MovieGenerator:
             is_path_predict = False
             path_predict = [None] * len(image_sequence)
             all_y_values = np.concatenate((path, path_bg), axis=0)
+
+        if weighted_coords is not None:
+            is_centerRF = True
+            weighted_coords[:, 1] *= -1
+        else:
+            is_centerRF = False
+            weighted_coords = [None] * len(image_sequence)
         y_min, y_max = np.min(all_y_values), np.max(all_y_values)
 
         path_history = []
@@ -216,13 +223,18 @@ class MovieGenerator:
         coord_x_history = []
         coord_y_history = []
         scaling_history = []
+        centerRF_history = []
 
-        for i, (frame, syn_frame, coord, bg_coord, pred_coord, scaling) in enumerate(zip(image_sequence, syn_movie, path, path_bg, path_predict, scaling_factors)):
+        for i, (frame, syn_frame, coord, bg_coord, pred_coord, scaling, centerRF) in enumerate(zip(image_sequence, syn_movie, path, path_bg, 
+                                                                                         path_predict, scaling_factors, weighted_coords)):
             path_history.append(coord)
             path_bg_history.append(bg_coord)
 
             if is_path_predict:  #
                 path_predict_history.append(pred_coord)
+
+            if is_centerRF:
+                centerRF_history.append(centerRF)
 
             coord_x_history.append(coord[0])
             coord_y_history.append(coord[1])
@@ -239,7 +251,9 @@ class MovieGenerator:
                 scaling_history=scaling_history, 
                 y_min = y_min,
                 y_max = y_max,
-                is_path_predict = is_path_predict
+                is_path_predict = is_path_predict,
+                is_centerRF = is_centerRF,
+                centerRF_history = np.array(centerRF_history)
             )
 
             # Resize the image to fit video dimensions
