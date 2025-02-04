@@ -67,7 +67,7 @@ class MovieGenerator:
         self.grid_generate_method = grid_generate_method
 
     def create_figure(self, syn_movie_frame, rgc_output, path_history, path_predict_history, path_bg_history, coord_x_history, 
-                      coord_y_history, scaling_history, y_min, y_max, is_path_predict=True):
+                      coord_y_history, scaling_history, y_min, y_max, centerRF_history, is_path_predict=True, is_centerRF=False):
         """
         Create the figure layout with subplots for the movie frame.
 
@@ -95,7 +95,11 @@ class MovieGenerator:
         ax1.imshow(syn_movie_frame, cmap='gray')
         cursor_coord = coord_x_history[-1] * np.array([scalar_width, scalar_height]) 
         cursor_coord += np.array([scalar_width, scalar_height])
-        ax1.scatter(cursor_coord[0], cursor_coord[1], color='red', marker='x', s=100, label="target")
+        ax1.scatter(cursor_coord[0], cursor_coord[1], color='black', marker='x', s=100, label="target")
+        if is_centerRF:
+            centerRF_coord = centerRF_history[-1]
+            centerRF_coord += np.array([scalar_width, scalar_height])
+            ax1.scatter(centerRF_coord[0], centerRF_coord[1], color='red', marker='o', s=100, label="centerRF")
         ax1.legend()
 
 
