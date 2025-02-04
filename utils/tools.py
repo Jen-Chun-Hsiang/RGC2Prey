@@ -84,6 +84,8 @@ class MovieGenerator:
         Returns:
             np.array: RGB image of the figure.
         """
+        scalar_width = 120
+        scalar_height = 90
         fig = plt.figure(figsize=(10, 8))
         gs = gridspec.GridSpec(4, 6, height_ratios=[1, 1, 1, 1])
 
@@ -91,6 +93,11 @@ class MovieGenerator:
         ax1 = fig.add_subplot(gs[:2, :3])
         ax1.set_title("Synthesized Movie")
         ax1.imshow(syn_movie_frame, cmap='gray')
+        cursor_coord = coord_x_history[-1] * np.array([scalar_width, scalar_height]) 
+        cursor_coord += np.array([scalar_width, scalar_height])
+        ax1.scatter(cursor_coord[0], cursor_coord[1], color='red', marker='x', s=100, label="target")
+        ax1.legend()
+
 
         # RGC Outputs Subplot
         ax2 = fig.add_subplot(gs[:2, 3:6])
@@ -114,8 +121,6 @@ class MovieGenerator:
         # Path Subplot
         ax3 = fig.add_subplot(gs[2:4, :3])
         ax3.set_title("Path")
-        scalar_width = 120
-        scalar_height = 90
         scaled_path_history = path_history * np.array([scalar_width, scalar_height])
         ax3.plot(scaled_path_history[:, 0], scaled_path_history[:, 1], label='Ground Truth Path', color='blue')
         if is_path_predict:
