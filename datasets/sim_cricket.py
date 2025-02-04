@@ -452,7 +452,7 @@ class Cricket2RGCs(Dataset):
             # print(weighted_coords.shape)
             weighted_coords = weighted_coords.detach().numpy()
         else:
-            weighted_coords = None
+            weighted_coords = np.array(0)
 
         path = path[-rgc_time.shape[1]:, :]/self.norm_path_fac
         path_bg = path_bg[-rgc_time.shape[1]:, :]/self.norm_path_fac    
