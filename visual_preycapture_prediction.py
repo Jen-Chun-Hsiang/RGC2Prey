@@ -118,8 +118,8 @@ def run_experiment(experiment_name, noise_level=None, test_bg_folder=None, test_
     )
     logging.info( f"{file_name} processing...1.5")
     multi_opt_sf, tf, grid2value_mapping, map_func, grid_centers = rgc_array.get_results()
-    logging.info(f"Maximum value: {np.amax(grid_centers)}")
-    logging.info(f"Maximum value: {np.amin(grid_centers)}")
+    logging.info(f"Minimum value: {np.min(grid_centers, axis=0)}")
+    logging.info(f"Maximum value: {np.max(grid_centers, axis=0)}")
 
     # raise ValueError(f"Temporal close exam processing...")
     logging.info( f"{file_name} processing...2")
