@@ -95,19 +95,36 @@ class MovieGenerator:
         # RGC Outputs Subplot
         ax2 = fig.add_subplot(gs[:2, 3:6])
         ax2.set_title("RGC Outputs")
-        ax2.imshow(rgc_output, cmap='gray')
+
+        desired_width, desired_height = 160, 120
+        image_width, image_height = rgc_output.shape[1], rgc_output.shape[0]
+
+        x_min = (desired_width - image_width) / 2
+        x_max = x_min + image_width
+        y_min = (desired_height - image_height) / 2
+        y_max = y_min + image_height
+
+        ax2.imshow(rgc_output, cmap='gray', extent=[x_min, x_max, y_min, y_max])
+
+        ax2.set_xlim(0, desired_width)
+        ax2.set_ylim(0, desired_height)
+
+        # ax2.imshow(rgc_output, cmap='gray')
 
         # Path Subplot
         ax3 = fig.add_subplot(gs[2:4, :3])
         ax3.set_title("Path")
-        ax3.plot(path_history[:, 0], path_history[:, 1], label='Ground Truth Path', color='blue')
+        scaled_path_history = path_history * np.array([240, 180])
+        ax3.plot(scaled_path_history[:, 0], scaled_path_history[:, 1], label='Ground Truth Path', color='blue')
         if is_path_predict:
-            ax3.plot(path_predict_history[:, 0], path_predict_history[:, 1], label='Predicted path', color='orange')
+            scaled_path_predict_history = path_predict_history * np.array([240, 180])
+            ax3.plot(scaled_path_predict_history[:, 0], scaled_path_predict_history[:, 1], label='Predicted path', color='orange')
         else:
-            ax3.plot(path_bg_history[:, 0], path_bg_history[:, 1], label='Background path', color='green')
+            scaled_path_bg_history = path_bg_history * np.array([240, 180])
+            ax3.plot(scaled_path_bg_history[:, 0], scaled_path_bg_history[:, 1], label='Background path', color='green')
         ax3.legend()
-        ax3.set_ylim(y_min, y_max)
-        ax3.set_xlim(y_min, y_max)
+        ax3.set_xlim(-120, 120)  # X-axis range
+        ax3.set_ylim(-90, 90)    # Y-axis range
 
         # Coordinate X Subplot
         ax4 = fig.add_subplot(gs[2:3, 3:5])
