@@ -89,13 +89,15 @@ def run_experiment(experiment_name, noise_level=None):
         args.seed = '42'
     if not hasattr(args, 'is_direct_image'):
         args.is_direct_image = False
+    if not hasattr(args, 'tf_sheet_name'):
+        args.tf_sheet_name = 'TF_params'
 
     process_seed(args.seed)
 
     logging.info( f"{file_name} processing...1 seed:{args.seed}")
     
     sf_param_table = pd.read_excel(rf_params_file, sheet_name='SF_params', usecols='A:L')
-    tf_param_table = pd.read_excel(rf_params_file, sheet_name='TF_params', usecols='A:I')
+    tf_param_table = pd.read_excel(rf_params_file, sheet_name=args.tf_sheet_name, usecols='A:I')
     rgc_array = RGCrfArray(
         sf_param_table, tf_param_table, rgc_array_rf_size=args.rgc_array_rf_size, xlim=args.xlim, ylim=args.ylim,
         target_num_centers=args.target_num_centers, sf_scalar=args.sf_scalar, grid_generate_method=args.grid_generate_method, 
