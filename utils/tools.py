@@ -133,6 +133,10 @@ class MovieGenerator:
         else:
             scaled_path_bg_history = path_bg_history * np.array([scalar_width, scalar_height])
             ax3.plot(scaled_path_bg_history[:, 0], scaled_path_bg_history[:, 1], label='Background path', color='green')
+
+        if is_centerRF:
+            ax3.plot(centerRF_history[:, 0], centerRF_history[:, 1], label='Center RF path', color='red')
+
         ax3.legend()
         ax3.set_xlim(-scalar_width, scalar_width)  # X-axis range
         ax3.set_ylim(-scalar_height, scalar_height)    # Y-axis range
