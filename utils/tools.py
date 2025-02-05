@@ -94,13 +94,18 @@ class MovieGenerator:
         ax1 = fig.add_subplot(gs[:2, :3])
         ax1.set_title("Synthesized Movie")
         ax1.imshow(syn_movie_frame, cmap='gray')
-        cursor_coord = coord_x_history[-1] * np.array([scalar_width, -scalar_height]) 
-        cursor_coord += np.array([desired_width, desired_height])
-        ax1.scatter(cursor_coord[0], cursor_coord[1], color='yellow', marker='x', s=100, label="target")
+        path_coord= path_history[-1] * np.array([scalar_width, -scalar_height]) 
+        path_coord += np.array([desired_width, desired_height])
+        ax1.scatter(path_coord[0], path_coord[1], color='blue', marker='x', s=50, label="target")
+        if is_path_predict:
+            path_pred_coord= path_predict_history[-1] * np.array([scalar_width, -scalar_height]) 
+            path_pred_coord += np.array([desired_width, desired_height])
+            ax1.scatter(path_pred_coord[0], path_pred_coord[1], color='orange', marker='x', s=50, label="Pred")
+
         if is_centerRF:
             centerRF_coord = centerRF_history[-1] * np.array([1, -1]) 
             centerRF_coord += np.array([desired_width, desired_height])
-            ax1.scatter(centerRF_coord[0], centerRF_coord[1], color='red', marker='o', s=100, label="centerRF")
+            ax1.scatter(centerRF_coord[0], centerRF_coord[1], color='red', marker='o', s=50, label="centerRF")
         ax1.legend()
 
 
@@ -145,12 +150,12 @@ class MovieGenerator:
         # Coordinate X Subplot
         ax4 = fig.add_subplot(gs[2:3, 3:5])
         ax4.set_title("Coord X")
-        ax4.plot(coord_x_history, label='Ground Truth', color='blue')
-        ax4.plot(path_bg_history[:, 0], label='Background Path', color='green')
+        ax4.plot(coord_x_history* np.array([scalar_width]), label='Ground Truth', color='blue')
+        ax4.plot(path_bg_history[:, 0]* np.array([scalar_width]), label='Background Path', color='green')
         if is_path_predict:
-            ax4.plot(path_predict_history[:, 0], label='Predicted Path', color='orange')
+            ax4.plot(path_predict_history[:, 0]* np.array([scalar_width]), label='Predicted Path', color='orange')
         # ax4.legend()
-        ax4.set_ylim(y_min, y_max)
+        ax4.set_ylim(-scalar_width, scalar_width)
 
         # Coordinate Y Subplot
         ax5 = fig.add_subplot(gs[3:4, 3:5])
