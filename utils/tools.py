@@ -107,8 +107,8 @@ class MovieGenerator:
             centerRF_coord += np.array([desired_width, desired_height])
             ax1.scatter(centerRF_coord[0], centerRF_coord[1], color='red', marker='x', s=50, label="centerRF")
         ax1.legend()
-        ax1.axis('off')
         ax1.set_xticks([])
+        ax1.set_yticks([])
 
 
         # RGC Outputs Subplot
@@ -137,8 +137,8 @@ class MovieGenerator:
         ax2.set_xlim(0, desired_width)
         ax2.set_ylim(0, desired_height)
         ax2.legend()
-        ax2.axis('off')
         ax2.set_xticks([])
+        ax2.set_yticks([])
 
         # ax2.imshow(rgc_output, cmap='gray')
 
@@ -158,8 +158,10 @@ class MovieGenerator:
             ax3.plot(centerRF_history[:, 0], centerRF_history[:, 1], label='Center RF path', color='red')
 
         ax3.legend()
-        ax3.set_xlim(-scalar_width, scalar_width)  # X-axis range
-        ax3.set_ylim(-scalar_height, scalar_height)    # Y-axis range
+        ax3.set_xlim(-desired_width,  desired_width)  # X-axis range
+        ax3.set_ylim(-desired_height, desired_height)    # Y-axis range
+        ax3.set_xticks([])
+        ax3.set_yticks([])
 
         # Coordinate X Subplot
         ax4 = fig.add_subplot(gs[2:3, 3:5])
