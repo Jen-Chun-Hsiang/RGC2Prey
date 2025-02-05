@@ -371,13 +371,13 @@ class Cricket2RGCs(Dataset):
 
         elif self.is_both_ON_OFF:  # Unified processing for ON and OFF
             grid_values_sequence_list = []
-            multi_opt_sfs = [self.multi_opt_sf, self.multi_opt_sf_off]  # Combine ON and OFF
+            multi_opt_sfs = [self.multi_opt_sf, -self.multi_opt_sf_off]  # Combine ON and OFF
             map_funcs = [self.map_func, self.map_func_off]
             grid2value_mappings = [self.grid2value_mapping, self.grid2value_mapping_off]
 
             # Precompute tf to avoid repetition
             tf = torch.tensor(np.repeat(self.tf, self.multi_opt_sf_ON.shape[1], axis=0), dtype=torch.float32)
-            tf_off = torch.tensor(np.repeat(self.tf_off, self.multi_opt_sf_off.shape[1], axis=0), dtype=torch.float32)
+            tf_off = torch.tensor(np.repeat(-self.tf_off, self.multi_opt_sf_off.shape[1], axis=0), dtype=torch.float32)
             tfs = [tf, tf_off]
 
             for sf, map_func, grid2value_mapping, tf in zip(multi_opt_sfs, map_funcs, grid2value_mappings, tfs):
