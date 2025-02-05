@@ -57,6 +57,8 @@ def run_experiment(experiment_name, noise_level=None, test_bg_folder=None, test_
 
     if test_ob_folder is None:
         test_ob_folder = 'cricket'
+    elif test_ob_folder is 'white-spot':
+        coord_mat_file = None
 
     if noise_level is not None:
         file_name = f'{experiment_name}_{test_ob_folder}_noise{noise_level}_cricket_location_prediction'

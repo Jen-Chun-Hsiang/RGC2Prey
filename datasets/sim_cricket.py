@@ -469,8 +469,9 @@ class Cricket2RGCs(Dataset):
 class SynMovieGenerator:
     def __init__(self, top_img_folder, bottom_img_folder, crop_size, boundary_size, center_ratio, max_steps=200, prob_stay_ob=0.95, 
                  prob_mov_ob=0.975, prob_stay_bg=0.95, prob_mov_bg=0.975,num_ext=50, initial_velocity=6, momentum_decay_ob=0.95, 
-                 momentum_decay_bg=0.5, scale_factor=1.0, velocity_randomness_ob=0.02, velocity_randomness_bg=0.01, angle_range_ob=0.5, angle_range_bg=0.25, coord_mat_file=None, 
-                correction_direction=1, is_reverse_xy=False, start_scaling=1, end_scaling=2, dynamic_scaling=0):
+                 momentum_decay_bg=0.5, scale_factor=1.0, velocity_randomness_ob=0.02, velocity_randomness_bg=0.01, angle_range_ob=0.5, 
+                 angle_range_bg=0.25, coord_mat_file=None, correction_direction=1, is_reverse_xy=False, start_scaling=1, 
+                 end_scaling=2, dynamic_scaling=0):
         """
         Initializes the SynMovieGenerator with configuration parameters.
 
@@ -582,14 +583,16 @@ class SynMovieGenerator:
         # Correct for the cricket head position
         bg_image_name = get_filename_without_extension(bottom_img_path)
         image_id = get_image_number(top_img_path)
-
-        if self.is_reverse_xy:
-            coord_correction = np.array([self.coord_dic[image_id]['coord_y'], self.coord_dic[image_id]['coord_x']])
-        else:
-            coord_correction = np.array([self.coord_dic[image_id]['coord_x'], self.coord_dic[image_id]['coord_y']])
         scaling_factors = np.array(scaling_factors) 
-        scaled_coord_corrections = coord_correction[np.newaxis, :] * scaling_factors[:, np.newaxis]
-        path = path - self.correction_direction*scaled_coord_corrections
+
+        if self.coord_dic is not None:
+            if self.is_reverse_xy:
+                coord_correction = np.array([self.coord_dic[image_id]['coord_y'], self.coord_dic[image_id]['coord_x']])
+            else:
+                coord_correction = np.array([self.coord_dic[image_id]['coord_x'], self.coord_dic[image_id]['coord_y']])
+            
+            scaled_coord_corrections = coord_correction[np.newaxis, :] * scaling_factors[:, np.newaxis]
+            path = path - self.correction_direction*scaled_coord_corrections
 
         return syn_movie[:, 1, :, :], path, path_bg, scaling_factors, bg_image_name, image_id
     
