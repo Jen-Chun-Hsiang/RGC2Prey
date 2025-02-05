@@ -265,6 +265,10 @@ def run_experiment(experiment_name, noise_level=None, test_bg_folder=None, test_
         else:
             weighted_coords = None
 
+        logging.info( f"true_path shape: {true_path.shape}")
+        logging.info( f"bg_path shape: {bg_path.shape}")
+        logging.info( f"weighted_coords shape: {weighted_coords.shape}")
+
         with torch.no_grad():
             predicted_path = model(inputs).squeeze().cpu().numpy()
 
