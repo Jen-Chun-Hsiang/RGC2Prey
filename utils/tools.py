@@ -173,6 +173,8 @@ class MovieGenerator:
             ax4.plot(centerRF_history[:, 0], label='Center RF path', color='red')
         # ax4.legend()
         ax4.set_ylim(-scalar_width, scalar_width)
+        ax4.set_ylabel("Location (pixels)")
+        ax4.set_xlabel("Time (frames)")
 
         # Coordinate Y Subplot
         ax5 = fig.add_subplot(gs[3:4, 3:5])
@@ -185,6 +187,8 @@ class MovieGenerator:
             ax5.plot(centerRF_history[:, 1], label='Center RF path', color='red')
         # ax5.legend()
         ax5.set_ylim(-scalar_height, scalar_height)
+        ax4.set_ylabel("Location (pixels)")
+        ax4.set_xlabel("Time (frames)")
 
         # Scaling Factor Subplot
         ax6 = fig.add_subplot(gs[2:4, 5:6])
