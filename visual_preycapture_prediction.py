@@ -45,7 +45,7 @@ def run_experiment(experiment_name, noise_level=None, test_bg_folder=None, test_
     num_sample = 1000
     is_making_video = True
     is_add_noise = False
-    is_plot_centerFR = False
+    is_plot_centerFR = True
     checkpoint_path = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/Results/CheckPoints/'
     
     rf_params_file = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/SimulationParams.xlsx'
