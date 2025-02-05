@@ -108,6 +108,7 @@ class MovieGenerator:
             ax1.scatter(centerRF_coord[0], centerRF_coord[1], color='red', marker='o', s=50, label="centerRF")
         ax1.legend()
         ax1.axis('off')
+        ax1.set_xticks([])
 
 
         # RGC Outputs Subplot
