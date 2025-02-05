@@ -86,6 +86,7 @@ class MovieGenerator:
         """
         scalar_width = 120
         scalar_height = 90
+        desired_width, desired_height = 160, 120
         fig = plt.figure(figsize=(10, 8))
         gs = gridspec.GridSpec(4, 6, height_ratios=[1, 1, 1, 1])
 
@@ -93,12 +94,12 @@ class MovieGenerator:
         ax1 = fig.add_subplot(gs[:2, :3])
         ax1.set_title("Synthesized Movie")
         ax1.imshow(syn_movie_frame, cmap='gray')
-        cursor_coord = coord_x_history[-1] * np.array([scalar_width, scalar_height]) 
-        cursor_coord += np.array([scalar_width, scalar_height])
-        ax1.scatter(cursor_coord[0], cursor_coord[1], color='black', marker='x', s=100, label="target")
+        cursor_coord = coord_x_history[-1] * np.array([scalar_width, -scalar_height]) 
+        cursor_coord += np.array([desired_width, desired_height])
+        ax1.scatter(cursor_coord[0], cursor_coord[1], color='yellow', marker='x', s=100, label="target")
         if is_centerRF:
-            centerRF_coord = centerRF_history[-1]
-            centerRF_coord += np.array([scalar_width, scalar_height])
+            centerRF_coord = centerRF_history[-1] * np.array([1, -1]) 
+            centerRF_coord += np.array([desired_width, desired_height])
             ax1.scatter(centerRF_coord[0], centerRF_coord[1], color='red', marker='o', s=100, label="centerRF")
         ax1.legend()
 
@@ -107,7 +108,7 @@ class MovieGenerator:
         ax2 = fig.add_subplot(gs[:2, 3:6])
         ax2.set_title("RGC Outputs")
 
-        desired_width, desired_height = 160, 120
+        
         image_width, image_height = rgc_output.shape[1], rgc_output.shape[0]
 
         x_min = (desired_width - image_width) / 2
