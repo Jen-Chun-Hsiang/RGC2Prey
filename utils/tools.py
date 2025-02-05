@@ -161,10 +161,10 @@ class MovieGenerator:
         # Coordinate X Subplot
         ax4 = fig.add_subplot(gs[2:3, 3:5])
         ax4.set_title("Coord X")
-        ax4.plot(coord_x_history* np.array([scalar_width]), label='Ground Truth', color='blue')
-        ax4.plot(path_bg_history[:, 0]* np.array([scalar_width]), label='Background Path', color='green')
+        ax4.plot(coord_x_history * np.array([scalar_width]), label='Ground Truth', color='blue')
+        ax4.plot(path_bg_history[:, 0] * np.array([scalar_width]), label='Background Path', color='green')
         if is_path_predict:
-            ax4.plot(path_predict_history[:, 0]* np.array([scalar_width]), label='Predicted Path', color='orange')
+            ax4.plot(path_predict_history[:, 0] * np.array([scalar_width]), label='Predicted Path', color='orange')
         if is_centerRF:
             ax4.plot(centerRF_history[:, 0], label='Center RF path', color='red')
         # ax4.legend()
@@ -173,10 +173,10 @@ class MovieGenerator:
         # Coordinate Y Subplot
         ax5 = fig.add_subplot(gs[3:4, 3:5])
         ax5.set_title("Coord Y")
-        ax5.plot(coord_y_history* np.array([scalar_height], label='Ground Truth', color='blue')
-        ax5.plot(path_bg_history[:, 1]* np.array([scalar_height], label='Background Path', color='green')
+        ax5.plot(coord_y_history * np.array([scalar_height]), label='Ground Truth', color='blue')
+        ax5.plot(path_bg_history[:, 1] * np.array([scalar_height]), label='Background Path', color='green')
         if is_path_predict:
-            ax5.plot(path_predict_history[:, 1]* np.array([scalar_height], label='Predicted Path', color='orange')
+            ax5.plot(path_predict_history[:, 1] * np.array([scalar_height]), label='Predicted Path', color='orange')
         if is_centerRF:
             ax5.plot(centerRF_history[:, 1], label='Center RF path', color='red')
         # ax5.legend()
