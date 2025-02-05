@@ -123,8 +123,14 @@ class MovieGenerator:
 
         ax2.imshow(rgc_output, cmap='gray', extent=[x_min, x_max, y_min, y_max])
 
+        ax2.scatter(path_coord[0], path_coord[1], color='blue', marker='x', s=50, label="target")
+        if is_path_predict:
+            ax2.scatter(path_pred_coord[0], path_pred_coord[1], color='orange', marker='x', s=50, label="Pred")
+        if is_centerRF:
+            ax2.scatter(centerRF_coord[0], centerRF_coord[1], color='red', marker='o', s=50, label="centerRF")
         ax2.set_xlim(0, desired_width)
         ax2.set_ylim(0, desired_height)
+        ax2.legend()
 
         # ax2.imshow(rgc_output, cmap='gray')
 
@@ -154,6 +160,8 @@ class MovieGenerator:
         ax4.plot(path_bg_history[:, 0]* np.array([scalar_width]), label='Background Path', color='green')
         if is_path_predict:
             ax4.plot(path_predict_history[:, 0]* np.array([scalar_width]), label='Predicted Path', color='orange')
+        if is_centerRF:
+            ax4.plot(centerRF_history[:, 0], label='Center RF path', color='red')
         # ax4.legend()
         ax4.set_ylim(-scalar_width, scalar_width)
 
@@ -164,8 +172,10 @@ class MovieGenerator:
         ax5.plot(path_bg_history[:, 1], label='Background Path', color='green')
         if is_path_predict:
             ax5.plot(path_predict_history[:, 1], label='Predicted Path', color='orange')
+        if is_centerRF:
+            ax5.plot(centerRF_history[:, 1], label='Center RF path', color='red')
         # ax5.legend()
-        ax5.set_ylim(y_min, y_max)
+        ax5.set_ylim(-scalar_height, scalar_height)
 
         # Scaling Factor Subplot
         ax6 = fig.add_subplot(gs[2:4, 5:6])
