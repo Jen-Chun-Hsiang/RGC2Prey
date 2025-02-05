@@ -105,7 +105,7 @@ class MovieGenerator:
         if is_centerRF:
             centerRF_coord = centerRF_history[-1] * np.array([1, -1]) 
             centerRF_coord += np.array([desired_width, desired_height])
-            ax1.scatter(centerRF_coord[0], centerRF_coord[1], color='red', marker='o', s=50, label="centerRF")
+            ax1.scatter(centerRF_coord[0], centerRF_coord[1], color='red', marker='x', s=50, label="centerRF")
         ax1.legend()
         ax1.axis('off')
         ax1.set_xticks([])
@@ -125,18 +125,20 @@ class MovieGenerator:
         ax2.imshow(rgc_output, cmap='gray', extent=[x_min, x_max, y_min, y_max])
         path_coord= path_history[-1] * np.array([scalar_width, -scalar_height]) * 0.5
         path_coord += np.array([desired_width, desired_height]) * 0.5
-        ax2.scatter(path_coord[0], path_coord[1], color='blue', marker='x', s=50, label="target")
+        ax2.scatter(path_coord[0], -path_coord[1], color='blue', marker='x', s=50, label="target")
         if is_path_predict:
             path_pred_coord= path_predict_history[-1] * np.array([scalar_width, -scalar_height]) * 0.5
             path_pred_coord += np.array([desired_width, desired_height]) * 0.5
-            ax2.scatter(path_pred_coord[0], path_pred_coord[1], color='orange', marker='x', s=50, label="Pred")
+            ax2.scatter(path_pred_coord[0], -path_pred_coord[1], color='orange', marker='x', s=50, label="Pred")
         if is_centerRF:
             centerRF_coord = centerRF_history[-1] * np.array([1, -1])  * 0.5
             centerRF_coord += np.array([desired_width, desired_height]) * 0.5
-            ax2.scatter(centerRF_coord[0], centerRF_coord[1], color='red', marker='o', s=50, label="centerRF")
+            ax2.scatter(centerRF_coord[0], -centerRF_coord[1], color='red', marker='x', s=50, label="centerRF")
         ax2.set_xlim(0, desired_width)
         ax2.set_ylim(0, desired_height)
         ax2.legend()
+        ax2.axis('off')
+        ax2.set_xticks([])
 
         # ax2.imshow(rgc_output, cmap='gray')
 
