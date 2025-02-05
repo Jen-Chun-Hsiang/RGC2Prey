@@ -116,7 +116,6 @@ class MovieGenerator:
         ax2.set_title("RGC Outputs")
 
         image_width, image_height = rgc_output.shape[1], rgc_output.shape[0]
-
         x_min = (desired_width - image_width) / 2
         x_max = x_min + image_width
         y_min = (desired_height - image_height) / 2
