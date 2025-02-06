@@ -375,16 +375,6 @@ class Cricket2RGCs(Dataset):
             map_funcs = [self.map_func, self.map_func_off]
             grid2value_mappings = [self.grid2value_mapping, self.grid2value_mapping_off]
 
-            # Precompute tf to avoid repetition
-            # tf = np.repeat(self.tf, sf_frame.shape[1], axis=0)
-            # print(f'multi_opt_sf shape: {self.multi_opt_sf.shape}')
-            # print(f'multi_opt_sf_off shape: {self.multi_opt_sf_off.shape}')
-            # tf = np.repeat(self.tf, self.multi_opt_sf.shape[1], axis=0)
-            # tf_off = np.repeat(-self.tf_off, self.multi_opt_sf_off.shape[1], axis=0)
-            print(f'tf shape: {self.tf.shape}')
-            print(f'tf_off shape: {self.tf_off.shape}')
-            # tf = torch.tensor(np.repeat(self.tf, self.multi_opt_sf.shape[1], axis=0), dtype=torch.float32)
-            # tf_off = torch.tensor(np.repeat(-self.tf_off, self.multi_opt_sf_off.shape[1], axis=0), dtype=torch.float32)
             tfs = [self.tf, self.tf_off]
 
             for sf, map_func, grid2value_mapping, tf in zip(multi_opt_sfs, map_funcs, grid2value_mappings, tfs):
@@ -418,6 +408,8 @@ class Cricket2RGCs(Dataset):
 
             # Combine ON and OFF grid values
             grid_values_sequence = torch.stack(grid_values_sequence_list, dim=0)  # Shape: (2, batch, H, W)
+            print(f'grid_values_sequence shape: {grid_values_sequence.shape}')
+
 
         else:
             sf_frame = torch.einsum('whn,thw->nt', self.multi_opt_sf, syn_movie)
