@@ -50,15 +50,16 @@ def run_experiment(experiment_name, noise_level=None, test_bg_folder=None, test_
     
     rf_params_file = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/SimulationParams.xlsx'
     test_save_folder = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/Results/Figures/'
-    coord_mat_file = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/selected_points_summary.mat'
+    # coord_mat_file = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/selected_points_summary.mat'
+    
     video_save_folder = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/Results/Videos/'
     mat_save_folder = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/Results/Mats/'
     log_save_folder  = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/Results/Prints/'
 
     if test_ob_folder is None:
         test_ob_folder = 'cricket'
-    # elif test_ob_folder == 'white-spot':
-    #    coord_mat_file = None
+    elif test_ob_folder == 'white-spot':
+        coord_mat_file = None
 
     if noise_level is not None:
         file_name = f'{experiment_name}_{test_ob_folder}_noise{noise_level}_cricket_location_prediction'
@@ -83,6 +84,10 @@ def run_experiment(experiment_name, noise_level=None, test_bg_folder=None, test_
         test_bg_folder = args.bg_folder
     top_img_folder    = f'/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/CricketDataset/Images/cropped/{test_ob_folder}/'
     bottom_img_folder = f'/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/CricketDataset/Images/cropped/{test_bg_folder}/'  #grass
+
+    if test_ob_folder is None:
+        coord_mat_file = f'/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/selected_points_summary_{args.coord_adj_type}.mat'   #selected_points_summary.mat
+    
 
     logging.info( f"{file_name} processing...0")
     if args.is_GPU:
