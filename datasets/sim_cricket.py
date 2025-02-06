@@ -338,8 +338,8 @@ class Cricket2RGCs(Dataset):
         self.fr2spikes = fr2spikes
         self.is_both_ON_OFF = is_both_ON_OFF
         if self.is_both_ON_OFF:
-            self.multi_opt_sf_off = multi_opt_sf_off
-            self.tf_off = tf_off
+            self.multi_opt_sf_off = torch.from_numpy(multi_opt_sf_off).float()
+            self.tf_off = torch.from_numpy(tf_off.copy()).float().view(1, 1, -1)
             self.map_func_off = map_func_off
             self.grid2value_mapping_off = grid2value_mapping_off
         self.quantize_scale = quantize_scale
@@ -377,12 +377,12 @@ class Cricket2RGCs(Dataset):
 
             # Precompute tf to avoid repetition
             # tf = np.repeat(self.tf, sf_frame.shape[1], axis=0)
-            print(f'multi_opt_sf shape: {self.multi_opt_sf.shape}')
-            print(f'multi_opt_sf_off shape: {self.multi_opt_sf_off.shape}')
+            # print(f'multi_opt_sf shape: {self.multi_opt_sf.shape}')
+            # print(f'multi_opt_sf_off shape: {self.multi_opt_sf_off.shape}')
             tf = np.repeat(self.tf, self.multi_opt_sf.shape[1], axis=0)
             tf_off = np.repeat(-self.tf_off, self.multi_opt_sf_off.shape[1], axis=0)
-            print(f'tf shape: {self.tf.shape}')
-            print(f'tf_off shape: {self.tf_off.shape}')
+            # print(f'tf shape: {self.tf.shape}')
+            # print(f'tf_off shape: {self.tf_off.shape}')
             # tf = torch.tensor(np.repeat(self.tf, self.multi_opt_sf.shape[1], axis=0), dtype=torch.float32)
             # tf_off = torch.tensor(np.repeat(-self.tf_off, self.multi_opt_sf_off.shape[1], axis=0), dtype=torch.float32)
             tfs = [tf, tf_off]
