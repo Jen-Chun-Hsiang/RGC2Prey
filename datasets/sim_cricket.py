@@ -376,7 +376,7 @@ class Cricket2RGCs(Dataset):
             grid2value_mappings = [self.grid2value_mapping, self.grid2value_mapping_off]
 
             # Precompute tf to avoid repetition
-            tf = torch.tensor(np.repeat(self.tf, self.multi_opt_sf_ON.shape[1], axis=0), dtype=torch.float32)
+            tf = torch.tensor(np.repeat(self.tf, self.multi_opt_sf.shape[1], axis=0), dtype=torch.float32)
             tf_off = torch.tensor(np.repeat(-self.tf_off, self.multi_opt_sf_off.shape[1], axis=0), dtype=torch.float32)
             tfs = [tf, tf_off]
 
