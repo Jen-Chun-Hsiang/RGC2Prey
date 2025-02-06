@@ -177,6 +177,7 @@ def main():
     logging.info( f"{args.experiment_name} processing...2")
 
     if args.is_both_ON_OFF:
+        num_input_channel = 2
         # sf_param_table = pd.read_excel(rf_params_file, sheet_name='SF_params_OFF', usecols='A:L')
         rgc_array = RGCrfArray(
             sf_param_table, tf_param_table, rgc_array_rf_size=args.rgc_array_rf_size, xlim=args.xlim, ylim=args.ylim,
@@ -294,7 +295,8 @@ def main():
     model = CNN_LSTM_ObjectLocation(cnn_feature_dim=args.cnn_feature_dim, lstm_hidden_size=args.lstm_hidden_size,
                                      lstm_num_layers=args.lstm_num_layers, output_dim=args.output_dim,
                                     input_height=grid_width, input_width=grid_height, conv_out_channels=args.conv_out_channels,
-                                    is_input_norm=args.is_input_norm, is_seq_reshape=args.is_seq_reshape, CNNextractor_version=args.cnn_extractor_version)
+                                    is_input_norm=args.is_input_norm, is_seq_reshape=args.is_seq_reshape, CNNextractor_version=args.cnn_extractor_version,
+                                    num_input_channel=num_input_channel)
     
     logging.info( f"{args.experiment_name} processing...10")
     model = model.to(device)
