@@ -189,6 +189,7 @@ def main():
         )
         multi_opt_sf_off, tf_off, grid2value_mapping_off, map_func_off, rgc_locs = rgc_array.get_results()
     else:
+        num_input_channel = 1
         multi_opt_sf_off, tf_off, grid2value_mapping_off, map_func_off, rgc_locs = None, None, None, None, None
 
     logging.info( f"{args.experiment_name} processing...3")
