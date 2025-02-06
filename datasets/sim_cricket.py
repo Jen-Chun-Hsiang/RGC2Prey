@@ -376,13 +376,16 @@ class Cricket2RGCs(Dataset):
             grid2value_mappings = [self.grid2value_mapping, self.grid2value_mapping_off]
 
             # Precompute tf to avoid repetition
-            tf = torch.tensor(np.repeat(self.tf, self.multi_opt_sf.shape[1], axis=0), dtype=torch.float32)
-            tf_off = torch.tensor(np.repeat(-self.tf_off, self.multi_opt_sf_off.shape[1], axis=0), dtype=torch.float32)
+            # tf = np.repeat(self.tf, sf_frame.shape[1], axis=0)
+            tf = np.repeat(self.tf, self.multi_opt_sf.shape[1], axis=0)
+            tf_off = np.repeat(-self.tf_off, self.multi_opt_sf_off.shape[1], axis=0)
+            # tf = torch.tensor(np.repeat(self.tf, self.multi_opt_sf.shape[1], axis=0), dtype=torch.float32)
+            # tf_off = torch.tensor(np.repeat(-self.tf_off, self.multi_opt_sf_off.shape[1], axis=0), dtype=torch.float32)
             tfs = [tf, tf_off]
 
-            for sf, map_func, grid2value_mapping, tf in zip(multi_opt_sfs, map_funcs, grid2value_mappings, tfs):
+            for sf, map_func, grid2value_mapping, tf_c in zip(multi_opt_sfs, map_funcs, grid2value_mappings, tfs):
                 sf_frame = torch.einsum('whn,thw->nt', sf, syn_movie).unsqueeze(0)
-                rgc_time = F.conv1d(sf_frame, tf, stride=1, padding=0, groups=sf_frame.shape[1]).squeeze()
+                rgc_time = F.conv1d(sf_frame, tf_c, stride=1, padding=0, groups=sf_frame.shape[1]).squeeze()
 
                 # Apply firing rate to spikes transformation if needed
                 if self.fr2spikes:
