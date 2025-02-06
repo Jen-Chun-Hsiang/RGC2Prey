@@ -404,6 +404,7 @@ class Cricket2RGCs(Dataset):
                     self.grid_width,
                     self.grid_height
                 )
+                print(f'grid_values_sequence shape: {grid_values_sequence.shape}')
                 grid_values_sequence_list.append(grid_values_sequence)
 
             # Combine ON and OFF grid values
