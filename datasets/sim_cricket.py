@@ -408,7 +408,7 @@ class Cricket2RGCs(Dataset):
                 grid_values_sequence_list.append(grid_values_sequence)
 
             # Combine ON and OFF grid values
-            grid_values_sequence = torch.stack(grid_values_sequence_list, dim=0)  # Shape: (2, batch, H, W)
+            grid_values_sequence = torch.stack(grid_values_sequence_list, dim=1)  # Shape: (2, batch, H, W)
             print(f'grid_values_sequence shape: {grid_values_sequence.shape}')
 
 
@@ -460,12 +460,16 @@ class Cricket2RGCs(Dataset):
         path_bg = path_bg[-rgc_time.shape[1]:, :]/self.norm_path_fac    
         # Estimate the center of mass by firing rate (rgc_time)
 
-
+        if self.is_both_ON_OFF:
+            grid_values_sequence = grid_values_sequence.permute(0, 1, 3, 2)
+        else:
+            grid_values_sequence = grid_values_sequence.permute(0, 2, 1).unsqueeze(1)
+            
         if self.is_syn_mov_shown:
-            return grid_values_sequence.permute(0, 2, 1).unsqueeze(1), path, path_bg, syn_movie, scaling_factors, bg_image_name, image_id, weighted_coords
+            return grid_values_sequence, path, path_bg, syn_movie, scaling_factors, bg_image_name, image_id, weighted_coords
     
         else:
-            return grid_values_sequence.permute(0, 2, 1).unsqueeze(1), torch.tensor(path, dtype=torch.float32), torch.tensor(path_bg, dtype=torch.float32)
+            return grid_values_sequence, torch.tensor(path, dtype=torch.float32), torch.tensor(path_bg, dtype=torch.float32)
     
 
 class SynMovieGenerator:
