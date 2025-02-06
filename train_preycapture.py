@@ -237,7 +237,7 @@ def main():
     
     logging.info( f"{args.experiment_name} processing...6")
     # Visualize one data points
-    sequence, path, path_bg, syn_movie, scaling_factors, _, _ = train_dataset[0]
+    sequence, path, path_bg, syn_movie, scaling_factors, _, _, _ = train_dataset[0]
     # raise ValueError(f"Temporal close exam processing...")
     if is_show_movie_frames:
         for i in range(syn_movie.shape[0]):
