@@ -121,8 +121,22 @@ def run_experiment(experiment_name, noise_level=None, test_bg_folder=None, test_
     )
     logging.info( f"{file_name} processing...1.5")
     multi_opt_sf, tf, grid2value_mapping, map_func, grid_centers = rgc_array.get_results()
-    logging.info(f"Minimum value: {np.min(grid_centers, axis=0)}")
-    logging.info(f"Maximum value: {np.max(grid_centers, axis=0)}")
+
+    if args.is_both_ON_OFF:
+        num_input_channel = 2
+        # sf_param_table = pd.read_excel(rf_params_file, sheet_name='SF_params_OFF', usecols='A:L')
+        rgc_array = RGCrfArray(
+            sf_param_table, tf_param_table, rgc_array_rf_size=args.rgc_array_rf_size, xlim=args.xlim, ylim=args.ylim,
+            target_num_centers=args.target_num_centers, sf_scalar=args.sf_scalar, grid_generate_method=args.grid_generate_method, 
+            tau=args.tau, mask_radius=args.mask_radius, rgc_rand_seed=args.rgc_rand_seed+1, num_gauss_example=args.num_gauss_example, 
+            sf_constraint_method=args.sf_constraint_method, temporal_filter_len=args.temporal_filter_len, grid_size_fac=args.grid_size_fac,
+            sf_mask_radius=args.sf_mask_radius, is_pixelized_tf=args.is_pixelized_tf, set_s_scale=args.set_s_scale, 
+            is_rf_median_subtract=args.is_rf_median_subtract
+        )
+        multi_opt_sf_off, tf_off, grid2value_mapping_off, map_func_off, rgc_locs = rgc_array.get_results()
+    else:
+        num_input_channel = 1
+        multi_opt_sf_off, tf_off, grid2value_mapping_off, map_func_off, rgc_locs = None, None, None, None, None
 
     # raise ValueError(f"Temporal close exam processing...")
     logging.info( f"{file_name} processing...2")
@@ -158,11 +172,14 @@ def run_experiment(experiment_name, noise_level=None, test_bg_folder=None, test_
     logging.info( f"{file_name} processing...4")
 
     test_dataset = Cricket2RGCs(num_samples=num_sample, multi_opt_sf=multi_opt_sf, tf=tf, map_func=map_func,
-                                grid2value_mapping=grid2value_mapping, target_width=target_width, target_height=target_height,
-                                movie_generator=movie_generator, grid_size_fac=args.grid_size_fac, is_norm_coords=args.is_norm_coords, 
-                                is_syn_mov_shown=False, fr2spikes=args.fr2spikes, is_both_ON_OFF=args.is_both_ON_OFF, 
-                                quantize_scale=args.quantize_scale, add_noise=is_add_noise, rgc_noise_std=noise_level, 
-                                smooth_data=args.smooth_data, is_rectified=args.is_rectified, is_direct_image=args.is_direct_image)
+                                grid2value_mapping=grid2value_mapping, multi_opt_sf_off=multi_opt_sf_off, tf_off=tf_off, 
+                                map_func_off=map_func_off, grid2value_mapping_off=grid2value_mapping_off, target_width=target_width, 
+                                target_height=target_height, movie_generator=movie_generator, grid_size_fac=args.grid_size_fac, 
+                                is_norm_coords=args.is_norm_coords, is_syn_mov_shown=False, fr2spikes=args.fr2spikes, 
+                                is_both_ON_OFF=args.is_both_ON_OFF, quantize_scale=args.quantize_scale, 
+                                add_noise=is_add_noise, rgc_noise_std=noise_level, smooth_data=args.smooth_data, 
+                                is_rectified=args.is_rectified, is_direct_image=args.is_direct_image)
+
     test_loader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=True, 
                              num_workers=args.num_worker, pin_memory=True, persistent_workers=False, worker_init_fn=worker_init_fn)
 
@@ -185,12 +202,13 @@ def run_experiment(experiment_name, noise_level=None, test_bg_folder=None, test_
     
     # Get path
     test_dataset = Cricket2RGCs(num_samples=int(num_sample*0.1), multi_opt_sf=multi_opt_sf, tf=tf, map_func=map_func,
-                                grid2value_mapping=grid2value_mapping, target_width=target_width, target_height=target_height,
-                                movie_generator=movie_generator, grid_size_fac=args.grid_size_fac, is_norm_coords=args.is_norm_coords, 
-                                is_syn_mov_shown=True, fr2spikes=args.fr2spikes, is_both_ON_OFF=args.is_both_ON_OFF, 
-                                quantize_scale=args.quantize_scale, add_noise=is_add_noise, rgc_noise_std=noise_level, 
-                                smooth_data=args.smooth_data, is_rectified=args.is_rectified, is_direct_image=args.is_direct_image, 
-                                grid_coords=grid_centers)
+                                grid2value_mapping=grid2value_mapping, multi_opt_sf_off=multi_opt_sf_off, tf_off=tf_off, 
+                                map_func_off=map_func_off, grid2value_mapping_off=grid2value_mapping_off, target_width=target_width, 
+                                target_height=target_height, movie_generator=movie_generator, grid_size_fac=args.grid_size_fac, 
+                                is_norm_coords=args.is_norm_coords, is_syn_mov_shown=True, fr2spikes=args.fr2spikes, 
+                                is_both_ON_OFF=args.is_both_ON_OFF, quantize_scale=args.quantize_scale, 
+                                add_noise=is_add_noise, rgc_noise_std=noise_level, smooth_data=args.smooth_data, 
+                                is_rectified=args.is_rectified, is_direct_image=args.is_direct_image, grid_coords=grid_centers)
     test_loader = DataLoader(test_dataset, batch_size=1, shuffle=True, worker_init_fn=worker_init_fn)
 
     logging.info( f"{file_name} processing...7")
@@ -247,12 +265,13 @@ def run_experiment(experiment_name, noise_level=None, test_bg_folder=None, test_
 
     model.to('cpu')
     test_dataset = Cricket2RGCs(num_samples=num_display, multi_opt_sf=multi_opt_sf, tf=tf, map_func=map_func,
-                                grid2value_mapping=grid2value_mapping, target_width=target_width, target_height=target_height,
-                                movie_generator=movie_generator, grid_size_fac=args.grid_size_fac, is_norm_coords=args.is_norm_coords, 
-                                is_syn_mov_shown=True, fr2spikes=args.fr2spikes, is_both_ON_OFF=args.is_both_ON_OFF, 
-                                quantize_scale=args.quantize_scale, add_noise=is_add_noise, rgc_noise_std=noise_level, 
-                                smooth_data=args.smooth_data, is_rectified=args.is_rectified, is_direct_image=args.is_direct_image,
-                                grid_coords=grid_centers)
+                                grid2value_mapping=grid2value_mapping, multi_opt_sf_off=multi_opt_sf_off, tf_off=tf_off, 
+                                map_func_off=map_func_off, grid2value_mapping_off=grid2value_mapping_off, target_width=target_width, 
+                                target_height=target_height, movie_generator=movie_generator, grid_size_fac=args.grid_size_fac, 
+                                is_norm_coords=args.is_norm_coords, is_syn_mov_shown=True, fr2spikes=args.fr2spikes, 
+                                is_both_ON_OFF=args.is_both_ON_OFF, quantize_scale=args.quantize_scale, 
+                                add_noise=is_add_noise, rgc_noise_std=noise_level, smooth_data=args.smooth_data, 
+                                is_rectified=args.is_rectified, is_direct_image=args.is_direct_image, grid_coords=grid_centers)
     test_loader = DataLoader(test_dataset, batch_size=1, shuffle=False, worker_init_fn=worker_init_fn)
 
     logging.info( f"{file_name} processing...10")
