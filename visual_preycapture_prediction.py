@@ -127,6 +127,8 @@ def run_experiment(experiment_name, noise_level=None, test_bg_folder=None, test_
     logging.info( f"{file_name} processing...1.5")
     multi_opt_sf, tf, grid2value_mapping, map_func, grid_centers = rgc_array.get_results()
 
+    print(f'grid_centers type: {type(grid_centers)}')
+    print(f'grid_centers shape: {grid_centers.shape}')
     if args.is_both_ON_OFF:
         num_input_channel = 2
         # sf_param_table = pd.read_excel(rf_params_file, sheet_name='SF_params_OFF', usecols='A:L')
@@ -138,10 +140,10 @@ def run_experiment(experiment_name, noise_level=None, test_bg_folder=None, test_
             sf_mask_radius=args.sf_mask_radius, is_pixelized_tf=args.is_pixelized_tf, set_s_scale=args.set_s_scale, 
             is_rf_median_subtract=args.is_rf_median_subtract
         )
-        multi_opt_sf_off, tf_off, grid2value_mapping_off, map_func_off, rgc_locs = rgc_array.get_results()
+        multi_opt_sf_off, tf_off, grid2value_mapping_off, map_func_off, grid_centers_off = rgc_array.get_results()
     else:
         num_input_channel = 1
-        multi_opt_sf_off, tf_off, grid2value_mapping_off, map_func_off, rgc_locs = None, None, None, None, None
+        multi_opt_sf_off, tf_off, grid2value_mapping_off, map_func_off, grid_centers_off = None, None, None, None, None
 
     # raise ValueError(f"Temporal close exam processing...")
     logging.info( f"{file_name} processing...2")
