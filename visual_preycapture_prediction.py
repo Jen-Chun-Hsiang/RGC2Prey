@@ -130,6 +130,7 @@ def run_experiment(experiment_name, noise_level=None, test_bg_folder=None, test_
     if args.is_both_ON_OFF:
         num_input_channel = 2
         grid_centers = None
+        is_plot_centerFR = False
         # sf_param_table = pd.read_excel(rf_params_file, sheet_name='SF_params_OFF', usecols='A:L')
         rgc_array = RGCrfArray(
             sf_param_table, tf_param_table, rgc_array_rf_size=args.rgc_array_rf_size, xlim=args.xlim, ylim=args.ylim,
