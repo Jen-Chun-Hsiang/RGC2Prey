@@ -115,6 +115,9 @@ class MovieGenerator:
         ax2 = fig.add_subplot(gs[:2, 3:6])
         ax2.set_title("RGC Outputs")
 
+        if rgc_output.ndim == 3 and rgc_output.shape[0] > 1:
+            rgc_output = rgc_output[0, :, :]  # Use only the first channel
+
         image_width, image_height = rgc_output.shape[1], rgc_output.shape[0]
         x_min = (desired_width - image_width) / 2
         x_max = x_min + image_width
