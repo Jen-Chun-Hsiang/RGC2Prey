@@ -24,7 +24,7 @@ def parse_args():
 
     # Default values
     default_crop_size = (320, 240)
-    default_boundary_size = (220, 140)
+    default_boundary_size = '(220, 140)'
     default_center_ratio = (0.2, 0.2)
     default_rg_array_rf_size = (320, 240)
     default_xlim = (-120, 120)
@@ -42,7 +42,7 @@ def parse_args():
 
     # Arguments for SynMovieGenerator
     parser.add_argument('--crop_size', type=tuple, default=default_crop_size, help="Crop size as (width, height).")
-    parser.add_argument('--boundary_size', type=tuple, default=default_boundary_size, help="Boundary size as (x_limit, y_limit).")
+    parser.add_argument('--boundary_size', type=str, default=default_boundary_size, help="Boundary size as '(x_limit, y_limit)'.")
     parser.add_argument('--center_ratio', type=tuple, default=default_center_ratio, help="Center ratio for initial movement placement.")
     parser.add_argument('--max_steps', type=int, default=default_max_steps, help="Maximum steps for movement.")
     parser.add_argument('--prob_stay_ob', type=float, default=0.95, help='Probability of step transition from stay to stay')
