@@ -1,4 +1,5 @@
 import random
+import ast
 from PIL import Image
 import numpy as np
 import torch
@@ -495,7 +496,7 @@ class SynMovieGenerator:
         self.bottom_img_folder = bottom_img_folder
         self.top_img_folder = top_img_folder
         self.crop_size = crop_size
-        self.boundary_size = boundary_size
+        self.boundary_size = tuple(ast.literal_eval(boundary_size)) if isinstance(boundary_size, str) else boundary_size
         self.center_ratio = center_ratio
         self.max_steps = max_steps
         self.prob_stay_ob = prob_stay_ob
