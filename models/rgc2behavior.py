@@ -867,6 +867,8 @@ class CNN_LSTM_ObjectLocation(nn.Module):
         lstm_out = torch.relu(self.fc1(lstm_out))  # (batch_size, sequence_length, output_dim)
         coord_predictions = self.fc2(lstm_out)
         bg_predictions = self.fc3(lstm_out)
+        print(f'coord_predictions shape: {coord_predictions.shape}')
+        print(f'bg_predictions shape: {bg_predictions.shape}')
         bg_predictions = causal_moving_average(bg_predictions, self.short_window_length) - \
                          causal_moving_average(bg_predictions, self.long_window_length)
         return coord_predictions, bg_predictions
