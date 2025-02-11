@@ -466,6 +466,9 @@ class Cricket2RGCs(Dataset):
         else:
             grid_values_sequence = grid_values_sequence.permute(0, 2, 1).unsqueeze(1)
 
+        bg_predictions = causal_moving_average(bg_predictions, self.short_window_length) - \
+                            causal_moving_average(bg_predictions, self.long_window_length)
+
         if self.is_syn_mov_shown:
             return grid_values_sequence, path, path_bg, syn_movie, scaling_factors, bg_image_name, image_id, weighted_coords
     

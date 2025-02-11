@@ -870,8 +870,8 @@ class CNN_LSTM_ObjectLocation(nn.Module):
         coord_predictions = self.fc2(lstm_out)
         if self.bg_info_cost_ratio !=0:
             bg_predictions = self.fc3(lstm_out)
-            bg_predictions = causal_moving_average(bg_predictions, self.short_window_length) - \
-                            causal_moving_average(bg_predictions, self.long_window_length)
+            # bg_predictions = causal_moving_average(bg_predictions, self.short_window_length) - \
+            #                 causal_moving_average(bg_predictions, self.long_window_length)
         else:
             bg_predictions = coord_predictions
         return coord_predictions, bg_predictions
