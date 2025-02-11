@@ -15,8 +15,6 @@ from utils.utils import get_random_file_path, get_image_number, load_mat_to_data
 from utils.tools import gaussian_smooth_1d
 
 
-
-
 def jitter_position(position, jitter_range):
     """
     Apply jitter to a given position within a defined range.
