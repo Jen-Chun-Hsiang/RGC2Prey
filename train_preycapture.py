@@ -298,7 +298,7 @@ def main():
                                      lstm_num_layers=args.lstm_num_layers, output_dim=args.output_dim,
                                     input_height=grid_width, input_width=grid_height, conv_out_channels=args.conv_out_channels,
                                     is_input_norm=args.is_input_norm, is_seq_reshape=args.is_seq_reshape, CNNextractor_version=args.cnn_extractor_version,
-                                    num_input_channel=num_input_channel)
+                                    num_input_channel=num_input_channel, bg_info_cost_ratio=args.bg_info_cost_ratio)
     
     logging.info( f"{args.experiment_name} processing...10")
     model = model.to(device)

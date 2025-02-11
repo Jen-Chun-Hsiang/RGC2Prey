@@ -796,7 +796,7 @@ class FullSampleNormalization(nn.Module):
 class CNN_LSTM_ObjectLocation(nn.Module):
     def __init__(self, cnn_feature_dim=128, lstm_hidden_size=64, lstm_num_layers=2, output_dim=2,
                  input_height=24, input_width=32, conv_out_channels=32, is_input_norm=False, is_seq_reshape=False, CNNextractor_version=1, 
-                 num_input_channel=1, short_window_length=3, long_window_length=10):
+                 num_input_channel=1, short_window_length=3, long_window_length=10, bg_info_cost_ratio=0):
         super(CNN_LSTM_ObjectLocation, self).__init__()
         self.is_input_norm = is_input_norm
         if is_input_norm:
@@ -838,7 +838,9 @@ class CNN_LSTM_ObjectLocation(nn.Module):
         self.lstm_norm = nn.LayerNorm(lstm_hidden_size)
         self.fc1 = nn.Linear(lstm_hidden_size, lstm_hidden_size)  # Output layer for (x, y) coordinates
         self.fc2 = nn.Linear(lstm_hidden_size, output_dim) 
-        self.fc3 = nn.Linear(lstm_hidden_size, output_dim) 
+        self.bg_info_cost_ratio = bg_info_cost_ratio
+        if self.bg_info_cost_ratio !=0:
+            self.fc3 = nn.Linear(lstm_hidden_size, output_dim) 
         self.is_seq_reshape = is_seq_reshape
         self.short_window_length = short_window_length
         self.long_window_length = long_window_length
@@ -866,11 +868,12 @@ class CNN_LSTM_ObjectLocation(nn.Module):
         lstm_out = self.lstm_norm(lstm_out)
         lstm_out = torch.relu(self.fc1(lstm_out))  # (batch_size, sequence_length, output_dim)
         coord_predictions = self.fc2(lstm_out)
-        bg_predictions = self.fc3(lstm_out)
-        # print(f'coord_predictions shape: {coord_predictions.shape}')
-        # print(f'bg_predictions shape: {bg_predictions.shape}')
-        bg_predictions = causal_moving_average(bg_predictions, self.short_window_length) - \
-                         causal_moving_average(bg_predictions, self.long_window_length)
+        if self.bg_info_cost_ratio !=0:
+            bg_predictions = self.fc3(lstm_out)
+            bg_predictions = causal_moving_average(bg_predictions, self.short_window_length) - \
+                            causal_moving_average(bg_predictions, self.long_window_length)
+        else:
+            bg_predictions = coord_predictions
         return coord_predictions, bg_predictions
 
     def _initialize_weights(self):
