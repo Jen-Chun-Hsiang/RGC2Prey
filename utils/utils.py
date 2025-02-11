@@ -361,3 +361,20 @@ def plot_two_path_comparison(array1, array2, save_folder, file_name):
     save_path = os.path.join(save_folder, file_name)
     plt.savefig(save_path, bbox_inches="tight")
     plt.close()
+
+
+def causal_moving_average(seq, window_size):
+    """
+    Computes a causal moving average for 2D coordinates using PyTorch with optimized computation.
+    Uses cumulative sum for O(N) complexity instead of O(N * W).
+    """
+    seq = torch.tensor(seq, dtype=torch.float32)  # Ensure input is a tensor
+    cumsum_seq = torch.cumsum(seq, dim=0)  # Compute cumulative sum
+
+    # Compute the moving average using cumulative sum differences
+    ma = cumsum_seq.clone()
+    ma[window_size:] -= cumsum_seq[:-window_size]  # Efficient subtraction for moving window
+    ma /= torch.arange(1, len(seq) + 1, dtype=torch.float32).clamp(max=window_size).view(-1, 1)
+
+    return ma
+
