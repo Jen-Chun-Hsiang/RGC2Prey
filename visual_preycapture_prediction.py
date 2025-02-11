@@ -152,7 +152,7 @@ def run_experiment(experiment_name, noise_level=None, test_bg_folder=None, test_
     logging.info( f"{file_name} processing...2")
 
     movie_generator = SynMovieGenerator(top_img_folder, bottom_img_folder,
-        crop_size=args.crop_size, boundary_size=args.boundary_size, center_ratio=args.center_ratio, max_steps=args.max_steps,
+        crop_size=args.crop_size, boundary_size=boundary_size, center_ratio=args.center_ratio, max_steps=args.max_steps,
         prob_stay_ob=args.prob_stay_ob, prob_mov_ob=args.prob_mov_ob, prob_stay_bg=args.prob_stay_bg, prob_mov_bg=args.prob_mov_bg, 
         num_ext=args.num_ext, initial_velocity=args.initial_velocity, momentum_decay_ob=args.momentum_decay_ob, 
         momentum_decay_bg=args.momentum_decay_bg, scale_factor=args.scale_factor, velocity_randomness_ob = args.velocity_randomness_ob, 
