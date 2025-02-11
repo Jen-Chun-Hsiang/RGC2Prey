@@ -305,7 +305,8 @@ def run_experiment(experiment_name, noise_level=None, test_bg_folder=None, test_
         # logging.info( f"weighted_coords shape: {weighted_coords.shape}")
 
         with torch.no_grad():
-            predicted_path, _ = model(inputs).squeeze().cpu().numpy()
+            predicted_path, _ = model(inputs)
+            predicted_path = predicted_path.squeeze().cpu().numpy()
 
         # Extract x and y coordinates
         sequence_length = len(true_path)
