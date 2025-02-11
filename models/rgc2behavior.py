@@ -5,7 +5,6 @@ import torch.nn.functional as F
 
 import torch
 import torch.nn as nn
-from utils.utils import causal_moving_average
 
 class ParallelCNNFeatureExtractor(nn.Module):
     def __init__(self, input_height=24, input_width=32, conv_out_channels=16, fc_out_features=128, num_input_channel=1):
@@ -796,7 +795,7 @@ class FullSampleNormalization(nn.Module):
 class CNN_LSTM_ObjectLocation(nn.Module):
     def __init__(self, cnn_feature_dim=128, lstm_hidden_size=64, lstm_num_layers=2, output_dim=2,
                  input_height=24, input_width=32, conv_out_channels=32, is_input_norm=False, is_seq_reshape=False, CNNextractor_version=1, 
-                 num_input_channel=1, short_window_length=3, long_window_length=10, bg_info_cost_ratio=0):
+                 num_input_channel=1, bg_info_cost_ratio=0):
         super(CNN_LSTM_ObjectLocation, self).__init__()
         self.is_input_norm = is_input_norm
         if is_input_norm:
@@ -842,8 +841,7 @@ class CNN_LSTM_ObjectLocation(nn.Module):
         if self.bg_info_cost_ratio !=0:
             self.fc3 = nn.Linear(lstm_hidden_size, output_dim) 
         self.is_seq_reshape = is_seq_reshape
-        self.short_window_length = short_window_length
-        self.long_window_length = long_window_length
+        
 
     def forward(self, x):
 

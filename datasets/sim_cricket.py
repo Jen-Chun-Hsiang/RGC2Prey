@@ -16,6 +16,7 @@ from utils.tools import gaussian_smooth_1d
 
 
 
+
 def jitter_position(position, jitter_range):
     """
     Apply jitter to a given position within a defined range.
@@ -354,7 +355,6 @@ class Cricket2RGCs(Dataset):
         self.is_direct_image = is_direct_image
         self.grid_coords = torch.tensor(grid_coords, dtype=torch.float32) if grid_coords is not None else None
 
-
     def __len__(self):
         return self.num_samples
 
@@ -465,9 +465,6 @@ class Cricket2RGCs(Dataset):
             grid_values_sequence = grid_values_sequence.permute(0, 1, 3, 2)
         else:
             grid_values_sequence = grid_values_sequence.permute(0, 2, 1).unsqueeze(1)
-
-        bg_predictions = causal_moving_average(bg_predictions, self.short_window_length) - \
-                            causal_moving_average(bg_predictions, self.long_window_length)
 
         if self.is_syn_mov_shown:
             return grid_values_sequence, path, path_bg, syn_movie, scaling_factors, bg_image_name, image_id, weighted_coords

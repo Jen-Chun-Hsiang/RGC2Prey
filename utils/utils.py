@@ -380,6 +380,40 @@ def causal_moving_average(seq, window_size):
 
     # Normalize moving average
     ma /= divisor
-    
+
     return ma
+
+
+def causal_moving_average_numpy(seq, window_size):
+    """
+    Computes a causal moving average for 2D coordinates using NumPy.
+    The input array shape is expected to be [time, coordinates] → (T, C).
+    
+    Uses cumulative sum for O(N) complexity instead of O(N * W).
+
+    Parameters:
+    - seq: NumPy array of shape (T, C), where T = time steps, C = coordinate dimensions
+    - window_size: Size of the moving average window
+
+    Returns:
+    - ma: NumPy array of shape (T, C) with causal moving averages applied
+    """
+    assert seq.ndim == 2, "Input sequence must have shape (time, coordinates)"
+
+    # Compute cumulative sum along the time axis (axis=0)
+    cumsum_seq = np.cumsum(seq, axis=0)
+
+    # Compute moving average using cumulative sum differences
+    ma = cumsum_seq.copy()
+    ma[window_size:] -= cumsum_seq[:-window_size]  # Efficient subtraction for moving window
+
+    # Generate divisors for correct normalization
+    time_indices = np.arange(1, seq.shape[0] + 1)  # Shape: (T,)
+    divisor = np.minimum(time_indices, window_size).reshape(-1, 1)  # Shape: (T, 1) for broadcasting
+
+    # Normalize moving average
+    ma /= divisor
+
+    return ma
+
 

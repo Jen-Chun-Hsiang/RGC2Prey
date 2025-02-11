@@ -15,6 +15,7 @@ from utils.utils import plot_tensor_and_save, plot_vector_and_save, plot_two_pat
 from models.rgc2behavior import CNN_LSTM_ObjectLocation
 from utils.data_handling import save_checkpoint
 from utils.tools import timer, MovieGenerator, save_distributions
+from utils.utils import causal_moving_average
 from utils.initialization import process_seed, initialize_logging, worker_init_fn
 
 def parse_args():
@@ -131,6 +132,8 @@ def parse_args():
     parser.add_argument('--accumulation_steps', type=int, default=1, help='Number of mini-batch to optimize (gradient accumulation)')
     parser.add_argument('--is_generate_movie', action='store_true', help="Generate a video to visualize the dataset")
     parser.add_argument('--bg_info_cost_ratio', type=float, default=0, help="background information ratio of its objective cost, compared to object prediction")
+    parser.add_argument('--short_window_length', type=int, default=3, help='For background information extraction, short moving windom length')
+    parser.add_argument('--long_window_length', type=int, default=10, help='For background information extraction, long moving windom length')
 
     return parser.parse_args()
 
@@ -362,7 +365,8 @@ def main():
                 with timer(timer_data_transfer, tau=args.timer_tau, n=args.timer_sample_cicle):
                     sequences, targets, bg_info = sequences.to(device), targets.to(device), bg_info.to(device)
 
-                
+                bg_info = causal_moving_average(bg_info, args.short_window_length) - \
+                          causal_moving_average(bg_info, args.long_window_length)
                 # Forward pass
                 with timer(timer_data_processing, tau=args.timer_tau, n=args.timer_sample_cicle):
                     outputs, bg_pred = model(sequences)
