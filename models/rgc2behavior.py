@@ -837,6 +837,7 @@ class CNN_LSTM_ObjectLocation(nn.Module):
         self.lstm_norm = nn.LayerNorm(lstm_hidden_size)
         self.fc1 = nn.Linear(lstm_hidden_size, lstm_hidden_size)  # Output layer for (x, y) coordinates
         self.fc2 = nn.Linear(lstm_hidden_size, output_dim) 
+        self.fc3 = nn.Linear(lstm_hidden_size, output_dim) 
         self.is_seq_reshape = is_seq_reshape
 
     def forward(self, x):
@@ -862,7 +863,8 @@ class CNN_LSTM_ObjectLocation(nn.Module):
         lstm_out = self.lstm_norm(lstm_out)
         lstm_out = torch.relu(self.fc1(lstm_out))  # (batch_size, sequence_length, output_dim)
         coord_predictions = self.fc2(lstm_out)
-        return coord_predictions
+        bg_predictions = self.fc3(lstm_out)
+        return coord_predictions, bg_predictions
 
     def _initialize_weights(self):
         for m in self.modules():

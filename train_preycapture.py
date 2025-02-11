@@ -130,6 +130,7 @@ def parse_args():
     parser.add_argument('--num_epoch_save', type=int, default=5, help='Number of epoch to save a checkpoint')
     parser.add_argument('--accumulation_steps', type=int, default=1, help='Number of mini-batch to optimize (gradient accumulation)')
     parser.add_argument('--is_generate_movie', action='store_true', help="Generate a video to visualize the dataset")
+    parser.add_argument('--bg_info_cost_ratio', type=float, default=0, help="background information ratio of its objective cost, compared to object prediction")
 
     return parser.parse_args()
 
@@ -356,20 +357,19 @@ def main():
             data_iterator = iter(train_loader)
             for batch_idx in range(len(train_loader)):
                 with timer(timer_data_loading, tau=args.timer_tau, n=args.timer_sample_cicle):
-                    sequences, targets, _ = next(data_iterator)
+                    sequences, targets, bg_info = next(data_iterator)
 
                 with timer(timer_data_transfer, tau=args.timer_tau, n=args.timer_sample_cicle):
-                    sequences, targets = sequences.to(device), targets.to(device)
+                    sequences, targets, bg_info = sequences.to(device), targets.to(device), bg_info.to(device)
 
-                
                 
                 # Forward pass
                 with timer(timer_data_processing, tau=args.timer_tau, n=args.timer_sample_cicle):
-                    outputs = model(sequences)
+                    outputs, bg_pred = model(sequences)
                 
                 # Compute loss
                 with timer(timer_data_backpropagate, tau=args.timer_tau, n=args.timer_sample_cicle):
-                    loss = criterion(outputs, targets)
+                    loss = (1-args.bg_info_cost_ratio) * criterion(outputs, targets) + args.bg_info_cost_ratio * criterion(bg_pred, bg_info)
                     loss.backward()
 
                     # Apply gradient clipping
