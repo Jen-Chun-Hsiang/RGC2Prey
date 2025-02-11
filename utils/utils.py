@@ -368,13 +368,18 @@ def causal_moving_average(seq, window_size):
     Computes a causal moving average for 2D coordinates using PyTorch with optimized computation.
     Uses cumulative sum for O(N) complexity instead of O(N * W).
     """
-    seq = torch.tensor(seq, dtype=torch.float32, device=seq.device)  # Ensure input is a tensor
-    cumsum_seq = torch.cumsum(seq, dim=0)  # Compute cumulative sum
+    assert seq.ndim == 3
+    seq = seq.to(dtype=torch.float32)  # Ensure input is a tensor
+    cumsum_seq = torch.cumsum(seq, dim=1)  # Compute cumulative sum
 
     # Compute the moving average using cumulative sum differences
     ma = cumsum_seq.clone()
-    ma[window_size:] -= cumsum_seq[:-window_size]  # Efficient subtraction for moving window
-    ma /= torch.arange(1, len(seq) + 1, dtype=torch.float32, device=seq.device).clamp(max=window_size).view(-1, 1)
+    ma[:, window_size:] -= cumsum_seq[:, :-window_size]  # Efficient subtraction for moving window
+    time_indices = torch.arange(1, seq.shape[1] + 1, dtype=torch.float32, device=seq.device)
+    divisor = time_indices.clamp(max=window_size).view(1, -1, 1)  # Shape: [1, T, 1] for broadcasting
 
+    # Normalize moving average
+    ma /= divisor
+    
     return ma
 
