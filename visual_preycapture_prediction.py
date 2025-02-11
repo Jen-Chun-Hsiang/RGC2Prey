@@ -22,6 +22,7 @@ def parse_args():
     parser.add_argument('--noise_levels', type=float, nargs='+', default=None, help="List of noise levels as numbers")
     parser.add_argument('--test_bg_folder', type=str, default=None, help="Background folder for testing")
     parser.add_argument('--test_ob_folder', type=str, default=None, help="Object folder for testing")
+    parser.add_argument('--boundary_size', type=str, default=None, help="Boundary size as '(x_limit, y_limit)'.")
 
     return parser.parse_args()
 
@@ -33,10 +34,10 @@ def main():
     for experiment_name in args.experiment_names:
         noise_levels = args.noise_levels if args.noise_levels else [None]
         for noise_level in noise_levels:
-            run_experiment(experiment_name, noise_level, args.test_bg_folder, args.test_ob_folder)
+            run_experiment(experiment_name, noise_level, args.test_bg_folder, args.test_ob_folder, args.boundary_size)
 
 
-def run_experiment(experiment_name, noise_level=None, test_bg_folder=None, test_ob_folder=None):
+def run_experiment(experiment_name, noise_level=None, test_bg_folder=None, test_ob_folder=None, boundary_size=None):
     epoch_number = 200
     num_display = 3
     frame_width = 640
@@ -88,6 +89,8 @@ def run_experiment(experiment_name, noise_level=None, test_bg_folder=None, test_
     if test_ob_folder == 'cricket':
         coord_mat_file = f'/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/selected_points_summary_{args.coord_adj_type}.mat'   #selected_points_summary.mat
     
+    if boundary_size is None:
+        boundary_size = args.boundary_size
 
     logging.info( f"{file_name} processing...0")
     if args.is_GPU:
