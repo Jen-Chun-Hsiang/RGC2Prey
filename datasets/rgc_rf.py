@@ -2,6 +2,10 @@ import numpy as np
 import torch
 from scipy.stats import norm
 
+
+def gaussmf_python(x, mean, sigma):
+    return np.exp(-((x - mean) ** 2) / (2 * sigma ** 2))
+
 def gaussian_temporalfilter(n, OptW):
     # Generate x as 1:n (inclusive)
     x = np.arange(1, n + 1)
@@ -13,8 +17,11 @@ def gaussian_temporalfilter(n, OptW):
     offset = OptW[6]
     
     # Compute the temporal filter
-    tf = (norm.pdf(x, loc=mean1, scale=sigma1) * amplitude1 -
-          norm.pdf(x, loc=mean2, scale=sigma2) * amplitude2) + offset
+    # tf = (norm.pdf(x, loc=mean1, scale=sigma1) * amplitude1 -
+    #       norm.pdf(x, loc=mean2, scale=sigma2) * amplitude2) + offset
+    tf = (gaussmf_python(x, mean1, sigma1) * amplitude1 -
+          gaussmf_python(x, mean2, sigma2) * amplitude2) + offset
+    
     return tf
 
 def gaussian2d(x, y, params, is_rescale_diffgaussian=True):
