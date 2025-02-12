@@ -795,7 +795,7 @@ class FullSampleNormalization(nn.Module):
 class CNN_LSTM_ObjectLocation(nn.Module):
     def __init__(self, cnn_feature_dim=128, lstm_hidden_size=64, lstm_num_layers=2, output_dim=2,
                  input_height=24, input_width=32, conv_out_channels=32, is_input_norm=False, is_seq_reshape=False, CNNextractor_version=1, 
-                 num_input_channel=1, bg_info_cost_ratio=0):
+                 num_input_channel=1, bg_info_cost_ratio=0, bg_processing_type='one-proj'):
         super(CNN_LSTM_ObjectLocation, self).__init__()
         self.is_input_norm = is_input_norm
         if is_input_norm:
@@ -835,11 +835,24 @@ class CNN_LSTM_ObjectLocation(nn.Module):
 
         self.lstm = nn.LSTM(input_size=cnn_feature_dim, hidden_size=lstm_hidden_size, num_layers=lstm_num_layers, batch_first=True)
         self.lstm_norm = nn.LayerNorm(lstm_hidden_size)
-        self.fc1 = nn.Linear(lstm_hidden_size, lstm_hidden_size)  # Output layer for (x, y) coordinates
-        self.fc2 = nn.Linear(lstm_hidden_size, output_dim) 
+        self.fc_o1 = nn.Linear(lstm_hidden_size, lstm_hidden_size)  # Output layer for (x, y) coordinates
+        self.fc_o2 = nn.Linear(lstm_hidden_size, output_dim) 
+        self.bg_processing_type = bg_processing_type
         self.bg_info_cost_ratio = bg_info_cost_ratio
         if self.bg_info_cost_ratio !=0:
-            self.fc3 = nn.Linear(lstm_hidden_size, output_dim) 
+            if self.bg_processing_type == 'one-proj':
+                self.fc_b = nn.Linear(lstm_hidden_size, output_dim) 
+            elif self.bg_processing_type == 'two-proj':
+                self.fc_b1 = nn.Linear(lstm_hidden_size, lstm_hidden_size)
+                self.fc_b2 = nn.Linear(lstm_hidden_size, output_dim) 
+            elif self.bg_processing_type == 'lstm-proj':
+                self.lstm_b = nn.LSTM(input_size=cnn_feature_dim, hidden_size=lstm_hidden_size, num_layers=lstm_num_layers, batch_first=True)
+                self.lstm_norm_b = nn.LayerNorm(lstm_hidden_size)
+                self.fc_b1 = nn.Linear(lstm_hidden_size, lstm_hidden_size)  # Output layer for (x, y) coordinates
+                self.fc_b2 = nn.Linear(lstm_hidden_size, output_dim) 
+            else:
+                raise ValueError(f"Invalid bg_processing_type: {self.bg_processing_type}. Expected one of ['one-proj', 'two-proj', 'lstm-proj'].")
+
         self.is_seq_reshape = is_seq_reshape
         
 
@@ -864,12 +877,19 @@ class CNN_LSTM_ObjectLocation(nn.Module):
         
         lstm_out, _ = self.lstm(cnn_features)
         lstm_out = self.lstm_norm(lstm_out)
-        lstm_out = torch.relu(self.fc1(lstm_out))  # (batch_size, sequence_length, output_dim)
-        coord_predictions = self.fc2(lstm_out)
+        lstm_out = torch.relu(self.fc_o1(lstm_out))  # (batch_size, sequence_length, output_dim)
+        coord_predictions = self.fc_o2(lstm_out)
         if self.bg_info_cost_ratio !=0:
-            bg_predictions = self.fc3(lstm_out)
-            # bg_predictions = causal_moving_average(bg_predictions, self.short_window_length) - \
-            #                 causal_moving_average(bg_predictions, self.long_window_length)
+            if self.bg_processing_type == 'one-proj':
+                bg_predictions = self.fc_b(lstm_out)
+            elif self.bg_processing_type == 'two-proj':
+                bg_predictions = torch.relu(self.fc_b1(lstm_out)) 
+                bg_predictions = self.fc_b2(bg_predictions)
+            elif self.bg_processing_type == 'lstm-proj':
+                bg_predictions, _ = self.lstm_b(cnn_features)
+                bg_predictions = self.lstm_norm_b(bg_predictions)
+                bg_predictions = torch.relu(self.fc_b1(bg_predictions)) 
+                bg_predictions = self.fc_b2(bg_predictions)
         else:
             bg_predictions = coord_predictions
         return coord_predictions, bg_predictions
