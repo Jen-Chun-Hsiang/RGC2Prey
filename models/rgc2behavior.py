@@ -833,12 +833,14 @@ class CNN_LSTM_ObjectLocation(nn.Module):
             self.cnn = ParallelCNNFeatureExtractor62(input_height=input_height, input_width=input_width,conv_out_channels=conv_out_channels,
                                         fc_out_features=cnn_feature_dim, num_input_channel=num_input_channel)   
 
-        self.lstm = nn.LSTM(input_size=cnn_feature_dim, hidden_size=lstm_hidden_size, num_layers=lstm_num_layers, batch_first=True)
-        self.lstm_norm = nn.LayerNorm(lstm_hidden_size)
-        self.fc_o1 = nn.Linear(lstm_hidden_size, lstm_hidden_size)  # Output layer for (x, y) coordinates
-        self.fc_o2 = nn.Linear(lstm_hidden_size, output_dim) 
+        
         self.bg_processing_type = bg_processing_type
         self.bg_info_cost_ratio = bg_info_cost_ratio
+        if self.bg_processing_type != 'lstm-proj':
+            self.lstm = nn.LSTM(input_size=cnn_feature_dim, hidden_size=lstm_hidden_size, num_layers=lstm_num_layers, batch_first=True)
+            self.lstm_norm = nn.LayerNorm(lstm_hidden_size)
+            self.fc_o1 = nn.Linear(lstm_hidden_size, lstm_hidden_size)  # Output layer for (x, y) coordinates
+            self.fc_o2 = nn.Linear(lstm_hidden_size, output_dim) 
         if self.bg_info_cost_ratio !=0:
             if self.bg_processing_type == 'one-proj':
                 self.fc_b = nn.Linear(lstm_hidden_size, output_dim) 
@@ -846,10 +848,17 @@ class CNN_LSTM_ObjectLocation(nn.Module):
                 self.fc_b1 = nn.Linear(lstm_hidden_size, lstm_hidden_size)
                 self.fc_b2 = nn.Linear(lstm_hidden_size, output_dim) 
             elif self.bg_processing_type == 'lstm-proj':
-                self.lstm_b = nn.LSTM(input_size=cnn_feature_dim, hidden_size=lstm_hidden_size, num_layers=lstm_num_layers, batch_first=True)
-                self.lstm_norm_b = nn.LayerNorm(lstm_hidden_size)
-                self.fc_b1 = nn.Linear(lstm_hidden_size, lstm_hidden_size)  # Output layer for (x, y) coordinates
-                self.fc_b2 = nn.Linear(lstm_hidden_size, output_dim) 
+                half_lstm_hidden_size = int(lstm_hidden_size*0.5)
+                self.lstm = nn.LSTM(input_size=cnn_feature_dim, hidden_size=half_lstm_hidden_size, num_layers=lstm_num_layers, batch_first=True)
+                self.lstm_norm = nn.LayerNorm(half_lstm_hidden_size)
+                self.lstm_b = nn.LSTM(input_size=cnn_feature_dim, hidden_size=half_lstm_hidden_size, num_layers=lstm_num_layers, batch_first=True)
+                self.lstm_norm_b = nn.LayerNorm(half_lstm_hidden_size)
+
+                self.fc_o1 = nn.Linear(lstm_hidden_size, lstm_hidden_size)  # Output layer for (x, y) coordinates
+                self.fc_o2 = nn.Linear(lstm_hidden_size, output_dim) 
+                
+                self.fc_b1 = nn.Linear(half_lstm_hidden_size, half_lstm_hidden_size)  # Output layer for (x, y) coordinates
+                self.fc_b2 = nn.Linear(half_lstm_hidden_size, output_dim) 
             else:
                 raise ValueError(f"Invalid bg_processing_type: {self.bg_processing_type}. Expected one of ['one-proj', 'two-proj', 'lstm-proj'].")
 
@@ -877,8 +886,9 @@ class CNN_LSTM_ObjectLocation(nn.Module):
         
         lstm_out, _ = self.lstm(cnn_features)
         lstm_out = self.lstm_norm(lstm_out)
-        lstm_out = torch.relu(self.fc_o1(lstm_out))  # (batch_size, sequence_length, output_dim)
-        coord_predictions = self.fc_o2(lstm_out)
+        if self.bg_processing_type != 'lstm-proj':
+            lstm_out = torch.relu(self.fc_o1(lstm_out))  # (batch_size, sequence_length, output_dim)
+            coord_predictions = self.fc_o2(lstm_out)
         if self.bg_info_cost_ratio !=0:
             if self.bg_processing_type == 'one-proj':
                 bg_predictions = self.fc_b(lstm_out)
@@ -886,9 +896,16 @@ class CNN_LSTM_ObjectLocation(nn.Module):
                 bg_predictions = torch.relu(self.fc_b1(lstm_out)) 
                 bg_predictions = self.fc_b2(bg_predictions)
             elif self.bg_processing_type == 'lstm-proj':
-                bg_predictions, _ = self.lstm_b(cnn_features)
-                bg_predictions = self.lstm_norm_b(bg_predictions)
-                bg_predictions = torch.relu(self.fc_b1(bg_predictions)) 
+                bg_lstem_out, _ = self.lstm_b(cnn_features)
+                bg_lstem_out = self.lstm_norm_b(bg_lstem_out)
+                # combine both 
+                print(f'lstm_out shape: {lstm_out.shape}')
+                print(f'bg_lstem_out shape: {bg_lstem_out.shape}')
+                combined_out = torch.cat((lstm_out, bg_lstem_out), dim=-1)
+                raise ValueError('stop here')
+                lstm_out = torch.relu(self.fc_o1(lstm_out))  # (batch_size, sequence_length, output_dim)
+                coord_predictions = self.fc_o2(lstm_out)
+                bg_predictions = torch.relu(self.fc_b1(bg_lstem_out)) 
                 bg_predictions = self.fc_b2(bg_predictions)
         else:
             bg_predictions = coord_predictions
