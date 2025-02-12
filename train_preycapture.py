@@ -134,6 +134,7 @@ def parse_args():
     parser.add_argument('--bg_info_cost_ratio', type=float, default=0, help="background information ratio of its objective cost, compared to object prediction")
     parser.add_argument('--short_window_length', type=int, default=3, help='For background information extraction, short moving windom length')
     parser.add_argument('--long_window_length', type=int, default=10, help='For background information extraction, long moving windom length')
+    parser.add_argument('--bg_info_type', type=str, default='rloc', help='Method for getting bg_info loc, rloc')
 
     return parser.parse_args()
 
@@ -365,8 +366,9 @@ def main():
                 with timer(timer_data_transfer, tau=args.timer_tau, n=args.timer_sample_cicle):
                     sequences, targets, bg_info = sequences.to(device), targets.to(device), bg_info.to(device)
 
-                bg_info = causal_moving_average(bg_info, args.short_window_length) - \
-                          causal_moving_average(bg_info, args.long_window_length)
+                if args.bg_info_type == 'rloc':
+                    bg_info = causal_moving_average(bg_info, args.short_window_length) - \
+                            causal_moving_average(bg_info, args.long_window_length)
                 # Forward pass
                 with timer(timer_data_processing, tau=args.timer_tau, n=args.timer_sample_cicle):
                     outputs, bg_pred = model(sequences)
