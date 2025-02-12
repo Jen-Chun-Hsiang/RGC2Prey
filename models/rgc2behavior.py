@@ -899,10 +899,9 @@ class CNN_LSTM_ObjectLocation(nn.Module):
                 bg_lstem_out, _ = self.lstm_b(cnn_features)
                 bg_lstem_out = self.lstm_norm_b(bg_lstem_out)
                 # combine both 
-                print(f'lstm_out shape: {lstm_out.shape}')
-                print(f'bg_lstem_out shape: {bg_lstem_out.shape}')
-                combined_out = torch.cat((lstm_out, bg_lstem_out), dim=-1)
-                raise ValueError('stop here')
+                # print(f'lstm_out shape: {lstm_out.shape}')
+                # print(f'bg_lstem_out shape: {bg_lstem_out.shape}')
+                lstm_out = torch.cat((lstm_out, bg_lstem_out), dim=-1)
                 lstm_out = torch.relu(self.fc_o1(lstm_out))  # (batch_size, sequence_length, output_dim)
                 coord_predictions = self.fc_o2(lstm_out)
                 bg_predictions = torch.relu(self.fc_b1(bg_lstem_out)) 
