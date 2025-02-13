@@ -62,62 +62,65 @@ class CheckpointLoader:
         return self.validation_losses
     
 
-def extract_experiment_identifiers(folder_path):
+def parse_checkpoints(folder, experiment_name):
     """
-    Extract unique experiment identifiers from checkpoint filenames.
+    Scan the folder for checkpoint files that match the pattern:
+      {experiment_name}_checkpoint_epoch_{epoch}.pth
+    and return a sorted list of tuples: (epoch, creation_time).
     """
-    pattern = re.compile(r'^(\d{8})_checkpoint_epoch_(\d+)\.pth$')
-    experiment_epochs = {}
+    # Regex pattern to match the filenames for the given experiment.
+    pattern = re.compile(rf'^{re.escape(experiment_name)}_checkpoint_epoch_(\d+)\.pth$')
+    checkpoints = []
     
-    for filename in os.listdir(folder_path):
+    for filename in os.listdir(folder):
         match = pattern.match(filename)
         if match:
-            experiment_id, epoch = match.groups()
-            epoch = int(epoch)
-            file_path = os.path.join(folder_path, filename)
-            created_time = os.path.getctime(file_path)
-            
-            if experiment_id not in experiment_epochs:
-                experiment_epochs[experiment_id] = []
-            experiment_epochs[experiment_id].append((epoch, created_time))
+            try:
+                epoch = int(match.group(1))
+            except ValueError:
+                continue  # Skip files with non-integer epoch parts.
+            file_path = os.path.join(folder, filename)
+            # Get the file creation time (in Unix epoch seconds)
+            ctime = os.path.getctime(file_path)
+            checkpoints.append((epoch, ctime))
     
-    return experiment_epochs
+    # Sort checkpoints by epoch number (ascending)
+    return sorted(checkpoints, key=lambda x: x[0])
 
-def estimate_completion_time(experiment_epochs, final_epoch):
+def estimate_finish_time(checkpoints, final_epoch):
     """
-    Estimate the completion time for the final checkpoint.
+    Given a sorted list of checkpoint tuples (epoch, creation_time) and the final epoch,
+    compute the average time per epoch (using differences between available checkpoints)
+    and extrapolate the finish time for the final checkpoint.
     """
-    estimated_times = {}
-    for experiment_id, data in experiment_epochs.items():
-        # Sort by epoch number
-        data.sort()
-        epochs, timestamps = zip(*data)
-        
-        if len(epochs) > 1:
-            # Compute average time per epoch gap
-            epoch_gap = epochs[1] - epochs[0]  # Assumes uniform epoch gaps
-            time_gaps = [timestamps[i+1] - timestamps[i] for i in range(len(timestamps) - 1)]
-            avg_time_per_gap = sum(time_gaps) / len(time_gaps)
-            
-            # Predict final epoch completion time
-            last_epoch, last_timestamp = epochs[-1], timestamps[-1]
-            remaining_epochs = (final_epoch - last_epoch) // epoch_gap
-            estimated_final_time = last_timestamp + (remaining_epochs * avg_time_per_gap)
-            
-            estimated_times[experiment_id] = datetime.fromtimestamp(estimated_final_time).strftime('%Y-%m-%d %H:%M:%S')
-    
-    return estimated_times
+    if len(checkpoints) < 2:
+        raise ValueError("At least two checkpoint files are required to estimate time per epoch.")
 
-def save_estimation_results(output_folder, experiment_name, final_epoch, estimated_time):
-    """
-    Save the estimated completion time in a text file.
-    """
-    os.makedirs(output_folder, exist_ok=True)
-    output_file = os.path.join(output_folder, f'{experiment_name}_test-estimation_{final_epoch}.pth')
+    # Compute time per epoch from consecutive checkpoints.
+    time_per_epoch_list = []
+    for i in range(1, len(checkpoints)):
+        prev_epoch, prev_time = checkpoints[i-1]
+        curr_epoch, curr_time = checkpoints[i]
+        epoch_diff = curr_epoch - prev_epoch
+        if epoch_diff <= 0:
+            continue  # Skip invalid or duplicate entries.
+        time_diff = curr_time - prev_time
+        time_per_epoch = time_diff / epoch_diff
+        time_per_epoch_list.append(time_per_epoch)
+
+    if not time_per_epoch_list:
+        raise ValueError("Could not compute valid time differences between checkpoint files.")
+
+    avg_time_per_epoch = statistics.mean(time_per_epoch_list)
     
-    with open(output_file, 'w') as f:
-        f.write(f'Estimated finish time for experiment {experiment_name} at epoch {final_epoch}: {estimated_time}\n')
+    # Extrapolate finish time:
+    # finish_time = last checkpoint time + (remaining epochs * avg time per epoch)
+    last_epoch, last_time = checkpoints[-1]
+    remaining_epochs = final_epoch - last_epoch
+    if remaining_epochs < 0:
+        raise ValueError("The provided final epoch is less than the last observed checkpoint epoch.")
     
-    print(f'Estimation saved to {output_file}')
+    estimated_finish_time = last_time + remaining_epochs * avg_time_per_epoch
+    return estimated_finish_time
 
 
