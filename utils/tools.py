@@ -67,7 +67,9 @@ class MovieGenerator:
         self.grid_generate_method = grid_generate_method
 
     def create_figure(self, syn_movie_frame, rgc_output, path_history, path_predict_history, path_bg_history, coord_x_history, 
-                      coord_y_history, scaling_history, y_min, y_max, centerRF_history, is_path_predict=True, is_centerRF=False):
+                      coord_y_history, scaling_history, y_min, y_max, centerRF_history, rgcout_min, rgcout_max, movie_min, movie_max, 
+                      is_path_predict=True, is_centerRF=False,
+                      ):
         """
         Create the figure layout with subplots for the movie frame.
 
@@ -93,7 +95,7 @@ class MovieGenerator:
         # Synthesized Movie Subplot
         ax1 = fig.add_subplot(gs[:2, :3])
         ax1.set_title("Synthesized Movie")
-        ax1.imshow(syn_movie_frame, cmap='gray')
+        ax1.imshow(syn_movie_frame, cmap='gray', vmin=movie_min, vmax=movie_max)
         path_coord= path_history[-1] * np.array([scalar_width, -scalar_height]) 
         path_coord += np.array([desired_width, desired_height])
         ax1.scatter(path_coord[0], path_coord[1], color='blue', marker='x', s=50, label="target")
@@ -124,7 +126,7 @@ class MovieGenerator:
         y_min = (desired_height - image_height) / 2
         y_max = y_min + image_height
 
-        ax2.imshow(rgc_output, cmap='gray', extent=[x_min, x_max, y_min, y_max])
+        ax2.imshow(rgc_output, cmap='gray', extent=[x_min, x_max, y_min, y_max], vmin=rgcout_min, vmax=rgcout_max)
         path_coord= path_history[-1] * np.array([scalar_width / 2, scalar_height / 2])
         path_coord += np.array([desired_width / 2, desired_height /2 ])
         ax2.scatter(path_coord[0], path_coord[1], color='blue', marker='x', s=50, label="target")
@@ -257,6 +259,11 @@ class MovieGenerator:
             weighted_coords = [None] * len(image_sequence)
         y_min, y_max = np.min(all_y_values), np.max(all_y_values)
 
+        rgcout_min = np.min(image_sequence)
+        rgcout_max = np.max(image_sequence)
+        movie_min = np.min(syn_movie)
+        movie_max = np.max(syn_movie)
+
         path_history = []
         path_predict_history = []
         path_bg_history = []
@@ -293,7 +300,11 @@ class MovieGenerator:
                 y_max = y_max,
                 is_path_predict = is_path_predict,
                 is_centerRF = is_centerRF,
-                centerRF_history = np.array(centerRF_history)
+                centerRF_history = np.array(centerRF_history), 
+                rgcout_min = rgcout_min, 
+                rgcout_max = rgcout_max,
+                movie_min = movie_min,
+                movie_max = movie_max
             )
 
             # Resize the image to fit video dimensions
