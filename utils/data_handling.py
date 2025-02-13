@@ -1,4 +1,8 @@
 import torch
+import os
+import re
+import time
+from datetime import datetime, timedelta
 
 
 def save_checkpoint(epoch, model, optimizer, training_losses, scheduler=None, args=None, 
@@ -56,3 +60,64 @@ class CheckpointLoader:
         """ Return the list of recorded validation losses. """
         self.validation_losses = self.checkpoint.get('validation_losses', [])
         return self.validation_losses
+    
+
+def extract_experiment_identifiers(folder_path):
+    """
+    Extract unique experiment identifiers from checkpoint filenames.
+    """
+    pattern = re.compile(r'^(\d{8})_checkpoint_epoch_(\d+)\.pth$')
+    experiment_epochs = {}
+    
+    for filename in os.listdir(folder_path):
+        match = pattern.match(filename)
+        if match:
+            experiment_id, epoch = match.groups()
+            epoch = int(epoch)
+            file_path = os.path.join(folder_path, filename)
+            created_time = os.path.getctime(file_path)
+            
+            if experiment_id not in experiment_epochs:
+                experiment_epochs[experiment_id] = []
+            experiment_epochs[experiment_id].append((epoch, created_time))
+    
+    return experiment_epochs
+
+def estimate_completion_time(experiment_epochs, final_epoch):
+    """
+    Estimate the completion time for the final checkpoint.
+    """
+    estimated_times = {}
+    for experiment_id, data in experiment_epochs.items():
+        # Sort by epoch number
+        data.sort()
+        epochs, timestamps = zip(*data)
+        
+        if len(epochs) > 1:
+            # Compute average time per epoch gap
+            epoch_gap = epochs[1] - epochs[0]  # Assumes uniform epoch gaps
+            time_gaps = [timestamps[i+1] - timestamps[i] for i in range(len(timestamps) - 1)]
+            avg_time_per_gap = sum(time_gaps) / len(time_gaps)
+            
+            # Predict final epoch completion time
+            last_epoch, last_timestamp = epochs[-1], timestamps[-1]
+            remaining_epochs = (final_epoch - last_epoch) // epoch_gap
+            estimated_final_time = last_timestamp + (remaining_epochs * avg_time_per_gap)
+            
+            estimated_times[experiment_id] = datetime.fromtimestamp(estimated_final_time).strftime('%Y-%m-%d %H:%M:%S')
+    
+    return estimated_times
+
+def save_estimation_results(output_folder, experiment_name, final_epoch, estimated_time):
+    """
+    Save the estimated completion time in a text file.
+    """
+    os.makedirs(output_folder, exist_ok=True)
+    output_file = os.path.join(output_folder, f'{experiment_name}_test-estimation_{final_epoch}.pth')
+    
+    with open(output_file, 'w') as f:
+        f.write(f'Estimated finish time for experiment {experiment_name} at epoch {final_epoch}: {estimated_time}\n')
+    
+    print(f'Estimation saved to {output_file}')
+
+
