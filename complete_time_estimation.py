@@ -1,5 +1,7 @@
 import os
 import argparse
+import datetime
+import pytz
 from utils.data_handling import parse_checkpoints, estimate_finish_time
 
 
@@ -39,9 +41,15 @@ def main():
             print(f"  Error for experiment {exp}: {e}")
             continue
 
+        # Define the Chicago timezone
+        chicago_tz = pytz.timezone("America/Chicago")
+
+        # Convert Unix timestamp to Chicago time
+        chicago_time = datetime.datetime.fromtimestamp(estimated_time, tz=pytz.utc).astimezone(chicago_tz)
+
         output_text = (
             f"Estimated finish time for experiment {exp} at epoch {args.final_epoch}:\n"
-            f"{estimated_time:.0f} (Unix epoch seconds)\n"
+            f"{chicago_time.strftime('%Y-%m-%d %H:%M:%S %Z')} (Chicago Time)\n"
         )
         
         output_filename = f"{exp}_test-estimation_{args.final_epoch}.txt"
