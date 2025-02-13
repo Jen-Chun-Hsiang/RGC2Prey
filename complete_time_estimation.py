@@ -7,7 +7,7 @@ def main():
     parser = argparse.ArgumentParser(
         description="Estimate final checkpoint finish time for one or more experiments."
     )
-    parser.add_argument("--experiment_name", type=str, nargs='+', required=True,
+    parser.add_argument("--experiment_names", type=str, nargs='+', required=True,
                         help="One or more unique experiment identifier(s) (e.g., '25021002 25021103')")
     parser.add_argument("--final_epoch", type=int, required=True,
                         help="Final checkpoint epoch number (e.g., 200)")
@@ -26,7 +26,7 @@ def main():
     # Ensure the output folder exists.
     os.makedirs(args.output_folder, exist_ok=True)
 
-    for exp in args.experiment_name:
+    for exp in args.experiment_names:
         print(f"Processing experiment: {exp}")
         checkpoints = parse_checkpoints(args.input_folder, exp)
         if not checkpoints:
