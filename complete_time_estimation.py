@@ -44,7 +44,7 @@ def main():
             f"{estimated_time:.0f} (Unix epoch seconds)\n"
         )
         
-        output_filename = f"{exp}_test-estimation_{args.final_epoch}.pth"
+        output_filename = f"{exp}_test-estimation_{args.final_epoch}.txt"
         output_path = os.path.join(args.output_folder, output_filename)
         with open(output_path, 'w') as f:
             f.write(output_text)
