@@ -201,9 +201,10 @@ class DriftingGrating:
         # Convert the 2D pattern to grayscale (0-255).
         # The wave functions output values in the range [gray_range[0], gray_range[1]],
         # so we map that linearly to [0, 255].
-        img_array = (
-            ((pattern_2d - self.gray_range[0]) / (self.gray_range[1] - self.gray_range[0])) * 255
-        ).clip(0, 255).astype(np.uint8)
+        # img_array = (
+        #    ((pattern_2d - self.gray_range[0]) / (self.gray_range[1] - self.gray_range[0])) * 255
+        #).clip(0, 255).astype(np.uint8)
+        img_array = self.rescale_pattern(pattern_2d, self.gray_range).clip(0, 255).astype(np.uint8)
 
         # Create a PIL image.
         img = Image.fromarray(img_array, mode="L")
@@ -249,7 +250,10 @@ class DriftingGrating:
         plt.title("Drifting Grating Pattern")
         plt.axis("off")
         plt.show()
-
+    def rescale_pattern(pattern_2d, gray_range):
+        min_val, max_val = np.min(pattern_2d), np.max(pattern_2d)
+        scaled = ((pattern_2d - min_val) / (max_val - min_val)) * (gray_range[1] - gray_range[0]) * 255 + gray_range[0] * 255
+        return scaled
 
 def generate_random_parameters(
     image_size: Tuple[int, int] = (256, 256), seed: Optional[int] = None
