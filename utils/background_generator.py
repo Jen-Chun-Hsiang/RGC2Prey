@@ -274,8 +274,8 @@ def generate_random_parameters(
 
     spatial_frequency = random.uniform(2, 20)
     phase = random.uniform(0, 1)
-    min_gray = random.uniform(0, 0.3)
-    max_gray = random.uniform(0.7, 1.0)
+    min_gray = random.uniform(0, 0.5)
+    max_gray = random.uniform(0.5, 1.0)
     if min_gray > max_gray:
         min_gray, max_gray = max_gray, min_gray
     gray_range = (min_gray, max_gray)
