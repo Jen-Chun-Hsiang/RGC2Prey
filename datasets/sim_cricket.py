@@ -780,7 +780,7 @@ class RGCrfArray:
             sf_params = np.array([
                 point[1], point[0], row['sigma_x'] * self.sf_scalar, row['sigma_y'] * self.sf_scalar,
                 row['theta'], row['bias'], row['c_scale'], row['s_sigma_x'] * self.sf_scalar,
-                row['s_sigma_y'] * self.sf_scalar, s_scale
+                row['s_sigma_y'] * self.sf_scalar, s_scale*row['c_scale']
             ])
             opt_sf = gaussian_multi(sf_params, self.rgc_array_rf_size, self.num_gauss_example, self.is_rescale_diffgaussian)
             if self.is_rf_median_subtract:
