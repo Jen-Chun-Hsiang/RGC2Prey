@@ -321,7 +321,7 @@ def main():
         checkpoint_filename = f'{args.experiment_name}_checkpoint_epoch_{args.load_checkpoint_epoch}'
         checkpoint_filename = os.path.join(savemodel_dir, f'{checkpoint_filename}.pth')
         checkpoint_loader = CheckpointLoader(checkpoint_filename)
-        model, optimizer, scheduler = checkpoint_loader.load_checkpoint(model, optimizer)
+        model, optimizer, scheduler = checkpoint_loader.load_checkpoint(model, optimizer, scheduler)
         start_epoch = checkpoint_loader.load_epoch()
         training_losses = checkpoint_loader.load_training_losses()
     else:
@@ -424,8 +424,6 @@ def main():
             if args.schedule_method.lower() == 'rlrp':
                 scheduler.step(avg_train_loss)
             elif args.schedule_method.lower() == 'cawr':
-                print(f'epoch: {epoch}')
-                print(f'num_epochs: {num_epochs}')
                 scheduler.step(epoch + (epoch / num_epochs))
 
             elapsed_time = time.time()  - start_time
