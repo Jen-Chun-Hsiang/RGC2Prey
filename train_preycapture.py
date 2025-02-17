@@ -328,6 +328,7 @@ def main():
         start_epoch = 0
         training_losses = []  # To store the loss at each epoch
 
+
     logging.info( f"{args.experiment_name} processing...11")
     if args.do_not_train:
         # Set the number of initial batches to process
@@ -423,6 +424,8 @@ def main():
             if args.schedule_method.lower() == 'rlrp':
                 scheduler.step(avg_train_loss)
             elif args.schedule_method.lower() == 'cawr':
+                print(f'epoch: {epoch}')
+                print(f'num_epochs: {num_epochs}')
                 scheduler.step(epoch + (epoch / num_epochs))
 
             elapsed_time = time.time()  - start_time
