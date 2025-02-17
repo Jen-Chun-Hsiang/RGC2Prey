@@ -114,7 +114,7 @@ def parse_args():
     parser.add_argument('--bg_processing_type', type=str, default='one-proj', help='background processing for auxiliary cost. [one-proj|two-proj|lstm-proj]')
 
     # Model training parameters
-    parser.add_argument('--checkpoint_name', type=str, default=None, help='Name for save/load model checkpoint (optional)')
+    parser.add_argument('--load_checkpoint_epoch', type=int, default=None, help='Epoch number of a load checkpint')
     parser.add_argument('--batch_size', type=int, default=4, help="Batch size for dataloader")
     parser.add_argument('--num_worker', type=int, default=0, help="Number of worker for dataloader")
     parser.add_argument('--num_epochs', type=int, default=10, help="Number of worker for dataloader")
@@ -317,8 +317,9 @@ def main():
     elif args.schedule_method.lower() == 'cawr':
         scheduler = optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer, T_0=5, T_mult=2, eta_min=args.min_lr)
 
-    if args.checkpoint_name:
-        checkpoint_filename = os.path.join(savemodel_dir, f'{args.checkpoint_name}.pth')
+    if args.load_checkpoint_epoch:
+        checkpoint_filename = f'{args.experiment_name}_checkpoint_epoch_{args.load_checkpoint_epoch}.pth'
+        checkpoint_filename = os.path.join(savemodel_dir, f'{checkpoint_filename}.pth')
         checkpoint_loader = CheckpointLoader(checkpoint_filename)
         model, optimizer, scheduler = checkpoint_loader.load_checkpoint(model, optimizer)
         start_epoch = checkpoint_loader.load_epoch()
