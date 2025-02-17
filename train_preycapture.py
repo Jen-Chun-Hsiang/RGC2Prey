@@ -16,6 +16,7 @@ from models.rgc2behavior import CNN_LSTM_ObjectLocation
 from utils.data_handling import save_checkpoint
 from utils.tools import timer, MovieGenerator, save_distributions
 from utils.utils import causal_moving_average
+from utils.data_handling import CheckpointLoader
 from utils.initialization import process_seed, initialize_logging, worker_init_fn
 
 def parse_args():
@@ -113,6 +114,7 @@ def parse_args():
     parser.add_argument('--bg_processing_type', type=str, default='one-proj', help='background processing for auxiliary cost. [one-proj|two-proj|lstm-proj]')
 
     # Model training parameters
+    parser.add_argument('--checkpoint_name', type=str, default=None, help='Name for save/load model checkpoint (optional)')
     parser.add_argument('--batch_size', type=int, default=4, help="Batch size for dataloader")
     parser.add_argument('--num_worker', type=int, default=0, help="Number of worker for dataloader")
     parser.add_argument('--num_epochs', type=int, default=10, help="Number of worker for dataloader")
@@ -315,6 +317,16 @@ def main():
     elif args.schedule_method.lower() == 'cawr':
         scheduler = optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer, T_0=5, T_mult=2, eta_min=args.min_lr)
 
+    if args.checkpoint_name:
+        checkpoint_filename = os.path.join(savemodel_dir, f'{args.checkpoint_name}.pth')
+        checkpoint_loader = CheckpointLoader(checkpoint_filename)
+        model, optimizer, scheduler = checkpoint_loader.load_checkpoint(model, optimizer)
+        start_epoch = checkpoint_loader.load_epoch()
+        training_losses = checkpoint_loader.load_training_losses()
+    else:
+        start_epoch = 0
+        training_losses = []  # To store the loss at each epoch
+
     logging.info( f"{args.experiment_name} processing...11")
     if args.do_not_train:
         # Set the number of initial batches to process
@@ -348,13 +360,12 @@ def main():
         
 
     else:
-        training_losses = []  # To store the loss at each epoch
         num_epochs = args.num_epochs
         timer_data_loading = {'min': None, 'max': None, 'moving_avg': None, 'counter': 0}
         timer_data_transfer = {'min': None, 'max': None, 'moving_avg': None, 'counter': 0}
         timer_data_processing = {'min': None, 'max': None, 'moving_avg': None, 'counter': 0}
         timer_data_backpropagate = {'min': None, 'max': None, 'moving_avg': None, 'counter': 0}
-        for epoch in range(num_epochs):
+        for epoch in range(start_epoch, num_epochs):
             model.train()
             optimizer.zero_grad()
             epoch_loss = 0.0
