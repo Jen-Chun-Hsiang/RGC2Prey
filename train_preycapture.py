@@ -318,7 +318,7 @@ def main():
         scheduler = optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer, T_0=5, T_mult=2, eta_min=args.min_lr)
 
     if args.load_checkpoint_epoch:
-        checkpoint_filename = f'{args.experiment_name}_checkpoint_epoch_{args.load_checkpoint_epoch}.pth'
+        checkpoint_filename = f'{args.experiment_name}_checkpoint_epoch_{args.load_checkpoint_epoch}'
         checkpoint_filename = os.path.join(savemodel_dir, f'{checkpoint_filename}.pth')
         checkpoint_loader = CheckpointLoader(checkpoint_filename)
         model, optimizer, scheduler = checkpoint_loader.load_checkpoint(model, optimizer)
