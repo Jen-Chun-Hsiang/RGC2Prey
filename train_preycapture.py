@@ -11,7 +11,7 @@ from datetime import datetime
 import torch.optim as optim
 
 from datasets.sim_cricket import RGCrfArray, SynMovieGenerator, Cricket2RGCs
-from utils.utils import plot_tensor_and_save, plot_vector_and_save, plot_two_path_comparison
+from utils.utils import plot_tensor_and_save, plot_vector_and_save, plot_two_path_comparison, plot_coordinate_and_save
 from models.rgc2behavior import CNN_LSTM_ObjectLocation
 from utils.data_handling import save_checkpoint
 from utils.tools import timer, MovieGenerator, save_distributions
@@ -148,6 +148,7 @@ def main():
     is_show_movie_frames = False 
     is_show_pathes = False #True
     is_show_grids = False #True
+    is_show_rgc_grid = False
 
     args = parse_args()
     bottom_img_folder = f'/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/CricketDataset/Images/cropped/{args.bg_folder}/'  #grass
@@ -196,10 +197,14 @@ def main():
             sf_mask_radius=args.sf_mask_radius, is_pixelized_tf=args.is_pixelized_tf, set_s_scale=args.set_s_scale, 
             is_rf_median_subtract=args.is_rf_median_subtract
         )
-        multi_opt_sf_off, tf_off, grid2value_mapping_off, map_func_off, rgc_locs = rgc_array.get_results()
+        multi_opt_sf_off, tf_off, grid2value_mapping_off, map_func_off, rgc_locs_off = rgc_array.get_results()
     else:
         num_input_channel = 1
-        multi_opt_sf_off, tf_off, grid2value_mapping_off, map_func_off, rgc_locs = None, None, None, None, None
+        multi_opt_sf_off, tf_off, grid2value_mapping_off, map_func_off, rgc_locs_off = None, None, None, None, None
+
+    # 
+    if is_show_rgc_grid:
+        plot_coordinate_and_save(rgc_locs, rgc_locs_off, plot_save_folder, file_name=f'{args.experiment_name}_rgc_grids.png')
 
     logging.info( f"{args.experiment_name} processing...3")
     # Check results of RGC array synthesis
