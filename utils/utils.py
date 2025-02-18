@@ -417,20 +417,22 @@ def causal_moving_average_numpy(seq, window_size):
     return ma
 
 
-def plot_coordinate_and_save(rgc_locs, rgc_locs_off, plot_save_folder=None, file_name=None):
+def plot_coordinate_and_save(rgc_locs, rgc_locs_off=None, plot_save_folder=None, file_name=None):
     """
-    Plots two sets of coordinates on the same figure with different colors and optionally saves the plot.
+    Plots one or two sets of coordinates on the same figure with different colors and optionally saves the plot.
     
     Parameters:
     rgc_locs (numpy.ndarray): A 2D array of shape (N, 2) containing x, y coordinates.
-    rgc_locs_off (numpy.ndarray): A 2D array of shape (M, 2) containing x, y coordinates.
+    rgc_locs_off (numpy.ndarray, optional): A 2D array of shape (M, 2) containing x, y coordinates. If None, only rgc_locs is plotted.
     plot_save_folder (str, optional): Folder where the plot will be saved. If None, the plot is only displayed.
     file_name (str, optional): Name of the file to save the plot as, if saving is enabled.
     """
     # Create the plot
     plt.figure(figsize=(8, 8))
     plt.scatter(rgc_locs[:, 0], rgc_locs[:, 1], color='blue', label='ON', alpha=0.7)
-    plt.scatter(rgc_locs_off[:, 0], rgc_locs_off[:, 1], color='red', label='OFF', alpha=0.7)
+    
+    if rgc_locs_off is not None:
+        plt.scatter(rgc_locs_off[:, 0], rgc_locs_off[:, 1], color='red', label='OFF', alpha=0.7)
     
     # Labels and legend
     plt.xlabel("X Coordinate")
