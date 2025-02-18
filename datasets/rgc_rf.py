@@ -396,3 +396,106 @@ def map_to_fixed_grid_circle_batch(values, mask_matrix, target_width, target_hei
     grid_values_batch = masked_values.view(-1, target_height, target_width)  # Shape: (T, H, W)
 
     return grid_values_batch
+
+
+class HexagonalGridGenerator:
+    def __init__(self, xlim, ylim, target_num_centers, max_iterations=100, noise_level=0.3, rand_seed=None, num_positions=None,
+                position_indices=None):
+        self.xlim = xlim
+        self.ylim = ylim
+        self.target_num_centers = target_num_centers
+        self.max_iterations = max_iterations
+        self.noise_level = noise_level
+        self.rand_seed = rand_seed
+        self.dx = None
+        self.dy = None
+        self.offset_x = None
+        self.offset_y = None
+        self.is_points1_generated = False
+        self._initialize_grid()
+        self.num_positions = num_positions
+        self.position_indices = position_indices
+    
+    def _initialize_grid(self):
+        if self.rand_seed is not None:
+            np.random.seed(self.rand_seed)
+        
+        x_min, x_max = self.xlim
+        y_min, y_max = self.ylim
+        x_range = x_max - x_min
+        y_range = y_max - y_min
+        
+        approximate_area = x_range * y_range
+        approximate_cell_area = approximate_area / self.target_num_centers
+        side_length = np.sqrt(approximate_cell_area / (3 * np.sqrt(3) / 2))
+        
+        self.dx = side_length * np.sqrt(3)
+        self.dy = side_length * 1.5
+    
+    def _generate_points_with_noise(self, dx, dy, offset_x, offset_y):
+        x_min, x_max = self.xlim
+        y_min, y_max = self.ylim
+        x_range = x_max - x_min
+        y_range = y_max - y_min
+        
+        cols = int(np.ceil(x_range / dx))
+        rows = int(np.ceil(y_range / dy))
+        points = []
+        
+        for row in range(rows):
+            for col in range(cols):
+                x = col * dx + x_min - offset_x
+                y = row * dy + y_min - offset_y
+                if row % 2 == 1:
+                    x += dx / 2
+                x += (np.random.rand() - 0.5) * 2 * self.noise_level * dx
+                y += (np.random.rand() - 0.5) * 2 * self.noise_level * dy
+                if x_min <= x < x_max and y_min <= y < y_max:
+                    points.append((x, y))
+        return np.array(points)
+    
+    def sub_select_points(self, pts):
+        if self.position_indices is not None:
+            valid_indices = self.position_indices[self.position_indices < len(pts)]
+            return pts[valid_indices]
+        elif self.num_positions is not None and self.num_positions < len(pts):
+            chosen = np.random.choice(len(pts), self.num_positions, replace=False)
+            return pts[chosen]
+        else:
+            return pts
+    
+    def generate_first_grid(self):
+        x_min, x_max = self.xlim
+        y_min, y_max = self.ylim
+        x_range = x_max - x_min
+        y_range = y_max - y_min
+        
+        for _ in range(self.max_iterations):
+            cols = int(np.ceil(x_range / self.dx))
+            rows = int(np.ceil(y_range / self.dy))
+            self.offset_x = (cols * self.dx - x_range) / 2
+            self.offset_y = (rows * self.dy - y_range) / 2
+            points = self._generate_points_with_noise(self.dx, self.dy, self.offset_x, self.offset_y)
+            if abs(len(points) - self.target_num_centers) <= self.target_num_centers * 0.05:
+                break
+            if len(points) > self.target_num_centers:
+                self.dx *= 1.01
+                self.dy *= 1.01
+            else:
+                self.dx *= 0.99
+                self.dy *= 0.99
+        
+        points = self.sub_select_points(points)
+        self.is_points1_generated = True
+        return points
+    
+    def generate_second_grid(self, anti_alignment=0.0):
+        if not self.is_points1_generated:
+            raise ValueError("First grid has not been generated. Call generate_first_grid() first.")
+        shift_x = anti_alignment * self.dx
+        shift_y = anti_alignment * self.dy
+        offset_x = self.offset_x - shift_x,  # note we subtract shift in offset
+        offset_y = self.offset_y - shift_y,
+        points = self._generate_points_with_noise(self.dx, self.dy, offset_x, offset_y)
+        points = self.sub_select_points(points)
+        return points

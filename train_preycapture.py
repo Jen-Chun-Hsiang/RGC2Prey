@@ -205,7 +205,8 @@ def main():
     # 
     if is_show_rgc_grid:
         plot_coordinate_and_save(rgc_locs, rgc_locs_off, plot_save_folder, file_name=f'{args.experiment_name}_rgc_grids.png')
-
+        raise ValueError(f"get coordinates map processing...")
+    
     logging.info( f"{args.experiment_name} processing...3")
     # Check results of RGC array synthesis
     if is_show_rgc_rf_individual:
@@ -227,7 +228,7 @@ def main():
     logging.info( f"{args.experiment_name} processing...4")
     if is_show_rgc_tf:
         plot_vector_and_save(tf, plot_save_folder, file_name=f'{args.experiment_name}_temporal_filter.png')
-
+        
     movie_generator = SynMovieGenerator(top_img_folder, bottom_img_folder,
         crop_size=args.crop_size, boundary_size=args.boundary_size, center_ratio=args.center_ratio, max_steps=args.max_steps,
         prob_stay_ob=args.prob_stay_ob, prob_mov_ob=args.prob_mov_ob, prob_stay_bg=args.prob_stay_bg, prob_mov_bg=args.prob_mov_bg, 
