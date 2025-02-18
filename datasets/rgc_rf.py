@@ -412,6 +412,7 @@ class HexagonalGridGenerator:
         self.offset_x = None
         self.offset_y = None
         self.is_points1_generated = False
+        self.current_state = np.random.get_state()
         self._initialize_grid()
         self.num_positions = num_positions
         self.position_indices = position_indices
@@ -487,6 +488,7 @@ class HexagonalGridGenerator:
         
         points = self.sub_select_points(points)
         self.is_points1_generated = True
+        np.random.set_state(self.current_state)
         return points
     
     def generate_second_grid(self, anti_alignment=0.0):
@@ -498,4 +500,5 @@ class HexagonalGridGenerator:
         offset_y = self.offset_y - shift_y,
         points = self._generate_points_with_noise(self.dx, self.dy, offset_x, offset_y)
         points = self.sub_select_points(points)
+        np.random.set_state(self.current_state)
         return points
