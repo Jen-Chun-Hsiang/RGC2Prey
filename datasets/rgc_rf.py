@@ -399,7 +399,7 @@ def map_to_fixed_grid_circle_batch(values, mask_matrix, target_width, target_hei
 
 
 class HexagonalGridGenerator:
-    def __init__(self, xlim, ylim, target_num_centers, max_iterations=100, noise_level=0.3, rand_seed=None, num_positions=None,
+    def __init__(self, xlim, ylim, target_num_centers, max_iterations=200, noise_level=0.3, rand_seed=None, num_positions=None,
                 position_indices=None):
         self.xlim = xlim
         self.ylim = ylim

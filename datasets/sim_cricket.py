@@ -9,8 +9,8 @@ import torch.nn.functional as F
 import logging
 
 from datasets.rgc_rf import map_to_fixed_grid_decay_batch, gaussian_multi, gaussian_temporalfilter, get_closest_indices, compute_distance_decay_matrix
-from datasets.rgc_rf import map_to_fixed_grid_closest_batch, create_hexagonal_centers, precompute_grid_centers, compute_circular_mask_matrix
-from datasets.rgc_rf import map_to_fixed_grid_circle_batch
+from datasets.rgc_rf import map_to_fixed_grid_closest_batch, precompute_grid_centers, compute_circular_mask_matrix
+from datasets.rgc_rf import map_to_fixed_grid_circle_batch, HexagonalGridGenerator
 from utils.utils import get_random_file_path, get_image_number, load_mat_to_dataframe, get_filename_without_extension
 from utils.tools import gaussian_smooth_1d
 
@@ -719,7 +719,9 @@ class RGCrfArray:
         logging.info( f"   subprocessing...1.1")
 
         # Generate points and grid centers
-        self.points = create_hexagonal_centers(xlim, ylim, target_num_centers=self.target_num_centers, rand_seed=self.rgc_rand_seed)
+        # self.points = create_hexagonal_centers(xlim, ylim, target_num_centers=self.target_num_centers, rand_seed=self.rgc_rand_seed)
+        grid_generator = HexagonalGridGenerator(xlim, ylim, target_num_centers=self.target_num_centers, rand_seed=self.rgc_rand_seed)
+        self.points = grid_generator.generate_first_grid()
         self.target_height = xlim[1] - xlim[0]
         self.target_width = ylim[1] - ylim[0]
         self.grid_centers = precompute_grid_centers(self.target_height, self.target_width, x_min=xlim[0], x_max=xlim[1],
@@ -761,21 +763,15 @@ class RGCrfArray:
         # Generate multi_opt_sf and tf arrays
         logging.info( f"   subprocessing...1.2")
         self.multi_opt_sf = self._create_multi_opt_sf()
-        logging.info( f"   subprocessing...1.3")
         self.tf = self._create_temporal_filter()
-        logging.info( f"   subprocessing...1.4")
-
 
     def _create_multi_opt_sf(self):
         # Create multi-optical spatial filters
         multi_opt_sf = np.zeros((self.rgc_array_rf_size[0], self.rgc_array_rf_size[1], len(self.points)))
         num_sim_data = len(self.sf_param_table)
-        logging.info( f"   subprocessing...1.2.1 num_sim_data:{num_sim_data}")
         pid = np.random.randint(0, num_sim_data)
-        logging.info( f"   subprocessing...1.2.2 pid {pid}")
         row = self.sf_param_table.iloc[pid]
         s_scale = row['s_scale'] if not self.set_s_scale else self.set_s_scale[0]
-        logging.info( f"   subprocessing...1.2.3")
         for i, point in enumerate(self.points):
             sf_params = np.array([
                 point[1], point[0], row['sigma_x'] * self.sf_scalar, row['sigma_y'] * self.sf_scalar,
@@ -800,9 +796,7 @@ class RGCrfArray:
 
             multi_opt_sf[:, :, i] = opt_sf
             
-        logging.info( f"   subprocessing...1.2.4")
         return multi_opt_sf
-
 
     def _create_temporal_filter(self):
         
