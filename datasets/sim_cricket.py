@@ -682,7 +682,7 @@ class RGCrfArray:
     def __init__(self, sf_param_table, tf_param_table, rgc_array_rf_size, xlim, ylim, target_num_centers, sf_scalar,
                  grid_generate_method, tau=None, mask_radius=None, rgc_rand_seed=42, num_gauss_example=1, sf_mask_radius=35, 
                  sf_pixel_thr=99.7, sf_constraint_method=None, temporal_filter_len=50, grid_size_fac=0.5, is_pixelized_tf=False, 
-                 set_s_scale=[], is_rf_median_subtract=True, is_rescale_diffgaussian=True):
+                 set_s_scale=[], is_rf_median_subtract=True, is_rescale_diffgaussian=True, is_both_ON_OFF = False):
         """
         Args:
             sf_param_table (DataFrame): Table of spatial frequency parameters.
@@ -715,55 +715,61 @@ class RGCrfArray:
         self.set_s_scale = set_s_scale
         self.is_rf_median_subtract = is_rf_median_subtract
         self.is_rescale_diffgaussian=is_rescale_diffgaussian
-        
-        logging.info( f"   subprocessing...1.1")
-
-        # Generate points and grid centers
-        # self.points = create_hexagonal_centers(xlim, ylim, target_num_centers=self.target_num_centers, rand_seed=self.rgc_rand_seed)
-        grid_generator = HexagonalGridGenerator(xlim, ylim, target_num_centers=self.target_num_centers, rand_seed=self.rgc_rand_seed)
-        self.points = grid_generator.generate_first_grid()
+        self.is_both_ON_OFF = is_both_ON_OFF
         self.target_height = xlim[1] - xlim[0]
         self.target_width = ylim[1] - ylim[0]
         self.grid_centers = precompute_grid_centers(self.target_height, self.target_width, x_min=xlim[0], x_max=xlim[1],
                                             y_min=ylim[0], y_max=ylim[1], grid_size_fac=grid_size_fac)
+        self.grid_generator = HexagonalGridGenerator(xlim, ylim, target_num_centers=self.target_num_centers, rand_seed=self.rgc_rand_seed)
         
+        logging.info( f"   subprocessing...1.1")
 
+    def get_results(self):
+        points = self.grid_generator.generate_first_grid()
+        multi_opt_sf = self._create_multi_opt_sf()
+        tf = self._create_temporal_filter()
+        grid2value_mapping, map_func = self._get_grid_mapping()
+        return multi_opt_sf, tf, grid2value_mapping, map_func, points
+    
+    def get_additional_results(self, anti_alignment=1):
+        points = self.grid_generator.generate_second_grid(anti_alignment=anti_alignment)
+        multi_opt_sf = self._create_multi_opt_sf()
+        tf = self._create_temporal_filter()
+        grid2value_mapping, map_func = self._get_grid_mapping()
+        return multi_opt_sf, tf, grid2value_mapping, map_func, points
+
+    def _get_grid_mapping(self, points):
         # Generate grid2value mapping and map function
-        if grid_generate_method == 'closest':
+        if self.grid_generate_method == 'closest':
             # Ensure `get_closest_indices` works with NumPy or PyTorch and output is a PyTorch tensor
-            closest_indices = get_closest_indices(self.grid_centers, self.points)
+            closest_indices = get_closest_indices(self.grid_centers, points)
             if isinstance(closest_indices, np.ndarray):
                 closest_indices = torch.tensor(closest_indices, dtype=torch.long)
-            self.grid2value_mapping = closest_indices
-            self.map_func = map_to_fixed_grid_closest_batch
+            grid2value_mapping = closest_indices
+            map_func = map_to_fixed_grid_closest_batch
 
-        elif grid_generate_method == 'decay':
+        elif self.grid_generate_method == 'decay':
             # Ensure `compute_distance_decay_matrix` works with NumPy or PyTorch and output is a PyTorch tensor
-            decay_matrix = compute_distance_decay_matrix(self.grid_centers, self.points, self.tau)
+            decay_matrix = compute_distance_decay_matrix(self.grid_centers, points, self.tau)
             if isinstance(decay_matrix, np.ndarray):
                 decay_matrix = torch.from_numpy(decay_matrix).float()
-            self.grid2value_mapping = decay_matrix
-            self.map_func = map_to_fixed_grid_decay_batch
+            grid2value_mapping = decay_matrix
+            map_func = map_to_fixed_grid_decay_batch
 
-        elif grid_generate_method == 'circle':
+        elif self.grid_generate_method == 'circle':
             # Compute the circular mask matrix
-            mask_matrix = compute_circular_mask_matrix(self.grid_centers, self.points, self.mask_radius)
+            mask_matrix = compute_circular_mask_matrix(self.grid_centers, points, self.mask_radius)
 
             # Convert to PyTorch tensor if needed
             if isinstance(mask_matrix, np.ndarray):
                 mask_matrix = torch.from_numpy(mask_matrix).float()
-
-            self.grid2value_mapping = mask_matrix
-            self.map_func = map_to_fixed_grid_circle_batch  # Define the appropriate mapping function
+            grid2value_mapping = mask_matrix
+            map_func = map_to_fixed_grid_circle_batch  # Define the appropriate mapping function
 
         else:
             raise ValueError("Invalid grid_generate_method. Use 'closest' or 'decay'.")
 
-
-        # Generate multi_opt_sf and tf arrays
-        logging.info( f"   subprocessing...1.2")
-        self.multi_opt_sf = self._create_multi_opt_sf()
-        self.tf = self._create_temporal_filter()
+        return grid2value_mapping, map_func
 
     def _create_multi_opt_sf(self):
         # Create multi-optical spatial filters
@@ -813,6 +819,5 @@ class RGCrfArray:
             tf = tf / np.sum(np.abs(tf))
         return tf
 
-    def get_results(self):
-        return self.multi_opt_sf, self.tf, self.grid2value_mapping, self.map_func, self.points
+    
 
