@@ -45,6 +45,7 @@ def gaussian2d(x, y, params, is_rescale_diffgaussian=True):
         if s_sum != 0:  # Avoid division by zero
             s_scale = s_scale * (c_sum / s_sum)
 
+        print(f's_scale: {s_scale}')
         # Recompute the Gaussian function with corrected s_scale
         z = (c_scale * c_gaussian +
             s_scale * s_gaussian + bias)
