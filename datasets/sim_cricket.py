@@ -396,6 +396,8 @@ class Cricket2RGCs(Dataset):
                 if self.is_rectified:
                     rgc_time = torch.clamp_min(rgc_time, 0)
 
+                print("Max value:", rgc_time.max().item())
+                print("Min value:", rgc_time.min().item())  
                 # Map to grid values
                 grid_values_sequence = map_func(
                     rgc_time,  # Shape: (time_steps', num_points)
@@ -405,6 +407,7 @@ class Cricket2RGCs(Dataset):
                 )
                 # print(f'grid_values_sequence shape: {grid_values_sequence.shape}')
                 grid_values_sequence_list.append(grid_values_sequence)
+                          
 
             # Combine ON and OFF grid values
             grid_values_sequence = torch.stack(grid_values_sequence_list, dim=1)  # Shape: (2, batch, H, W)
@@ -495,8 +498,8 @@ class SynMovieGenerator:
         self.top_img_folder = top_img_folder
         self.crop_size = crop_size
         self.boundary_size = tuple(ast.literal_eval(boundary_size)) if isinstance(boundary_size, str) else boundary_size
-        print(f"boundary_size type: {type(boundary_size)}")
-        print(f"boundary_size: {boundary_size}")
+        # print(f"boundary_size type: {type(boundary_size)}")
+        # print(f"boundary_size: {boundary_size}")
         self.center_ratio = center_ratio
         self.max_steps = max_steps
         self.prob_stay_ob = prob_stay_ob

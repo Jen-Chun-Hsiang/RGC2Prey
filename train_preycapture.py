@@ -197,11 +197,10 @@ def main():
         num_input_channel = 1
         multi_opt_sf_off, tf_off, grid2value_mapping_off, map_func_off, rgc_locs_off = None, None, None, None, None
 
-    
-    # 
+
     if is_show_rgc_grid:
         plot_coordinate_and_save(rgc_locs, rgc_locs_off, plot_save_folder, file_name=f'{args.experiment_name}_rgc_grids.png')
-        raise ValueError(f"show combined grids...")
+        
         
     
     logging.info( f"{args.experiment_name} processing...3")
@@ -252,6 +251,8 @@ def main():
     logging.info( f"{args.experiment_name} processing...6")
     # Visualize one data points
     sequence, path, path_bg, syn_movie, scaling_factors, _, _, _ = train_dataset[0]
+
+    raise ValueError(f"check data range...")
     # raise ValueError(f"Temporal close exam processing...")
     if is_show_movie_frames:
         for i in range(syn_movie.shape[0]):
