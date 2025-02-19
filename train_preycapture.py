@@ -102,6 +102,7 @@ def parse_args():
     parser.add_argument('--is_both_ON_OFF', action='store_true', help="Flag for including OFF cell")
     parser.add_argument('--tf_sheet_name', type=str, default='TF_params', help='Excel sheet name for the temporal filter')
     parser.add_argument('--anti_alignment', type=float, default=1, help="value of anti-alignment from 0 (overlapping) to 1 (maximum spacing)")
+    parser.add_argument('--grid_noise_level', type=float, default=0.3, help='Grid noise level (float)')
 
     # Arguments for CNN_LSTM 
     parser.add_argument('--cnn_feature_dim', type=int, default=256, help="Number of CNN feature dimensions.")
@@ -180,7 +181,7 @@ def main():
         tau=args.tau, mask_radius=args.mask_radius, rgc_rand_seed=args.rgc_rand_seed, num_gauss_example=args.num_gauss_example, 
         sf_constraint_method=args.sf_constraint_method, temporal_filter_len=args.temporal_filter_len, grid_size_fac=args.grid_size_fac,
         sf_mask_radius=args.sf_mask_radius, is_pixelized_tf=args.is_pixelized_tf, set_s_scale=args.set_s_scale, 
-        is_rf_median_subtract=args.is_rf_median_subtract
+        is_rf_median_subtract=args.is_rf_median_subtract, grid_noise_level=args.grid_noise_level
     )
     logging.info( f"{args.experiment_name} processing...1")
     multi_opt_sf, tf, grid2value_mapping, map_func, rgc_locs = rgc_array.get_results()

@@ -682,7 +682,8 @@ class RGCrfArray:
     def __init__(self, sf_param_table, tf_param_table, rgc_array_rf_size, xlim, ylim, target_num_centers, sf_scalar,
                  grid_generate_method, tau=None, mask_radius=None, rgc_rand_seed=42, num_gauss_example=1, sf_mask_radius=35, 
                  sf_pixel_thr=99.7, sf_constraint_method=None, temporal_filter_len=50, grid_size_fac=0.5, is_pixelized_tf=False, 
-                 set_s_scale=[], is_rf_median_subtract=True, is_rescale_diffgaussian=True, is_both_ON_OFF = False):
+                 set_s_scale=[], is_rf_median_subtract=True, is_rescale_diffgaussian=True, is_both_ON_OFF = False,
+                 grid_noise_level=0.3):
         """
         Args:
             sf_param_table (DataFrame): Table of spatial frequency parameters.
@@ -718,9 +719,11 @@ class RGCrfArray:
         self.is_both_ON_OFF = is_both_ON_OFF
         self.target_height = xlim[1] - xlim[0]
         self.target_width = ylim[1] - ylim[0]
+        self.grid_noise_level = grid_noise_level
         self.grid_centers = precompute_grid_centers(self.target_height, self.target_width, x_min=xlim[0], x_max=xlim[1],
                                             y_min=ylim[0], y_max=ylim[1], grid_size_fac=grid_size_fac)
-        self.grid_generator = HexagonalGridGenerator(xlim, ylim, target_num_centers=self.target_num_centers, rand_seed=self.rgc_rand_seed)
+        self.grid_generator = HexagonalGridGenerator(xlim, ylim, target_num_centers=self.target_num_centers, rand_seed=self.rgc_rand_seed, 
+                                                     noise_level=self.grid_noise_level)
         
         logging.info( f"   subprocessing...1.1")
 
