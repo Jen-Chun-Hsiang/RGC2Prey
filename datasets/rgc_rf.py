@@ -41,11 +41,12 @@ def gaussian2d(x, y, params, is_rescale_diffgaussian=True):
         s_gaussian = np.exp(-(x_rot**2 / (2 * s_sigma_x**2) + y_rot**2 / (2 * s_sigma_y**2)))
         s_sum = np.sum(np.abs(s_scale * s_gaussian))  # Sum of absolute values scaled by s_scale
 
+        print(f'aimed s_scale: {s_scale}')
         # Adjust s_scale to ensure it matches the ratio relative to c_scale
         if s_sum != 0:  # Avoid division by zero
             s_scale = s_scale * (c_sum / s_sum)
 
-        print(f's_scale: {s_scale}')
+        print(f'final s_scale: {s_scale}')
         # Recompute the Gaussian function with corrected s_scale
         z = (c_scale * c_gaussian +
             s_scale * s_gaussian + bias)
