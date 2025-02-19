@@ -101,6 +101,7 @@ def parse_args():
     parser.add_argument('--is_rf_median_subtract', action='store_true', help="Flag for substract median of rf")
     parser.add_argument('--is_both_ON_OFF', action='store_true', help="Flag for including OFF cell")
     parser.add_argument('--tf_sheet_name', type=str, default='TF_params', help='Excel sheet name for the temporal filter')
+    parser.add_argument('--anti_alignment', type=float, default=1, help="value of anti-alignment from 0 (overlapping) to 1 (maximum spacing)")
 
     # Arguments for CNN_LSTM 
     parser.add_argument('--cnn_feature_dim', type=int, default=256, help="Number of CNN feature dimensions.")
@@ -189,16 +190,8 @@ def main():
     if args.is_both_ON_OFF:
         num_input_channel = 2
         # sf_param_table = pd.read_excel(rf_params_file, sheet_name='SF_params_OFF', usecols='A:L')
-        rgc_array = RGCrfArray(
-            sf_param_table, tf_param_table, rgc_array_rf_size=args.rgc_array_rf_size, xlim=args.xlim, ylim=args.ylim,
-            target_num_centers=args.target_num_centers, sf_scalar=args.sf_scalar, grid_generate_method=args.grid_generate_method, 
-            tau=args.tau, mask_radius=args.mask_radius, rgc_rand_seed=args.rgc_rand_seed+1, num_gauss_example=args.num_gauss_example, 
-            sf_constraint_method=args.sf_constraint_method, temporal_filter_len=args.temporal_filter_len, grid_size_fac=args.grid_size_fac,
-            sf_mask_radius=args.sf_mask_radius, is_pixelized_tf=args.is_pixelized_tf, set_s_scale=args.set_s_scale, 
-            is_rf_median_subtract=args.is_rf_median_subtract
-        )
-        multi_opt_sf_off, tf_off, grid2value_mapping_off, map_func_off, rgc_locs_off = rgc_array.get_results()
-        # raise ValueError(f"check s scale...")
+        multi_opt_sf_off, tf_off, grid2value_mapping_off, map_func_off, rgc_locs_off = rgc_array.get_additional_results(anti_alignment=args.anti_alignment)
+        
     else:
         num_input_channel = 1
         multi_opt_sf_off, tf_off, grid2value_mapping_off, map_func_off, rgc_locs_off = None, None, None, None, None
@@ -207,6 +200,7 @@ def main():
     # 
     if is_show_rgc_grid:
         plot_coordinate_and_save(rgc_locs, rgc_locs_off, plot_save_folder, file_name=f'{args.experiment_name}_rgc_grids.png')
+        raise ValueError(f"show combined grids...")
         
     
     logging.info( f"{args.experiment_name} processing...3")
