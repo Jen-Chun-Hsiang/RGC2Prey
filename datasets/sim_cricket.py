@@ -726,16 +726,16 @@ class RGCrfArray:
 
     def get_results(self):
         points = self.grid_generator.generate_first_grid()
-        multi_opt_sf = self._create_multi_opt_sf()
+        multi_opt_sf = self._create_multi_opt_sf(points)
         tf = self._create_temporal_filter()
-        grid2value_mapping, map_func = self._get_grid_mapping()
+        grid2value_mapping, map_func = self._get_grid_mapping(points)
         return multi_opt_sf, tf, grid2value_mapping, map_func, points
     
     def get_additional_results(self, anti_alignment=1):
         points = self.grid_generator.generate_second_grid(anti_alignment=anti_alignment)
-        multi_opt_sf = self._create_multi_opt_sf()
+        multi_opt_sf = self._create_multi_opt_sf(points)
         tf = self._create_temporal_filter()
-        grid2value_mapping, map_func = self._get_grid_mapping()
+        grid2value_mapping, map_func = self._get_grid_mapping(points)
         return multi_opt_sf, tf, grid2value_mapping, map_func, points
 
     def _get_grid_mapping(self, points):
@@ -771,14 +771,14 @@ class RGCrfArray:
 
         return grid2value_mapping, map_func
 
-    def _create_multi_opt_sf(self):
+    def _create_multi_opt_sf(self, points):
         # Create multi-optical spatial filters
-        multi_opt_sf = np.zeros((self.rgc_array_rf_size[0], self.rgc_array_rf_size[1], len(self.points)))
+        multi_opt_sf = np.zeros((self.rgc_array_rf_size[0], self.rgc_array_rf_size[1], len(points)))
         num_sim_data = len(self.sf_param_table)
         pid = np.random.randint(0, num_sim_data)
         row = self.sf_param_table.iloc[pid]
         s_scale = row['s_scale'] if not self.set_s_scale else self.set_s_scale[0]
-        for i, point in enumerate(self.points):
+        for i, point in enumerate(points):
             sf_params = np.array([
                 point[1], point[0], row['sigma_x'] * self.sf_scalar, row['sigma_y'] * self.sf_scalar,
                 row['theta'], row['bias'], row['c_scale'], row['s_sigma_x'] * self.sf_scalar,
