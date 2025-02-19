@@ -370,11 +370,11 @@ class Cricket2RGCs(Dataset):
 
         elif self.is_both_ON_OFF:  # Unified processing for ON and OFF
             grid_values_sequence_list = []
-            multi_opt_sfs = [self.multi_opt_sf, -self.multi_opt_sf_off]  # Given that they are the same but sign
+            multi_opt_sfs = [self.multi_opt_sf, self.multi_opt_sf_off]  # Given that they are the same but sign
             map_funcs = [self.map_func, self.map_func_off]
             grid2value_mappings = [self.grid2value_mapping, self.grid2value_mapping_off]
 
-            tfs = [self.tf, self.tf_off]  # Given that they are the same but sign
+            tfs = [self.tf, -self.tf_off]  # Given that they are the same but sign
 
             for sf, map_func, grid2value_mapping, tf in zip(multi_opt_sfs, map_funcs, grid2value_mappings, tfs):
                 sf_frame = torch.einsum('whn,thw->nt', sf, syn_movie)
