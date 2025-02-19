@@ -428,7 +428,7 @@ def plot_coordinate_and_save(rgc_locs, rgc_locs_off=None, plot_save_folder=None,
     file_name (str, optional): Name of the file to save the plot as, if saving is enabled.
     """
     # Create the plot
-    plt.figure(figsize=(6, 8))
+    plt.figure(figsize=(8, 6))
     plt.scatter(rgc_locs[:, 0], rgc_locs[:, 1], color='blue', label='ON', alpha=0.7)
     
     if rgc_locs_off is not None:
