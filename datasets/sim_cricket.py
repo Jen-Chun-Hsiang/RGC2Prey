@@ -679,7 +679,8 @@ def synthesize_image_with_params_batch(bottom_img_path, top_img_path, top_img_po
         cropped_img = crop_image(final_img, crop_size, bottom_img_positions[i])
         if cropped_img.mode == "RGBA":
             cropped_img = cropped_img.convert("RGB")
-        syn_images[i] = T.ToTensor()(cropped_img)
+        # syn_images[i] = T.ToTensor()(cropped_img)
+        syn_images[i] = 2 * T.ToTensor()(cropped_img) - 1 
 
     return syn_images
 
