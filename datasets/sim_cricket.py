@@ -726,7 +726,6 @@ class RGCrfArray:
 
     def get_results(self):
         points = self.grid_generator.generate_first_grid()
-        print(f'points 1: {points}')
         multi_opt_sf = self._create_multi_opt_sf(points)
         tf = self._create_temporal_filter()
         grid2value_mapping, map_func = self._get_grid_mapping(points)
@@ -734,7 +733,6 @@ class RGCrfArray:
     
     def get_additional_results(self, anti_alignment=1):
         points = self.grid_generator.generate_second_grid(anti_alignment=anti_alignment)
-        print(f'points 2: {points}')
         multi_opt_sf = self._create_multi_opt_sf(points)
         tf = self._create_temporal_filter()
         grid2value_mapping, map_func = self._get_grid_mapping(points)

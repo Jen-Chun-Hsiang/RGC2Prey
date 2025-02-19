@@ -501,6 +501,6 @@ class HexagonalGridGenerator:
         offset_x = self.offset_x - shift_x,  # note we subtract shift in offset
         offset_y = self.offset_y - shift_y,
         points = self._generate_points_with_noise(self.dx, self.dy, offset_x, offset_y)
-        points = self.sub_select_points(points)
+        points = self.sub_select_points(points).squeeze()
         np.random.set_state(self.current_state)
         return points
