@@ -429,10 +429,10 @@ def plot_coordinate_and_save(rgc_locs, rgc_locs_off=None, plot_save_folder=None,
     """
     # Create the plot
     plt.figure(figsize=(8, 8))
-    plt.scatter(rgc_locs[:, 0], rgc_locs[:, 1], color='blue', label='ON', alpha=0.7)
+    plt.scatter(rgc_locs[:, 1], rgc_locs[:, 0], color='blue', label='ON', alpha=0.7)
     
     if rgc_locs_off is not None:
-        plt.scatter(rgc_locs_off[:, 0], rgc_locs_off[:, 1], color='red', label='OFF', alpha=0.7)
+        plt.scatter(rgc_locs_off[:, 1], rgc_locs_off[:, 0], color='red', label='OFF', alpha=0.7)
     
     # Labels and legend
     plt.xlabel("X Coordinate")
