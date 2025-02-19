@@ -380,6 +380,8 @@ class Cricket2RGCs(Dataset):
                 sf_frame = torch.einsum('whn,thw->nt', sf, syn_movie)
                 sf_frame = sf_frame.unsqueeze(0)
                 tf = np.repeat(tf, sf_frame.shape[1], axis=0)
+                print("Max value:", sf_frame.max().item())
+                print("Min value:", sf_frame.min().item())  
                 rgc_time = F.conv1d(sf_frame, tf, stride=1, padding=0, groups=sf_frame.shape[1]).squeeze()
 
                 # Apply firing rate to spikes transformation if needed
@@ -393,8 +395,7 @@ class Cricket2RGCs(Dataset):
                 if self.add_noise:
                     rgc_time += torch.randn_like(rgc_time) * self.rgc_noise_std
 
-                print("Max value:", rgc_time.max().item())
-                print("Min value:", rgc_time.min().item())  
+                
 
                 if self.is_rectified:
                     rgc_time = torch.clamp_min(rgc_time, 0)
