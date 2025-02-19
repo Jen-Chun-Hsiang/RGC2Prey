@@ -250,11 +250,11 @@ def main():
     
     logging.info( f"{args.experiment_name} processing...6")
     # Visualize one data points
-    for i in range(20):
+    for i in range(1):
         print(f'iteration: {i}')
         sequence, path, path_bg, syn_movie, scaling_factors, _, _, _ = train_dataset[i]
 
-    raise ValueError(f"check data range...")
+    # raise ValueError(f"check data range...")
     # raise ValueError(f"Temporal close exam processing...")
     if is_show_movie_frames:
         for i in range(syn_movie.shape[0]):
