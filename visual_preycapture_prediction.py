@@ -149,7 +149,7 @@ def run_experiment(experiment_name, noise_level=None, test_bg_folder=None, test_
         multi_opt_sf_off, tf_off, grid2value_mapping_off, map_func_off, rgc_locs_off = None, None, None, None, None
 
     if is_show_rgc_grid:
-        plot_coordinate_and_save(rgc_locs, rgc_locs_off, plot_save_folder, file_name=f'{args.experiment_name}_rgc_grids_test.png')
+        plot_coordinate_and_save(grid_centers, rgc_locs_off, plot_save_folder, file_name=f'{args.experiment_name}_rgc_grids_test.png')
 
     # raise ValueError(f"Temporal close exam processing...")
     logging.info( f"{file_name} processing...2")
