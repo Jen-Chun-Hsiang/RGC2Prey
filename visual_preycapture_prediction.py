@@ -136,9 +136,8 @@ def run_experiment(experiment_name, noise_level=None, test_bg_folder=None, test_
         is_rf_median_subtract=args.is_rf_median_subtract, grid_noise_level=args.grid_noise_level
     )
     logging.info( f"{file_name} processing...1.5")
-    multi_opt_sf, tf, grid2value_mapping, map_func, grid_centers = rgc_array.get_results()
+    multi_opt_sf, tf, grid2value_mapping, map_func, rgc_locs = rgc_array.get_results()
 
-    print(f'args.is_both_ON_OFF: {args.is_both_ON_OFF}')
     if args.is_both_ON_OFF:
         num_input_channel = 2
         grid_centers = None
@@ -147,12 +146,13 @@ def run_experiment(experiment_name, noise_level=None, test_bg_folder=None, test_
         multi_opt_sf_off, tf_off, grid2value_mapping_off, map_func_off, rgc_locs_off = rgc_array.get_additional_results(anti_alignment=args.anti_alignment)
     else:
         num_input_channel = 1
+        grid_centers = rgc_locs
         multi_opt_sf_off, tf_off, grid2value_mapping_off, map_func_off, rgc_locs_off = None, None, None, None, None
 
     if is_show_rgc_grid:
-        print(f'grid_centers: {grid_centers}')
-        print(f'rgc_locs_off: {rgc_locs_off}')
-        plot_coordinate_and_save(grid_centers, rgc_locs_off, plot_save_folder, file_name=f'{args.experiment_name}_rgc_grids_test.png')
+        plot_coordinate_and_save(rgc_locs, rgc_locs_off, plot_save_folder, file_name=f'{args.experiment_name}_rgc_grids_test.png')
+
+        
 
     # raise ValueError(f"Temporal close exam processing...")
     logging.info( f"{file_name} processing...2")
