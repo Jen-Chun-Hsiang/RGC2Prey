@@ -141,7 +141,6 @@ def parse_args():
     parser.add_argument('--long_window_length', type=int, default=10, help='For background information extraction, long moving windom length')
     parser.add_argument('--bg_info_type', type=str, default='rloc', help='Method for getting bg_info loc, rloc')
 
-
     return parser.parse_args()
 
 def main():

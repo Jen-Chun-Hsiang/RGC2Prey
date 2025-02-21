@@ -921,7 +921,6 @@ class CNN_LSTM_ObjectLocation(nn.Module):
             self.cnn = ParallelCNNFeatureExtractor62(input_height=input_height, input_width=input_width,conv_out_channels=conv_out_channels,
                                         fc_out_features=cnn_feature_dim, num_input_channel=num_input_channel)   
 
-        
         self.bg_processing_type = bg_processing_type
         self.bg_info_cost_ratio = bg_info_cost_ratio
         if self.bg_processing_type != 'lstm-proj':
@@ -952,13 +951,10 @@ class CNN_LSTM_ObjectLocation(nn.Module):
 
         self.is_seq_reshape = is_seq_reshape
         
-
     def forward(self, x):
 
         if self.is_input_norm:
             x = self.input_norm(x)  # Normalize entire sample
-        # print(f'x norm min {torch.min(x)}')
-        # print(f'x norm max {torch.max(x)}')
         batch_size, sequence_length, C, H, W = x.size()
         if self.is_seq_reshape:
             x = x.view(batch_size * sequence_length, C, H, W)  # Combine batch and sequence dimensions
@@ -987,8 +983,6 @@ class CNN_LSTM_ObjectLocation(nn.Module):
                 bg_lstem_out, _ = self.lstm_b(cnn_features)
                 bg_lstem_out = self.lstm_norm_b(bg_lstem_out)
                 # combine both 
-                # print(f'lstm_out shape: {lstm_out.shape}')
-                # print(f'bg_lstem_out shape: {bg_lstem_out.shape}')
                 lstm_out = torch.cat((lstm_out, bg_lstem_out), dim=-1)
                 lstm_out = torch.relu(self.fc_o1(lstm_out))  # (batch_size, sequence_length, output_dim)
                 coord_predictions = self.fc_o2(lstm_out)
