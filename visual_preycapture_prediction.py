@@ -138,6 +138,7 @@ def run_experiment(experiment_name, noise_level=None, test_bg_folder=None, test_
     logging.info( f"{file_name} processing...1.5")
     multi_opt_sf, tf, grid2value_mapping, map_func, grid_centers = rgc_array.get_results()
 
+    print(f'args.is_both_ON_OFF: {args.is_both_ON_OFF}')
     if args.is_both_ON_OFF:
         num_input_channel = 2
         grid_centers = None
