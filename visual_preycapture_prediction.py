@@ -11,7 +11,7 @@ from torch.utils.data import DataLoader
 from scipy.io import savemat
 from datasets.sim_cricket import SynMovieGenerator, Cricket2RGCs, RGCrfArray
 from models.rgc2behavior import CNN_LSTM_ObjectLocation
-from utils.utils import plot_two_path_comparison
+from utils.utils import plot_two_path_comparison, plot_coordinate_and_save
 from utils.data_handling import CheckpointLoader
 from utils.tools import MovieGenerator
 from utils.initialization import process_seed, initialize_logging, worker_init_fn
@@ -47,10 +47,12 @@ def run_experiment(experiment_name, noise_level=None, test_bg_folder=None, test_
     is_making_video = True
     is_add_noise = False
     is_plot_centerFR = True
+    is_show_rgc_grid = True
     checkpoint_path = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/Results/CheckPoints/'
     
     rf_params_file = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/SimulationParams.xlsx'
     test_save_folder = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/Results/Figures/'
+    plot_save_folder =  '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/Results/Figures/TFs/'
     # coord_mat_file = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/selected_points_summary.mat'
     
     video_save_folder = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/Results/Videos/'
@@ -141,18 +143,13 @@ def run_experiment(experiment_name, noise_level=None, test_bg_folder=None, test_
         grid_centers = None
         is_plot_centerFR = False
         # sf_param_table = pd.read_excel(rf_params_file, sheet_name='SF_params_OFF', usecols='A:L')
-        rgc_array = RGCrfArray(
-            sf_param_table, tf_param_table, rgc_array_rf_size=args.rgc_array_rf_size, xlim=args.xlim, ylim=args.ylim,
-            target_num_centers=args.target_num_centers, sf_scalar=args.sf_scalar, grid_generate_method=args.grid_generate_method, 
-            tau=args.tau, mask_radius=args.mask_radius, rgc_rand_seed=args.rgc_rand_seed+1, num_gauss_example=args.num_gauss_example, 
-            sf_constraint_method=args.sf_constraint_method, temporal_filter_len=args.temporal_filter_len, grid_size_fac=args.grid_size_fac,
-            sf_mask_radius=args.sf_mask_radius, is_pixelized_tf=args.is_pixelized_tf, set_s_scale=args.set_s_scale, 
-            is_rf_median_subtract=args.is_rf_median_subtract
-        )
-        multi_opt_sf_off, tf_off, grid2value_mapping_off, map_func_off, _ = rgc_array.get_results()
+        multi_opt_sf_off, tf_off, grid2value_mapping_off, map_func_off, rgc_locs_off = rgc_array.get_additional_results(anti_alignment=args.anti_alignment)
     else:
         num_input_channel = 1
-        multi_opt_sf_off, tf_off, grid2value_mapping_off, map_func_off, _ = None, None, None, None, None
+        multi_opt_sf_off, tf_off, grid2value_mapping_off, map_func_off, rgc_locs_off = None, None, None, None, None
+
+    if is_show_rgc_grid:
+        plot_coordinate_and_save(rgc_locs, rgc_locs_off, plot_save_folder, file_name=f'{args.experiment_name}_rgc_grids_test.png')
 
     # raise ValueError(f"Temporal close exam processing...")
     logging.info( f"{file_name} processing...2")
