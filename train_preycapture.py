@@ -114,7 +114,7 @@ def parse_args():
     parser.add_argument('--is_input_norm', action='store_true', help="Normalize inputs to the CNN.")
     parser.add_argument('--cnn_extractor_version', type=int, default=1, help="Versioin of CNN extractor")
     parser.add_argument('--bg_processing_type', type=str, default='one-proj', help='background processing for auxiliary cost. [one-proj|two-proj|lstm-proj]')
-
+    parser.add_argument('--is_channel_normalization', action='store_true', help="Is perform channel normalization separately to the inputs")
     # Model training parameters
     parser.add_argument('--load_checkpoint_epoch', type=int, default=None, help='Epoch number of a load checkpint')
     parser.add_argument('--batch_size', type=int, default=4, help="Batch size for dataloader")
@@ -312,7 +312,8 @@ def main():
                                      lstm_num_layers=args.lstm_num_layers, output_dim=args.output_dim,
                                     input_height=grid_width, input_width=grid_height, conv_out_channels=args.conv_out_channels,
                                     is_input_norm=args.is_input_norm, is_seq_reshape=args.is_seq_reshape, CNNextractor_version=args.cnn_extractor_version,
-                                    num_input_channel=num_input_channel, bg_info_cost_ratio=args.bg_info_cost_ratio, bg_processing_type=args.bg_processing_type)
+                                    num_input_channel=num_input_channel, bg_info_cost_ratio=args.bg_info_cost_ratio, bg_processing_type=args.bg_processing_type,
+                                    is_channel_normalization=args.is_channel_normalization)
     
     logging.info( f"{args.experiment_name} processing...10")
     model = model.to(device)

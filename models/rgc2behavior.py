@@ -260,6 +260,82 @@ class ParallelCNNFeatureExtractor4(nn.Module):
         x = self.fc(x)  # Project to feature vector of specified size
         return x
     
+
+class ParallelCNNFeatureExtractor4s(nn.Module):
+    def __init__(self, input_height=24, input_width=32, conv_out_channels=16, fc_out_features=128, num_input_channel=1):
+        super(ParallelCNNFeatureExtractor4s, self).__init__()
+        
+        # Define parallel convolution layers with different kernel sizes (Series A)
+        conv_out_channels_a = int(conv_out_channels*0.5)
+        self.conv1_a = nn.Conv2d(num_input_channel, conv_out_channels_a, kernel_size=4, stride=2, padding=0)
+        self.bn1_a = nn.BatchNorm2d(conv_out_channels_a)
+        
+        self.conv2_a = nn.Conv2d(num_input_channel, conv_out_channels_a, kernel_size=4, dilation=4, stride=8, padding=4)
+        self.bn2_a = nn.BatchNorm2d(conv_out_channels_a)
+        
+        self.conv3_a = nn.Conv2d(num_input_channel, conv_out_channels_a, kernel_size=4, dilation=8, stride=16, padding=8)
+        self.bn3_a = nn.BatchNorm2d(conv_out_channels_a)
+        
+        # Define additional parallel convolution layers (Series B)
+        conv_out_channels_b = conv_out_channels
+        self.conv1_b = nn.Conv2d(conv_out_channels_a, conv_out_channels_b, kernel_size=4, stride=1, padding=0)
+        self.bn1_b = nn.BatchNorm2d(conv_out_channels_b)
+        
+        self.conv2_b = nn.Conv2d(conv_out_channels_a, conv_out_channels_b, kernel_size=3, stride=1, padding=0)
+        self.bn2_b = nn.BatchNorm2d(conv_out_channels_b)
+        
+        self.conv3_b = nn.Conv2d(conv_out_channels_a, conv_out_channels_b, kernel_size=2, stride=1, padding=0)
+        self.bn3_b = nn.BatchNorm2d(conv_out_channels_b)
+
+        # Define additional parallel convolution layers (Series C)      
+        self.conv1_c = nn.Conv2d(conv_out_channels_b, conv_out_channels_b, kernel_size=3, stride=1, padding=0)
+        self.bn1_c = nn.BatchNorm2d(conv_out_channels_b)
+        
+        self.conv2_c = nn.Conv2d(conv_out_channels_b, conv_out_channels_b, kernel_size=3, stride=1, padding=0)
+        self.bn2_c = nn.BatchNorm2d(conv_out_channels_b)
+        
+        self.conv3_c = nn.Conv2d(conv_out_channels_b, conv_out_channels_b, kernel_size=3, stride=1, padding=0)
+        self.bn3_c = nn.BatchNorm2d(conv_out_channels_b)
+        
+        # Determine the flattened feature size after the convolution and pooling layers
+        with torch.no_grad():
+            mock_input = torch.zeros(1, num_input_channel, input_height, input_width)
+            mock_output = self._forward_conv_layers(mock_input)
+            self.flat_feature_size = mock_output.size(1)  # Total flattened size after concatenation
+
+        # Fully connected layer based on the flattened feature size
+        self.fc = nn.Linear(self.flat_feature_size, fc_out_features)
+
+    def _forward_conv_layers(self, x):
+        """Forward pass through each convolutional layer, flatten, and concatenate their outputs."""
+        # Series A
+        x1 = torch.relu(self.bn1_a(self.conv1_a(x)))
+        x2 = torch.relu(self.bn2_a(self.conv2_a(x)))
+        x3 = torch.relu(self.bn3_a(self.conv3_a(x)))
+        
+        # Series B
+        x1 = torch.relu(self.bn1_b(self.conv1_b(x1)))
+        x2 = torch.relu(self.bn2_b(self.conv2_b(x2)))
+        x3 = torch.relu(self.bn3_b(self.conv3_b(x3)))
+
+        # Series C
+        x1 = torch.relu(self.bn1_c(self.conv1_c(x1)))
+        x2 = torch.relu(self.bn2_c(self.conv2_c(x2)))
+        x3 = torch.relu(self.bn3_c(self.conv3_c(x3)))
+        
+        x1_flat = x1.view(x1.size(0), -1)
+        x2_flat = x2.view(x2.size(0), -1)
+        x3_flat = x3.view(x3.size(0), -1)
+        
+        # Concatenate flattened features from both series
+        x = torch.cat((x1_flat, x2_flat, x3_flat), dim=1)
+        return x
+
+    def forward(self, x):
+        x = self._forward_conv_layers(x)
+        x = self.fc(x)  # Project to feature vector of specified size
+        return x
+    
     
 class ParallelCNNFeatureExtractor41(nn.Module):
     def __init__(self, input_height=24, input_width=32, conv_out_channels=16, fc_out_features=128, num_input_channel=1):
@@ -790,17 +866,29 @@ class FullSampleNormalization(nn.Module):
         mean = x.mean(dim=(1, 2, 3, 4), keepdim=True)  # Mean over sequence, C, H, W
         std = x.std(dim=(1, 2, 3, 4), keepdim=True) + 1e-6  # Std over sequence, C, H, W
         return (x - mean) / std   
+    
+
+class ChannelWiseNormalization(nn.Module):
+    def forward(self, x):
+        # Compute mean and std over (sequence, height, width) for each channel separately
+        mean = x.mean(dim=(1, 3, 4), keepdim=True)  # Mean over sequence, H, W
+        std = x.std(dim=(1, 3, 4), keepdim=True) + 1e-6  # Std over sequence, H, W
+        return (x - mean) / std
+    
 
 # Full CNN-LSTM model for predicting (x, y) coordinates
 class CNN_LSTM_ObjectLocation(nn.Module):
     def __init__(self, cnn_feature_dim=128, lstm_hidden_size=64, lstm_num_layers=2, output_dim=2,
                  input_height=24, input_width=32, conv_out_channels=32, is_input_norm=False, is_seq_reshape=False, CNNextractor_version=1, 
-                 num_input_channel=1, bg_info_cost_ratio=0, bg_processing_type='one-proj'):
+                 num_input_channel=1, bg_info_cost_ratio=0, bg_processing_type='one-proj', is_channel_normalization=False):
         super(CNN_LSTM_ObjectLocation, self).__init__()
         self.is_input_norm = is_input_norm
         if is_input_norm:
             #self.input_norm = nn.InstanceNorm2d(1)  # Normalize each sample independently on (C, H, W)
-            self.input_norm = FullSampleNormalization()  # Normalizes entire sample
+            if is_channel_normalization:
+                self.input_norm = ChannelWiseNormalization() 
+            else:
+                self.input_norm = FullSampleNormalization()  # Normalizes entire sample
         self.CNNextractor_version = CNNextractor_version
         if self.CNNextractor_version == 1:  # single layer
             self.cnn = ParallelCNNFeatureExtractor(input_height=input_height, input_width=input_width,conv_out_channels=conv_out_channels,
