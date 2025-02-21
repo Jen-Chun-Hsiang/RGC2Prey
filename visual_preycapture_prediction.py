@@ -237,6 +237,11 @@ def run_experiment(experiment_name, noise_level=None, test_bg_folder=None, test_
 
     for batch_idx, (inputs, true_path, path_bg, _, scaling_factors, bg_image_name, image_id, weighted_coords) in enumerate(test_loader):
 
+        # temporalily check
+        sequence = inputs.cpu().numpy()
+        savemat(os.path.join(mat_save_folder, 'sequence_evaluation.mat'), {'sequence': sequence})
+
+        raise ValueError(f"check mat data range...")
         path = true_path.reshape(1, -1)  # Ensure row vector
         path_bg = path_bg.reshape(1, -1)  # Ensure row vector
         path_cm = weighted_coords.reshape(1, -1)
