@@ -48,6 +48,7 @@ def run_experiment(experiment_name, noise_level=None, test_bg_folder=None, test_
     is_add_noise = False
     is_plot_centerFR = True
     is_show_rgc_grid = True
+    is_save_movie_sequence_to_mat = False
     checkpoint_path = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/Results/CheckPoints/'
     
     rf_params_file = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/SimulationParams.xlsx'
@@ -241,10 +242,10 @@ def run_experiment(experiment_name, noise_level=None, test_bg_folder=None, test_
     for batch_idx, (inputs, true_path, path_bg, _, scaling_factors, bg_image_name, image_id, weighted_coords) in enumerate(test_loader):
 
         # temporalily check
-        sequence = inputs.cpu().numpy()
-        savemat(os.path.join(mat_save_folder, 'sequence_evaluation.mat'), {'sequence': sequence})
-
-        raise ValueError(f"check mat data range...")
+        if is_save_movie_sequence_to_mat:
+            sequence = inputs.cpu().numpy()
+            savemat(os.path.join(mat_save_folder, 'sequence_evaluation.mat'), {'sequence': sequence})
+            raise ValueError(f"check mat data range...")
         path = true_path.reshape(1, -1)  # Ensure row vector
         path_bg = path_bg.reshape(1, -1)  # Ensure row vector
         path_cm = weighted_coords.reshape(1, -1)
