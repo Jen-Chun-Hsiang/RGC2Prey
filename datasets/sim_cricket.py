@@ -13,6 +13,7 @@ from datasets.rgc_rf import map_to_fixed_grid_closest_batch, precompute_grid_cen
 from datasets.rgc_rf import map_to_fixed_grid_circle_batch, HexagonalGridGenerator
 from utils.utils import get_random_file_path, get_image_number, load_mat_to_dataframe, get_filename_without_extension
 from utils.tools import gaussian_smooth_1d
+from utils.trajectory import disparity_from_scaling_factor, convert_deg_to_pix, adjust_trajectories
 
 
 def jitter_position(position, jitter_range):
@@ -478,7 +479,7 @@ class SynMovieGenerator:
                  prob_mov_ob=0.975, prob_stay_bg=0.95, prob_mov_bg=0.975,num_ext=50, initial_velocity=6, momentum_decay_ob=0.95, 
                  momentum_decay_bg=0.5, scale_factor=1.0, velocity_randomness_ob=0.02, velocity_randomness_bg=0.01, angle_range_ob=0.5, 
                  angle_range_bg=0.25, coord_mat_file=None, correction_direction=1, is_reverse_xy=False, start_scaling=1, 
-                 end_scaling=2, dynamic_scaling=0):
+                 end_scaling=2, dynamic_scaling=0, is_binocular=False):
         """
         Initializes the SynMovieGenerator with configuration parameters.
 
@@ -520,6 +521,7 @@ class SynMovieGenerator:
         self.start_scaling = start_scaling 
         self.end_scaling = end_scaling 
         self.dynamic_scaling = dynamic_scaling
+        self.is_binocular = is_binocular
 
     def _modify_scaling(self):
         start_scaling = self.start_scaling
@@ -583,6 +585,24 @@ class SynMovieGenerator:
 
         start_scaling, end_scaling = self._modify_scaling()
         scaling_factors = calculate_scaling_factors(bottom_img_positions, start_scaling=start_scaling, end_scaling=end_scaling)
+
+        if self.is_binocular:
+            disparity, _ = disparity_from_scaling_factor(
+                scaling_factors=scaling_factors,
+                start_distance=21,
+                end_distance=4,
+                iod_cm=1
+            )
+            disparity = convert_deg_to_pix(disparity)
+        else:
+            top_img_disparity_positions = path + disparity
+            print(f"self.boundary_size type: {type(self.boundary_size)}")
+            print(f"self.boundary_size: {self.boundary_size}")
+            bounds = (-self.boundary_size[0]/2, self.boundary_size[0]/2, -self.boundary_size[1]/2, self.boundary_size[1]/2)
+            print(f'bounds: {bounds}')
+            adjust_trajectories(bounds, top_img_positions, top_img_disparity_positions)
+            raise ValueError(f"check disparity ...")
+        
         # Generate the batch of images
         syn_movie = synthesize_image_with_params_batch(
             bottom_img_path, top_img_path, top_img_positions, bottom_img_positions,

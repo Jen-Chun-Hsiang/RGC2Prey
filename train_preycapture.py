@@ -67,6 +67,7 @@ def parse_args():
     parser.add_argument('--start_scaling', type=float, default=1.0, help='Beginning scale factor of the cricket image')
     parser.add_argument('--end_scaling', type=float, default=2.0, help='Final scale factor of the cricket image')
     parser.add_argument('--dynamic_scaling', type=float, default=0.0, help='Final scale factor of the cricket image')
+    parser.add_argument('--is_binocular', action='store_true', help='if generate two channels separately by binocular inputs')
 
     # Arguments for Cricket2RGCs (from movies to RGC array activities based on receptive field properties)
     parser.add_argument('--num_samples', type=int, default=20, help="Number of samples in the synthesized dataset")
@@ -231,7 +232,7 @@ def main():
         momentum_decay_bg=args.momentum_decay_bg, scale_factor=args.scale_factor, velocity_randomness_ob = args.velocity_randomness_ob, 
         velocity_randomness_bg=args.velocity_randomness_bg, angle_range_ob=args.angle_range_ob, angle_range_bg=args.angle_range_bg, 
         coord_mat_file=coord_mat_file, correction_direction=args.coord_adj_dir, is_reverse_xy=args.is_reverse_xy, 
-        start_scaling=args.start_scaling, end_scaling=args.end_scaling, dynamic_scaling=args.dynamic_scaling
+        start_scaling=args.start_scaling, end_scaling=args.end_scaling, dynamic_scaling=args.dynamic_scaling, is_binocular=args.is_binocular
     )
     logging.info( f"{args.experiment_name} processing...5")
     xlim, ylim = args.xlim, args.ylim
