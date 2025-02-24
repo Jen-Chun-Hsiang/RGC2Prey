@@ -1,4 +1,5 @@
 import numpy as np
+import math
 
 def adjust_trajectories(bounds, trajectory_1, trajectory_2=None):
     """
@@ -66,6 +67,15 @@ def adjust_trajectories(bounds, trajectory_1, trajectory_2=None):
         adjusted_trajectory_2 += shift_vector
 
     return adjusted_trajectory_1, adjusted_trajectory_2
+
+
+def binocular_disparity(iod_cm, distance_cm):
+    """
+    Calculate the binocular disparity (in degrees) for an object at distance_cm
+    from the midpoint between two eyes separated by iod_cm.
+    """
+    # theta = 2 * arctan( (IOD / 2) / distance )
+    return 2 * math.degrees(math.atan((iod_cm / 2) / distance_cm))
 
 
 def disparity_from_scaling_factor(scaling_factors, start_distance, end_distance, iod_cm):
