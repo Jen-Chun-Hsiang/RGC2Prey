@@ -67,3 +67,41 @@ def adjust_trajectories(bounds, trajectory_1, trajectory_2=None):
 
     return adjusted_trajectory_1, adjusted_trajectory_2
 
+
+def disparity_from_scaling_factor(scaling_factors, start_distance, end_distance, iod_cm):
+    """
+    Given:
+      - scaling_factors: a list of numbers (e.g., [1, 1.1, 1.1, 1.2, 1.4, ...])
+      - start_distance and end_distance: e.g. 21 and 4
+      - iod_cm: interocular distance (cm)
+    
+    1) Maps each element in scaling_factors from [min_sf, max_sf]
+       into [start_distance, end_distance].
+       - If two scaling factors are the same, they map to the same distance.
+    2) Computes the binocular disparity for each distance.
+    3) Returns two arrays of equal length: 
+       (distances_corresponding_to_scaling, disparities_in_degrees).
+    """
+
+    # Identify the range in scaling_factors
+    min_sf = min(scaling_factors)
+    max_sf = max(scaling_factors)
+    
+    # Edge case: if min_sf == max_sf, then all scaling_factors are the same
+    # and we just treat every distance as start_distance (or end_distance).
+    # For simplicity, we assume start_distance is the mapped distance.
+    if min_sf == max_sf:
+        distances = np.full(len(scaling_factors), start_distance)
+    else:
+        # Map scaling factor to distance via linear interpolation
+        distances = np.array([
+            start_distance + (end_distance - start_distance)
+            * (sf - min_sf) / (max_sf - min_sf)
+            for sf in scaling_factors
+        ])
+    
+    # Compute the disparities for each distance using a vectorized approach
+    disparities = np.array([binocular_disparity(iod_cm, d) for d in distances])
+    
+    return disparities, distances
+
