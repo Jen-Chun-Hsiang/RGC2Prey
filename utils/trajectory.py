@@ -115,3 +115,20 @@ def disparity_from_scaling_factor(scaling_factors, start_distance, end_distance,
     
     return disparities, distances
 
+
+def convert_deg_to_pix(x, deg2um=32.5, pix2um=4.375, scaling=0.54):
+    """
+    Converts degrees to pixels using the provided scaling factors.
+
+    Parameters:
+    - x: numpy array of values to convert.
+    - deg2um: conversion factor from degrees to micrometers (default: 32.5).
+    - pix2um: conversion factor from pixels to micrometers (default: 4.375).
+    - scaling: additional scaling factor (default: 0.54).
+
+    Returns:
+    - result: numpy array after conversion.
+    """
+    result = x * deg2um / (pix2um / scaling)
+    return result
+
