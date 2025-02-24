@@ -154,9 +154,7 @@ def run_experiment(experiment_name, noise_level=None, test_bg_folder=None, test_
 
     if is_show_rgc_grid:
         plot_coordinate_and_save(rgc_locs, rgc_locs_off, plot_save_folder, file_name=f'{args.experiment_name}_rgc_grids_test.png')
-
-        
-
+ 
     # raise ValueError(f"Temporal close exam processing...")
     logging.info( f"{file_name} processing...2")
 
@@ -243,7 +241,6 @@ def run_experiment(experiment_name, noise_level=None, test_bg_folder=None, test_
     all_id_numbers = []
 
     for batch_idx, (inputs, true_path, path_bg, _, scaling_factors, bg_image_name, image_id, weighted_coords) in enumerate(test_loader):
-
         # temporalily check
         if is_save_movie_sequence_to_mat:
             sequence = inputs.cpu().numpy()
@@ -302,7 +299,6 @@ def run_experiment(experiment_name, noise_level=None, test_bg_folder=None, test_
 
     logging.info( f"{file_name} processing...10")
     
-    
     # Test model on samples
     for batch_idx, (inputs, true_path, bg_path, syn_movie, scaling_factors, bg_image_name, image_id, weighted_coords) in enumerate(test_loader):
         # inputs = inputs.to(args.device)
@@ -312,10 +308,6 @@ def run_experiment(experiment_name, noise_level=None, test_bg_folder=None, test_
             weighted_coords = weighted_coords.squeeze(0).cpu().numpy()
         else:
             weighted_coords = None
-
-        # logging.info( f"true_path shape: {true_path.shape}")
-        # logging.info( f"bg_path shape: {bg_path.shape}")
-        # logging.info( f"weighted_coords shape: {weighted_coords.shape}")
 
         with torch.no_grad():
             predicted_path, _ = model(inputs)
