@@ -614,8 +614,7 @@ class SynMovieGenerator:
                 scaling_factors, self.crop_size, alpha=1.0
             )
         
-        print(f'syn_movie size: {syn_movie.shape}')
-        raise ValueError(f"check disparity ...")
+        
         
         # Correct for the cricket head position
         bg_image_name = get_filename_without_extension(bottom_img_path)
@@ -630,6 +629,9 @@ class SynMovieGenerator:
             
             scaled_coord_corrections = coord_correction[np.newaxis, :] * scaling_factors[:, np.newaxis]
             path = path - self.correction_direction*scaled_coord_corrections
+
+        print(f'syn_movie size: {syn_movie.shape}')
+        raise ValueError(f"check disparity ...")
 
         return syn_movie[:, 1, :, :], path, path_bg, scaling_factors, bg_image_name, image_id
     
