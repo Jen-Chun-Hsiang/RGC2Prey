@@ -364,6 +364,7 @@ class Cricket2RGCs(Dataset):
         if syn_movie.shape[1] == 2:
             is_binocular = True
         else:
+            is_binocular = False
             syn_movie = syn_movie[:, 0, :, :]
 
         if is_binocular:
