@@ -641,7 +641,8 @@ class SynMovieGenerator:
             # plot_trajectories(bounds, top_img_positions, top_img_disparity_positions, top_img_positions_shifted, 
             #                  top_img_disparity_positions_shifted, plot_save_folder, filename="trajectory_plot.png")
         else:
-            top_img_disparity_positions_shifted = None
+            top_img_positions_shifted, top_img_disparity_positions_shifted = adjust_trajectories(bounds, path.copy())
+        
         
         syn_movie = synthesize_image_with_params_batch(
                 bottom_img_path, top_img_path, top_img_positions_shifted, bottom_img_positions,
