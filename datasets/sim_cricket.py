@@ -624,6 +624,7 @@ class SynMovieGenerator:
 
         start_scaling, end_scaling = self._modify_scaling()
         scaling_factors = calculate_scaling_factors(bottom_img_positions, start_scaling=start_scaling, end_scaling=end_scaling)
+        bounds = (-self.boundary_size[0]/2, self.boundary_size[0]/2, -self.boundary_size[1]/2, self.boundary_size[1]/2)
 
         if self.is_binocular:
             disparity, _ = disparity_from_scaling_factor(
@@ -635,7 +636,7 @@ class SynMovieGenerator:
             disparity = convert_deg_to_pix(disparity)
             top_img_disparity_positions = path.copy()
             top_img_disparity_positions[:, 0] += disparity
-            bounds = (-self.boundary_size[0]/2, self.boundary_size[0]/2, -self.boundary_size[1]/2, self.boundary_size[1]/2)
+            
             top_img_positions_shifted, top_img_disparity_positions_shifted = adjust_trajectories(bounds, path.copy(), top_img_disparity_positions)
             # plot_save_folder =  '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/Results/Figures/temps/'
             # plot_trajectories(bounds, top_img_positions, top_img_disparity_positions, top_img_positions_shifted, 
