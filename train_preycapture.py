@@ -191,18 +191,18 @@ def main():
     if args.is_both_ON_OFF:
         num_input_channel = 2
         # sf_param_table = pd.read_excel(rf_params_file, sheet_name='SF_params_OFF', usecols='A:L')
-        multi_opt_sf_off, tf_off, grid2value_mapping_off, map_func_off, rgc_locs_off = rgc_array.get_additional_results(anti_alignment=args.anti_alignment)
-        
+        multi_opt_sf_off, tf_off, grid2value_mapping_off, map_func_off, rgc_locs_off = rgc_array.get_additional_results(anti_alignment=args.anti_alignment)  
     else:
-        num_input_channel = 1
+        if args.is_binocular:
+            num_input_channel = 2
+        else:
+            num_input_channel = 1
         multi_opt_sf_off, tf_off, grid2value_mapping_off, map_func_off, rgc_locs_off = None, None, None, None, None
 
 
     if is_show_rgc_grid:
         plot_coordinate_and_save(rgc_locs, rgc_locs_off, plot_save_folder, file_name=f'{args.experiment_name}_rgc_grids.png')
         
-        
-    
     logging.info( f"{args.experiment_name} processing...3")
     # Check results of RGC array synthesis
     if is_show_rgc_rf_individual:
