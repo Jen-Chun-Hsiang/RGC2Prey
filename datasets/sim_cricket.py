@@ -596,26 +596,23 @@ class SynMovieGenerator:
             disparity = convert_deg_to_pix(disparity)
             top_img_disparity_positions = path.copy()
             top_img_disparity_positions[:, 0] += disparity
-            print(f"self.boundary_size type: {type(self.boundary_size)}")
-            print(f"self.boundary_size: {self.boundary_size}")
             bounds = (-self.boundary_size[0]/2, self.boundary_size[0]/2, -self.boundary_size[1]/2, self.boundary_size[1]/2)
-            print(f'bounds: {bounds}')
             plot_save_folder =  '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/Results/Figures/temps/'
-            top_img_positions_shifted, top_img_disparity_positions_shifted = adjust_trajectories(bounds, top_img_positions, top_img_disparity_positions)
+            top_img_positions_shifted, top_img_disparity_positions_shifted = adjust_trajectories(bounds, path.copy(), top_img_disparity_positions)
             plot_trajectories(bounds, top_img_positions, top_img_disparity_positions, top_img_positions_shifted, 
                               top_img_disparity_positions_shifted, plot_save_folder, filename="trajectory_plot.png")
+            syn_movie = synthesize_image_with_params_batch(
+                bottom_img_path, top_img_path, top_img_positions_shifted, bottom_img_positions,
+                scaling_factors, self.crop_size, alpha=1.0, top_img_positions_shifted=top_img_disparity_positions_shifted
+            )
             raise ValueError(f"check disparity ...")
-        else:
-            print(f"self.boundary_size type: {type(self.boundary_size)}")
-            print(f"self.boundary_size: {self.boundary_size}")
 
-            
-        
-        # Generate the batch of images
-        syn_movie = synthesize_image_with_params_batch(
-            bottom_img_path, top_img_path, top_img_positions, bottom_img_positions,
-            scaling_factors, self.crop_size, alpha=1.0
-        )
+        else:
+            # Generate the batch of images
+            syn_movie = synthesize_image_with_params_batch(
+                bottom_img_path, top_img_path, top_img_positions, bottom_img_positions,
+                scaling_factors, self.crop_size, alpha=1.0
+            )
         
         # Correct for the cricket head position
         bg_image_name = get_filename_without_extension(bottom_img_path)
@@ -636,7 +633,7 @@ class SynMovieGenerator:
 
 
 def synthesize_image_with_params_batch(bottom_img_path, top_img_path, top_img_positions, bottom_img_positions,
-                                       scaling_factors, crop_size, alpha=1.0):
+                                       scaling_factors, crop_size, alpha=1.0, top_img_positions_shifted=None):
     """
     Synthesizes a batch of images by overlaying the top image on the bottom image at specific positions.
 
@@ -660,7 +657,9 @@ def synthesize_image_with_params_batch(bottom_img_path, top_img_path, top_img_po
     original_top_img = Image.open(top_img_path).convert("RGBA")
     batch_size = len(top_img_positions)
     bottom_w, bottom_h = bottom_img.size
-    syn_images = torch.zeros((batch_size, 3, crop_size[1], crop_size[0]))
+
+    channels = 2 if top_img_positions_shifted is not None else 1
+    syn_images = torch.zeros((batch_size, channels, crop_size[1], crop_size[0]))
 
     # Variables to cache the last scaling factor and scaled image
     last_scaling_factor = None
@@ -677,36 +676,48 @@ def synthesize_image_with_params_batch(bottom_img_path, top_img_path, top_img_po
             last_scaling_factor = current_scaling_factor
 
         top_tensor = cached_scaled_image
-
         top_w, top_h = scaled_top_img.size
         fill_h = (bottom_h - top_h) // 2
         fill_w = (bottom_w - top_w) // 2
 
-        # Compute relative position
-        relative_pos = top_img_positions[i] - bottom_img_positions[i]
+        def overlay_and_crop(relative_pos, crop_pos):
+            # Clone the bottom image tensor
+            final_tensor = bottom_tensor.clone()
 
-        # Clone the bottom image tensor
-        final_tensor = bottom_tensor.clone()
+            # Compute relative position
+            relative_pos = relative_pos - crop_pos
+            relative_pos = relative_pos.astype(int)
+            x_offset = fill_w + relative_pos[0]
+            y_offset = fill_h + relative_pos[1]
 
-        # Overlay the top image (vectorized for all RGB channels)
-        final_tensor[:3,
-                     fill_h + relative_pos[1]:fill_h + relative_pos[1] + top_h,
-                     fill_w + relative_pos[0]:fill_w + relative_pos[0] + top_w] = (
-            top_tensor[:3, :, :] * top_tensor[3:4, :, :] * alpha +
-            final_tensor[:3,
-                         fill_h + relative_pos[1]:fill_h + relative_pos[1] + top_h,
-                         fill_w + relative_pos[0]:fill_w + relative_pos[0] + top_w] * (1 - top_tensor[3:4, :, :] * alpha)
-        )
+            # Overlay the top image using green channel only (index 1)
+            final_tensor[1,  # Green channel
+                         y_offset:y_offset + top_h,
+                         x_offset:x_offset + top_w] = (
+                top_tensor[1, :, :] * top_tensor[3:4, :, :] * alpha +  # Green channel overlay
+                final_tensor[1,
+                             y_offset:y_offset + top_h,
+                             x_offset:x_offset + top_w] * (1 - top_tensor[3:4, :, :] * alpha)
+            )
 
-        # Convert to PIL and crop
-        final_img = T.ToPILImage()(final_tensor)
-        cropped_img = crop_image(final_img, crop_size, bottom_img_positions[i])
-        if cropped_img.mode == "RGBA":
-            cropped_img = cropped_img.convert("RGB")
-        # syn_images[i] = T.ToTensor()(cropped_img)
-        syn_images[i] = 2 * T.ToTensor()(cropped_img) - 1 
+            # Convert back to PIL image and crop to desired size from the center
+            final_img = T.ToPILImage()(final_tensor)
+            cropped_img = crop_image(final_img, crop_size, crop_pos)
+            if cropped_img.mode == "RGBA":
+                cropped_img = cropped_img.convert("RGB")
+            cropped_img = 2 * T.ToTensor()(cropped_img) - 1
+
+            # Return green channel [1, width, height]
+            return cropped_img[1:2]
+        
+        syn_images[i, 0] = overlay_and_crop(top_img_positions[i], bottom_img_positions[i])
+
+        if top_img_positions_shifted is not None:
+            syn_images[i, 1] = overlay_and_crop(top_img_positions_shifted[i], bottom_img_positions[i])
 
     return syn_images
+
+    
 
 
 class RGCrfArray:
