@@ -362,11 +362,42 @@ class Cricket2RGCs(Dataset):
         # logging.info( f"   subprocessing...6.1")
 
         if syn_movie.shape[1] == 2:
-            raise ValueError('Check the process...')
+            is_binocular = True
         else:
             syn_movie = syn_movie[:, 0, :, :]
 
-        if self.is_direct_image:
+        if is_binocular:
+            grid_values_sequence_list = []
+            for i in range(syn_movie.shape[1]):
+                c_syn_movie = syn_movie[:, i, :, :]
+                sf_frame = torch.einsum('whn,thw->nt', self.multi_opt_sf, c_syn_movie)
+                sf_frame = sf_frame.unsqueeze(0) 
+                tf = np.repeat(self.tf, sf_frame.shape[1], axis=0)
+                rgc_time = F.conv1d(sf_frame, tf, stride=1, padding=0, groups=sf_frame.shape[1]).squeeze()
+
+                if self.fr2spikes:
+                    rgc_time = torch.poisson(torch.clamp_min(rgc_time * self.quantize_scale, 0)) / self.quantize_scale
+
+                if self.smooth_data:
+                    rgc_time = gaussian_smooth_1d(rgc_time, kernel_size=self.smooth_kernel_size, sampleing_rate=self.sampleing_rate, 
+                                                sigma=self.smooth_sigma)            
+                if self.add_noise:
+                    rgc_time += torch.randn_like(rgc_time) * self.rgc_noise_std
+
+                if self.is_rectified:
+                        rgc_time = torch.clamp_min(rgc_time, 0)
+
+                grid_values_sequence = self.map_func(
+                    rgc_time,  # Shape: (time_steps', num_points)
+                    self.grid2value_mapping,  # Shape: (num_points, target_width * target_height)
+                    self.grid_width,
+                    self.grid_height
+                ) 
+                grid_values_sequence_list.append(grid_values_sequence)
+            
+            grid_values_sequence = torch.stack(grid_values_sequence_list, dim=1) 
+
+        elif self.is_direct_image:
             time, height, width = syn_movie.shape[0], syn_movie.shape[1], syn_movie.shape[2]
             sf_frame = syn_movie.permute(1, 2, 0).view(-1, time).unsqueeze(0) 
             tf = np.repeat(self.tf, sf_frame.shape[1], axis=0)
@@ -467,10 +498,13 @@ class Cricket2RGCs(Dataset):
         path_bg = path_bg[-rgc_time.shape[1]:, :]/self.norm_path_fac    
         # Estimate the center of mass by firing rate (rgc_time)
 
-        if self.is_both_ON_OFF:
+        if self.is_both_ON_OFF or is_binocular:
             grid_values_sequence = grid_values_sequence.permute(0, 1, 3, 2)
         else:
             grid_values_sequence = grid_values_sequence.permute(0, 2, 1).unsqueeze(1)
+
+        print(f'grid_values_sequence size: {grid_values_sequence.shape}')
+        raise ValueError('Check the process...')
 
         if self.is_syn_mov_shown:
             return grid_values_sequence, path, path_bg, syn_movie, scaling_factors, bg_image_name, image_id, weighted_coords
