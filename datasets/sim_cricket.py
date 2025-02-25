@@ -594,7 +594,6 @@ class SynMovieGenerator:
                 iod_cm=1
             )
             disparity = convert_deg_to_pix(disparity)
-        else:
             top_img_disparity_positions = path + disparity
             print(f"self.boundary_size type: {type(self.boundary_size)}")
             print(f"self.boundary_size: {self.boundary_size}")
@@ -602,6 +601,11 @@ class SynMovieGenerator:
             print(f'bounds: {bounds}')
             adjust_trajectories(bounds, top_img_positions, top_img_disparity_positions)
             raise ValueError(f"check disparity ...")
+        else:
+            print(f"self.boundary_size type: {type(self.boundary_size)}")
+            print(f"self.boundary_size: {self.boundary_size}")
+
+            
         
         # Generate the batch of images
         syn_movie = synthesize_image_with_params_batch(
