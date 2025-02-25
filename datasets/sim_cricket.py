@@ -361,6 +361,11 @@ class Cricket2RGCs(Dataset):
         syn_movie, path, path_bg, scaling_factors, bg_image_name, image_id = self.movie_generator.generate()
         # logging.info( f"   subprocessing...6.1")
 
+        if syn_movie.shape[1] == 2:
+            raise ValueError('Check the process...')
+        else:
+            syn_movie = syn_movie[:, 0, :, :]
+
         if self.is_direct_image:
             time, height, width = syn_movie.shape[0], syn_movie.shape[1], syn_movie.shape[2]
             sf_frame = syn_movie.permute(1, 2, 0).view(-1, time).unsqueeze(0) 
