@@ -123,6 +123,8 @@ def run_experiment(experiment_name, noise_level=None, test_bg_folder=None, test_
         args.grid_noise_level = 0.3
     if not hasattr(args, 'is_channel_normalization'):
         args.is_channel_normalization = False
+    if not hasattr(args, 'is_binocular'):
+        args.is_binocular = False
 
     process_seed(args.seed)
 
@@ -148,7 +150,10 @@ def run_experiment(experiment_name, noise_level=None, test_bg_folder=None, test_
         # sf_param_table = pd.read_excel(rf_params_file, sheet_name='SF_params_OFF', usecols='A:L')
         multi_opt_sf_off, tf_off, grid2value_mapping_off, map_func_off, rgc_locs_off = rgc_array.get_additional_results(anti_alignment=args.anti_alignment)
     else:
-        num_input_channel = 1
+        if args.is_binocular:
+            num_input_channel = 2
+        else:
+            num_input_channel = 1
         grid_centers = rgc_locs
         multi_opt_sf_off, tf_off, grid2value_mapping_off, map_func_off, rgc_locs_off = None, None, None, None, None
 
@@ -165,7 +170,7 @@ def run_experiment(experiment_name, noise_level=None, test_bg_folder=None, test_
         momentum_decay_bg=args.momentum_decay_bg, scale_factor=args.scale_factor, velocity_randomness_ob = args.velocity_randomness_ob, 
         velocity_randomness_bg=args.velocity_randomness_bg, angle_range_ob=args.angle_range_ob, angle_range_bg=args.angle_range_bg, 
         coord_mat_file=coord_mat_file, correction_direction=args.coord_adj_dir, is_reverse_xy=args.is_reverse_xy, 
-        start_scaling=args.start_scaling, end_scaling=args.end_scaling, dynamic_scaling=args.dynamic_scaling
+        start_scaling=args.start_scaling, end_scaling=args.end_scaling, dynamic_scaling=args.dynamic_scaling, is_binocular=args.is_binocular
     )
 
     logging.info( f"{file_name} processing...3")
