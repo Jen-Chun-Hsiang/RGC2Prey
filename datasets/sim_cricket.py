@@ -13,7 +13,7 @@ from datasets.rgc_rf import map_to_fixed_grid_closest_batch, precompute_grid_cen
 from datasets.rgc_rf import map_to_fixed_grid_circle_batch, HexagonalGridGenerator
 from utils.utils import get_random_file_path, get_image_number, load_mat_to_dataframe, get_filename_without_extension
 from utils.tools import gaussian_smooth_1d
-from utils.trajectory import disparity_from_scaling_factor, convert_deg_to_pix, adjust_trajectories
+from utils.trajectory import disparity_from_scaling_factor, convert_deg_to_pix, adjust_trajectories, plot_trajectories
 
 
 def jitter_position(position, jitter_range):
@@ -600,7 +600,10 @@ class SynMovieGenerator:
             print(f"self.boundary_size: {self.boundary_size}")
             bounds = (-self.boundary_size[0]/2, self.boundary_size[0]/2, -self.boundary_size[1]/2, self.boundary_size[1]/2)
             print(f'bounds: {bounds}')
-            adjust_trajectories(bounds, top_img_positions, top_img_disparity_positions)
+            plot_save_folder =  '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/Results/Figures/temps/'
+            top_img_positions_shifted, top_img_disparity_positions_shifted = adjust_trajectories(bounds, top_img_positions, top_img_disparity_positions)
+            plot_trajectories(bounds, top_img_positions, top_img_disparity_positions, top_img_positions_shifted, 
+                              top_img_disparity_positions_shifted, plot_save_folder, filename="trajectory_plot.png")
             raise ValueError(f"check disparity ...")
         else:
             print(f"self.boundary_size type: {type(self.boundary_size)}")

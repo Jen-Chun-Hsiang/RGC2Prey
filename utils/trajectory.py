@@ -1,5 +1,7 @@
 import numpy as np
 import math
+import os
+import matplotlib.pyplot as plt
 
 def adjust_trajectories(bounds, trajectory_1, trajectory_2=None):
     """
@@ -131,4 +133,55 @@ def convert_deg_to_pix(x, deg2um=32.5, pix2um=4.375, scaling=0.54):
     """
     result = x * deg2um / (pix2um / scaling)
     return result
+
+
+def plot_trajectories(bounds, original_1, original_2, adjusted_1, adjusted_2, save_folder, filename="trajectory_plot.png"):
+    """
+    Plot original and adjusted trajectories within the bounds and save the plot to a given folder.
+
+    Parameters:
+    - bounds: Tuple (x_min, x_max, y_min, y_max)
+    - original_1: numpy array of shape (n, 2) for trajectory 1
+    - original_2: numpy array of shape (n, 2) for trajectory 2 (optional)
+    - adjusted_1: numpy array of shape (n, 2) for adjusted trajectory 1
+    - adjusted_2: numpy array of shape (n, 2) for adjusted trajectory 2 (optional)
+    - save_folder: Path to the folder where the plot will be saved
+    - filename: Name of the output file (default: "trajectory_plot.png")
+    """
+    
+    # Ensure the save folder exists
+    os.makedirs(save_folder, exist_ok=True)
+    
+    # Create the plot
+    plt.figure(figsize=(10, 8))
+    
+    # Plot bounds
+    x_min, x_max, y_min, y_max = bounds
+    plt.plot([x_min, x_max, x_max, x_min, x_min], 
+             [y_min, y_min, y_max, y_max, y_min], 
+             'k--', linewidth=2, label="Bounds")
+    
+    # Plot original trajectories
+    plt.plot(original_1[:, 0], original_1[:, 1], 'r-o', label="Original Trajectory 1")
+    
+    if original_2 is not None:
+        plt.plot(original_2[:, 0], original_2[:, 1], 'b-o', label="Original Trajectory 2")
+    
+    # Plot adjusted trajectories
+    plt.plot(adjusted_1[:, 0], adjusted_1[:, 1], 'r--', label="Adjusted Trajectory 1")
+    
+    if adjusted_2 is not None:
+        plt.plot(adjusted_2[:, 0], adjusted_2[:, 1], 'b--', label="Adjusted Trajectory 2")
+    
+    plt.title("Trajectory Adjustment Within Bounds")
+    plt.xlabel("X-axis")
+    plt.ylabel("Y-axis")
+    plt.legend()
+    plt.grid(True)
+    
+    # Save the plot
+    save_path = os.path.join(save_folder, filename)
+    plt.savefig(save_path)
+    plt.close()  # Close the plot to free up memory
+    print(f"Plot saved to {save_path}")
 
