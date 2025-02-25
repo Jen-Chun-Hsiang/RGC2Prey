@@ -601,21 +601,13 @@ class SynMovieGenerator:
             # plot_save_folder =  '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/Results/Figures/temps/'
             # plot_trajectories(bounds, top_img_positions, top_img_disparity_positions, top_img_positions_shifted, 
             #                  top_img_disparity_positions_shifted, plot_save_folder, filename="trajectory_plot.png")
-            syn_movie = synthesize_image_with_params_batch(
+        else:
+            top_img_disparity_positions_shifted = None
+        
+        syn_movie = synthesize_image_with_params_batch(
                 bottom_img_path, top_img_path, top_img_positions_shifted, bottom_img_positions,
                 scaling_factors, self.crop_size, alpha=1.0, top_img_positions_shifted=top_img_disparity_positions_shifted
             )
-            
-
-        else:
-            # Generate the batch of images
-            syn_movie = synthesize_image_with_params_batch(
-                bottom_img_path, top_img_path, top_img_positions, bottom_img_positions,
-                scaling_factors, self.crop_size, alpha=1.0
-            )
-        
-        
-        
         # Correct for the cricket head position
         bg_image_name = get_filename_without_extension(bottom_img_path)
         image_id = get_image_number(top_img_path)
@@ -630,10 +622,7 @@ class SynMovieGenerator:
             scaled_coord_corrections = coord_correction[np.newaxis, :] * scaling_factors[:, np.newaxis]
             path = path - self.correction_direction*scaled_coord_corrections
 
-        print(f'syn_movie size: {syn_movie.shape}')
-        raise ValueError(f"check disparity ...")
-
-        return syn_movie[:, 1, :, :], path, path_bg, scaling_factors, bg_image_name, image_id
+        return syn_movie, path, path_bg, scaling_factors, bg_image_name, image_id
     
 
 
