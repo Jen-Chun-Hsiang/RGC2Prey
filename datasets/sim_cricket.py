@@ -594,7 +594,8 @@ class SynMovieGenerator:
                 iod_cm=1
             )
             disparity = convert_deg_to_pix(disparity)
-            top_img_disparity_positions = path + disparity
+            top_img_disparity_positions = path.copy()
+            top_img_disparity_positions[:, 0] += disparity
             print(f"self.boundary_size type: {type(self.boundary_size)}")
             print(f"self.boundary_size: {self.boundary_size}")
             bounds = (-self.boundary_size[0]/2, self.boundary_size[0]/2, -self.boundary_size[1]/2, self.boundary_size[1]/2)
