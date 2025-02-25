@@ -599,12 +599,13 @@ class SynMovieGenerator:
             bounds = (-self.boundary_size[0]/2, self.boundary_size[0]/2, -self.boundary_size[1]/2, self.boundary_size[1]/2)
             plot_save_folder =  '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/Results/Figures/temps/'
             top_img_positions_shifted, top_img_disparity_positions_shifted = adjust_trajectories(bounds, path.copy(), top_img_disparity_positions)
-            plot_trajectories(bounds, top_img_positions, top_img_disparity_positions, top_img_positions_shifted, 
-                              top_img_disparity_positions_shifted, plot_save_folder, filename="trajectory_plot.png")
+            # plot_trajectories(bounds, top_img_positions, top_img_disparity_positions, top_img_positions_shifted, 
+            #                  top_img_disparity_positions_shifted, plot_save_folder, filename="trajectory_plot.png")
             syn_movie = synthesize_image_with_params_batch(
                 bottom_img_path, top_img_path, top_img_positions_shifted, bottom_img_positions,
                 scaling_factors, self.crop_size, alpha=1.0, top_img_positions_shifted=top_img_disparity_positions_shifted
             )
+            print(f'syn_movie size: {syn_movie.shape}')
             raise ValueError(f"check disparity ...")
 
         else:
