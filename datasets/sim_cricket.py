@@ -620,7 +620,7 @@ class SynMovieGenerator:
         top_img_path = get_random_file_path(self.top_img_folder)
 
         # Convert paths to numpy arrays
-        top_img_positions = path.round().astype(int)
+        # top_img_positions = path.round().astype(int)
         bottom_img_positions = path_bg.round().astype(int)
 
         start_scaling, end_scaling = self._modify_scaling()
@@ -642,8 +642,10 @@ class SynMovieGenerator:
             # plot_save_folder =  '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/Results/Figures/temps/'
             # plot_trajectories(bounds, top_img_positions, top_img_disparity_positions, top_img_positions_shifted, 
             #                  top_img_disparity_positions_shifted, plot_save_folder, filename="trajectory_plot.png")
+            path = (top_img_positions_shifted + top_img_disparity_positions_shifted) / 2
         else:
             top_img_positions_shifted, top_img_disparity_positions_shifted = adjust_trajectories(bounds, path.copy())
+            path = top_img_positions_shifted
         
         
         syn_movie = synthesize_image_with_params_batch(

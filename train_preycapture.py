@@ -116,6 +116,7 @@ def parse_args():
     parser.add_argument('--cnn_extractor_version', type=int, default=1, help="Versioin of CNN extractor")
     parser.add_argument('--bg_processing_type', type=str, default='one-proj', help='background processing for auxiliary cost. [one-proj|two-proj|lstm-proj]')
     parser.add_argument('--is_channel_normalization', action='store_true', help="Is perform channel normalization separately to the inputs")
+    
     # Model training parameters
     parser.add_argument('--load_checkpoint_epoch', type=int, default=None, help='Epoch number of a load checkpint')
     parser.add_argument('--batch_size', type=int, default=4, help="Batch size for dataloader")
