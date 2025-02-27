@@ -521,7 +521,7 @@ class SynMovieGenerator:
                  prob_mov_ob=0.975, prob_stay_bg=0.95, prob_mov_bg=0.975,num_ext=50, initial_velocity=6, momentum_decay_ob=0.95, 
                  momentum_decay_bg=0.5, scale_factor=1.0, velocity_randomness_ob=0.02, velocity_randomness_bg=0.01, angle_range_ob=0.5, 
                  angle_range_bg=0.25, coord_mat_file=None, correction_direction=1, is_reverse_xy=False, start_scaling=1, 
-                 end_scaling=2, dynamic_scaling=0, is_binocular=False):
+                 end_scaling=2, dynamic_scaling=0, is_binocular=False, interocular_dist=1):
         """
         Initializes the SynMovieGenerator with configuration parameters.
 
@@ -564,6 +564,7 @@ class SynMovieGenerator:
         self.end_scaling = end_scaling 
         self.dynamic_scaling = dynamic_scaling
         self.is_binocular = is_binocular
+        self.interocular_dist = interocular_dist  # in cm
 
     def _modify_scaling(self):
         start_scaling = self.start_scaling
@@ -634,7 +635,7 @@ class SynMovieGenerator:
                 scaling_factors=scaling_factors,
                 start_distance=21,
                 end_distance=4,
-                iod_cm=1
+                iod_cm=self.interocular_dist
             )
             disparity = convert_deg_to_pix(disparity)
             top_img_disparity_positions = path.copy()
