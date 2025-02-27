@@ -23,6 +23,7 @@ def parse_args():
     parser.add_argument('--test_bg_folder', type=str, default=None, help="Background folder for testing")
     parser.add_argument('--test_ob_folder', type=str, default=None, help="Object folder for testing")
     parser.add_argument('--boundary_size', type=str, default=None, help="Boundary size as '(x_limit, y_limit)'.")
+    parser.add_argument('--epoch_number', type=int, default=200, help="Epoch number to check")
 
     return parser.parse_args()
 
@@ -34,11 +35,10 @@ def main():
     for experiment_name in args.experiment_names:
         noise_levels = args.noise_levels if args.noise_levels else [None]
         for noise_level in noise_levels:
-            run_experiment(experiment_name, noise_level, args.test_bg_folder, args.test_ob_folder, args.boundary_size)
+            run_experiment(experiment_name, noise_level, args.test_bg_folder, args.test_ob_folder, args.boundary_size, args.epoch_number)
 
 
-def run_experiment(experiment_name, noise_level=None, test_bg_folder=None, test_ob_folder=None, boundary_size=None):
-    epoch_number = 200
+def run_experiment(experiment_name, noise_level=None, test_bg_folder=None, test_ob_folder=None, boundary_size=None, epoch_number=200):
     num_display = 3
     frame_width = 640
     frame_height = 480
