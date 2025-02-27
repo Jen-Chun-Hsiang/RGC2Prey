@@ -272,6 +272,9 @@ class MovieGenerator:
         scaling_history = []
         centerRF_history = []
 
+        if syn_movie.shape[1] == 2:
+            syn_movie = syn_movie[:, 0, :, :]
+
         for i, (frame, syn_frame, coord, bg_coord, pred_coord, scaling, centerRF) in enumerate(zip(image_sequence, syn_movie, path, path_bg, 
                                                                                          path_predict, scaling_factors, weighted_coords)):
             path_history.append(coord)
