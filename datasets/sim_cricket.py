@@ -504,10 +504,10 @@ class Cricket2RGCs(Dataset):
         else:
             grid_values_sequence = grid_values_sequence.permute(0, 2, 1).unsqueeze(1)
 
-        print("Min:", grid_values_sequence.min().item()) 
-        print("Max:", grid_values_sequence.max().item()) 
+        # print("Min:", grid_values_sequence.min().item()) 
+        # print("Max:", grid_values_sequence.max().item()) 
         # print(f'grid_values_sequence size: {grid_values_sequence.shape}')
-        raise ValueError('Check the process...')
+        # raise ValueError('Check the process...')
 
         if self.is_syn_mov_shown:
             return grid_values_sequence, path, path_bg, syn_movie, scaling_factors, bg_image_name, image_id, weighted_coords
