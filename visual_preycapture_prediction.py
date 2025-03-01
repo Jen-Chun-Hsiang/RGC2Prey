@@ -125,6 +125,8 @@ def run_experiment(experiment_name, noise_level=None, test_bg_folder=None, test_
         args.is_channel_normalization = False
     if not hasattr(args, 'is_binocular'):
         args.is_binocular = False
+    if not hasattr(args, 'interocular_dist'):
+        args.interocular_dist = 1.0
 
     process_seed(args.seed)
 
@@ -170,7 +172,8 @@ def run_experiment(experiment_name, noise_level=None, test_bg_folder=None, test_
         momentum_decay_bg=args.momentum_decay_bg, scale_factor=args.scale_factor, velocity_randomness_ob = args.velocity_randomness_ob, 
         velocity_randomness_bg=args.velocity_randomness_bg, angle_range_ob=args.angle_range_ob, angle_range_bg=args.angle_range_bg, 
         coord_mat_file=coord_mat_file, correction_direction=args.coord_adj_dir, is_reverse_xy=args.is_reverse_xy, 
-        start_scaling=args.start_scaling, end_scaling=args.end_scaling, dynamic_scaling=args.dynamic_scaling, is_binocular=args.is_binocular
+        start_scaling=args.start_scaling, end_scaling=args.end_scaling, dynamic_scaling=args.dynamic_scaling, is_binocular=args.is_binocular,
+        interocular_dist=args.interocular_dist
     )
 
     logging.info( f"{file_name} processing...3")
