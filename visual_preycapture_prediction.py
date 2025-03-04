@@ -66,10 +66,10 @@ def run_experiment(experiment_name, noise_level=None, test_bg_folder=None, test_
         coord_mat_file = None
 
     if noise_level is not None:
-        file_name = f'{experiment_name}_{test_ob_folder}_noise{noise_level}_cricket_location_prediction'
+        file_name = f'{experiment_name}_{test_ob_folder}_{test_bg_folder}_noise{noise_level}_cricket_location_prediction'
         is_add_noise = True
     else:
-        file_name = f'{experiment_name}_{test_ob_folder}_cricket_location_prediction'
+        file_name = f'{experiment_name}_{test_ob_folder}_{test_bg_folder}_cricket_location_prediction'
     initialize_logging(log_save_folder=log_save_folder, experiment_name=file_name)
 
     logging.info( f"{file_name} processing...-1 noise:{noise_level} type:{type(noise_level)}")
