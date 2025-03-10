@@ -367,7 +367,64 @@ class Cricket2RGCs(Dataset):
             is_binocular = False
             syn_movie = syn_movie[:, 0, :, :]
 
-        if is_binocular:
+        # Combined ON and OFF processing using specific channels:
+        if self.is_both_ON_OFF and is_binocular:
+            grid_values_sequence_list = []
+            
+            # Set up parameters for ON and OFF channels:
+            # Channel 0: ON pathway, Channel 1: OFF pathway
+            multi_opt_sfs = [self.multi_opt_sf, self.multi_opt_sf_off]
+            map_funcs = [self.map_func, self.map_func_off]
+            grid2value_mappings = [self.grid2value_mapping, self.grid2value_mapping_off]
+            tfs = [self.tf, self.tf_off]  # The OFF pathway uses the negative of the temporal filter
+            
+            # Process each channel separately
+            for idx, (sf, map_func, grid2value_mapping, tf) in enumerate(zip(multi_opt_sfs, map_funcs, grid2value_mappings, tfs)):
+                # Extract the specific channel: channel 0 for ON, channel 1 for OFF.
+                c_syn_movie = syn_movie[:, idx, :, :]
+                
+                # Compute the spatial filter response using einsum:
+                sf_frame = torch.einsum('whn,thw->nt', sf, c_syn_movie)
+                sf_frame = sf_frame.unsqueeze(0)  # Add a channel dimension for conv1d
+                
+                # Repeat the temporal filter for each feature channel:
+                tf_repeated = np.repeat(tf, sf_frame.shape[1], axis=0)
+                
+                # Perform 1D convolution along the time dimension:
+                rgc_time = F.conv1d(sf_frame, tf_repeated, stride=1, padding=0, groups=sf_frame.shape[1]).squeeze()
+                
+                # Optionally convert firing rate to spikes:
+                if self.fr2spikes:
+                    rgc_time = torch.poisson(torch.clamp_min(rgc_time * self.quantize_scale, 0)) / self.quantize_scale
+                
+                # Optionally smooth the data:
+                if self.smooth_data:
+                    rgc_time = gaussian_smooth_1d(rgc_time, 
+                                                kernel_size=self.smooth_kernel_size, 
+                                                sampleing_rate=self.sampleing_rate, 
+                                                sigma=self.smooth_sigma)
+                
+                # Optionally add noise:
+                if self.add_noise:
+                    rgc_time += torch.randn_like(rgc_time) * self.rgc_noise_std
+                
+                # Optionally apply rectification:
+                if self.is_rectified:
+                    rgc_time = torch.clamp_min(rgc_time, 0)
+                
+                # Map the processed response to grid values:
+                grid_values_sequence = map_func(
+                    rgc_time,            # Processed response, shape: (time_steps', num_points)
+                    grid2value_mapping,  # Mapping matrix: (num_points, target_width * target_height)
+                    self.grid_width,
+                    self.grid_height
+                )
+                grid_values_sequence_list.append(grid_values_sequence)
+            
+            # Stack the ON and OFF grid values along a new dimension
+            grid_values_sequence = torch.stack(grid_values_sequence_list, dim=1)
+
+        elif is_binocular:
             grid_values_sequence_list = []
             for i in range(syn_movie.shape[1]):
                 c_syn_movie = syn_movie[:, i, :, :]
