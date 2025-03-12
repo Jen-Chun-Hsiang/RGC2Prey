@@ -127,6 +127,8 @@ def run_experiment(experiment_name, noise_level=None, test_bg_folder=None, test_
         args.is_binocular = False
     if not hasattr(args, 'interocular_dist'):
         args.interocular_dist = 1.0
+    if not hasattr(args, 'is_reversed_tf'):
+        args.is_reversed_tf = False
 
     process_seed(args.seed)
 
