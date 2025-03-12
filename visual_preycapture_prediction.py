@@ -140,7 +140,7 @@ def run_experiment(experiment_name, noise_level=None, test_bg_folder=None, test_
         tau=args.tau, mask_radius=args.mask_radius, rgc_rand_seed=args.rgc_rand_seed, num_gauss_example=args.num_gauss_example, 
         sf_constraint_method=args.sf_constraint_method, temporal_filter_len=args.temporal_filter_len, grid_size_fac=args.grid_size_fac,
         sf_mask_radius=args.sf_mask_radius, is_pixelized_tf=args.is_pixelized_tf, set_s_scale=args.set_s_scale, 
-        is_rf_median_subtract=args.is_rf_median_subtract, grid_noise_level=args.grid_noise_level
+        is_rf_median_subtract=args.is_rf_median_subtract, grid_noise_level=args.grid_noise_level, is_reversed_tf=args.is_reversed_tf
     )
     logging.info( f"{file_name} processing...1.5")
     multi_opt_sf, tf, grid2value_mapping, map_func, rgc_locs = rgc_array.get_results()
