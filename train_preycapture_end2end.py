@@ -199,9 +199,10 @@ def main():
             with timer(timer_data_transfer, tau=args.timer_tau, n=args.timer_sample_cicle):
                 sequences, targets, bg_info = sequences.to(device), targets.to(device), bg_info.to(device)
 
-            if args.bg_info_type == 'rloc':
-                bg_info = causal_moving_average(bg_info, args.short_window_length) - \
-                        causal_moving_average(bg_info, args.long_window_length)
+            # if args.bg_info_type == 'rloc':
+            #     bg_info = causal_moving_average(bg_info, args.short_window_length) - \
+            #             causal_moving_average(bg_info, args.long_window_length)
+            
             # Forward pass
             with timer(timer_data_processing, tau=args.timer_tau, n=args.timer_sample_cicle):
                 outputs, bg_pred = model(sequences)
