@@ -964,6 +964,67 @@ class RGCrfArray:
             if self.is_reversed_tf:
                 tf = -tf
         return tf
+    
+
+class CricketMovie(Dataset):
+    def __init__(self, num_samples, target_width, target_height, movie_generator, 
+                 grid_size_fac=1, is_norm_coords=False, is_syn_mov_shown=False):
+        """
+        Args:
+            num_samples (int): Total number of samples in the dataset.
+            target_width (int): The target width used for further processing.
+            target_height (int): The target height used for further processing.
+            movie_generator: A pre-initialized movie generator that returns
+                             (syn_movie, path, path_bg, scaling_factors, bg_image_name, image_id).
+            grid_size_fac (float): Scaling factor for grid dimensions.
+            is_norm_coords (bool): Whether to use normalization for path coordinates.
+            is_syn_mov_shown (bool): Flag to determine the return structure.
+        """
+        self.num_samples = num_samples
+        self.target_width = target_width
+        self.target_height = target_height
+        self.grid_size_fac = grid_size_fac
+        self.grid_width = int(np.round(self.target_width * grid_size_fac))
+        self.grid_height = int(np.round(self.target_height * grid_size_fac))
+        self.movie_generator = movie_generator
+        self.is_syn_mov_shown = is_syn_mov_shown
+        
+        if is_norm_coords:
+            self.norm_path_fac = np.array([self.target_height, self.target_width]) / 2.0  
+        else:
+            self.norm_path_fac = 1
+
+    def __len__(self):
+        return self.num_samples
+
+    def __getitem__(self, idx):
+        # Generate the raw movie and associated variables.
+        syn_movie, path, path_bg, scaling_factors, bg_image_name, image_id = self.movie_generator.generate()
+
+        # If the movie has a channel dimension (e.g. binocular movies) remove extra channels by taking the first one.
+        if syn_movie.dim() == 4:
+            # Original code: if movie is not monocular, use only the first channel.
+            syn_movie = syn_movie[:, 0, :, :]
+        
+        # Create movie_sequence by reordering dimensions to mimic grid_values_sequence output.
+        # Original default branch permutation: (time, 2nd dim, 1st dim) + extra dimension.
+        # If syn_movie has shape (T, H, W) then movie_sequence becomes of shape (T, 1, W, H)
+        movie_sequence = syn_movie.permute(0, 2, 1).unsqueeze(1)
+        
+        # Determine the number of time steps based on syn_movie.
+        time_steps = syn_movie.shape[0]
+        
+        # Process the path and background path.
+        # Use the last `time_steps` rows of path and path_bg and scale by norm_path_fac.
+        path = path[-time_steps:, :] / self.norm_path_fac
+        path_bg = path_bg[-time_steps:, :] / self.norm_path_fac
+
+        # Return outputs preserving the original structure except that weighted_coords is removed.
+        if self.is_syn_mov_shown:
+            return movie_sequence, path, path_bg, syn_movie, scaling_factors, bg_image_name, image_id
+        else:
+            return movie_sequence, torch.tensor(path, dtype=torch.float32), torch.tensor(path_bg, dtype=torch.float32)
+
 
     
 
