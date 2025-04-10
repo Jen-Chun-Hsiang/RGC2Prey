@@ -817,7 +817,6 @@ def synthesize_image_with_params_batch(bottom_img_path, top_img_path, top_img_po
 
     
 
-
 class RGCrfArray:
     def __init__(self, sf_param_table, tf_param_table, rgc_array_rf_size, xlim, ylim, target_num_centers, sf_scalar,
                  grid_generate_method, tau=None, mask_radius=None, rgc_rand_seed=42, num_gauss_example=1, sf_mask_radius=35, 
@@ -1001,15 +1000,16 @@ class CricketMovie(Dataset):
         # Generate the raw movie and associated variables.
         syn_movie, path, path_bg, scaling_factors, bg_image_name, image_id = self.movie_generator.generate()
 
-        # If the movie has a channel dimension (e.g. binocular movies) remove extra channels by taking the first one.
-        if syn_movie.dim() == 4:
-            # Original code: if movie is not monocular, use only the first channel.
-            syn_movie = syn_movie[:, 0, :, :]
+        if syn_movie.shape[1] != 2:
+            syn_movie = syn_movie[:, 0:1, :, :]
         
         # Create movie_sequence by reordering dimensions to mimic grid_values_sequence output.
         # Original default branch permutation: (time, 2nd dim, 1st dim) + extra dimension.
-        # If syn_movie has shape (T, H, W) then movie_sequence becomes of shape (T, 1, W, H)
-        movie_sequence = syn_movie.permute(0, 2, 1).unsqueeze(1)
+        # If syn_movie has shape (T, C, H, W) then movie_sequence becomes of shape (T, 1, W, H)
+        
+        # movie_sequence = syn_movie.permute(0, 1, 3, 2).unsqueeze(1)
+
+        movie_sequence = syn_movie
         
         # Determine the number of time steps based on syn_movie.
         time_steps = syn_movie.shape[0]

@@ -2,7 +2,7 @@ import argparse
 import torch
 
 from utils.initialization import process_seed, initialize_logging, worker_init_fn
-from datasets.sim_cricket import SynMovieGenerator
+from datasets.sim_cricket import SynMovieGenerator, CricketMovie
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Script for Model Training to get 3D RF in simulation")
@@ -58,6 +58,7 @@ def main():
     top_img_folder    = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/CricketDataset/Images/cropped/cricket/'
     syn_save_folder  = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/CricketDataset/Images/syn_img/'
     log_save_folder  = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/Results/Prints/'
+    coord_mat_file = f'/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/selected_points_summary_{args.coord_adj_type}.mat' 
 
     initialize_logging(log_save_folder=log_save_folder, experiment_name=args.experiment_name)
     process_seed(args.seed)
@@ -77,6 +78,13 @@ def main():
         start_scaling=args.start_scaling, end_scaling=args.end_scaling, dynamic_scaling=args.dynamic_scaling, is_binocular=args.is_binocular,
         interocular_dist=args.interocular_dist
     )
+
+    xlim, ylim = args.xlim, args.ylim
+    target_height = xlim[1]-xlim[0]
+    target_width = ylim[1]-ylim[0]
+    train_dataset = CricketMovie(num_samples=args.num_samples, target_width=target_width, target_height=target_height, 
+                                 movie_generator=movie_generator, grid_size_fac=args.grid_size_fac, 
+                                is_norm_coords=args.is_norm_coords, is_syn_mov_shown=True)
 
 if __name__ == '__main__':
     main()
