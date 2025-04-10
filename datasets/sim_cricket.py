@@ -1028,7 +1028,7 @@ class CricketMovie(Dataset):
         if self.is_syn_mov_shown:
             return movie_sequence, path, path_bg, syn_movie, scaling_factors, bg_image_name, image_id
         else:
-            return torch.tensor(movie_sequence, dtype=torch.float32), torch.tensor(path, dtype=torch.float32), torch.tensor(path_bg, dtype=torch.float32)
+            return movie_sequence, torch.tensor(path, dtype=torch.float32), torch.tensor(path_bg, dtype=torch.float32)
 
 
     
