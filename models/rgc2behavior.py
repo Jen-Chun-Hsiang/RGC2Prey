@@ -1008,7 +1008,7 @@ class RGC_CNN_LSTM_ObjectLocation(nn.Module):
                  output_dim=2,
                  input_height=24, 
                  input_width=32, 
-                 input_depth=10,  # added: expected depth (D) of input for RGC module.
+                 input_depth=10,  # Expected window length for the RGC module.
                  conv_out_channels=32, 
                  is_input_norm=False, 
                  is_seq_reshape=False, 
@@ -1016,18 +1016,18 @@ class RGC_CNN_LSTM_ObjectLocation(nn.Module):
                  is_channel_normalization=False):
         """
         Parameters:
-          cnn_feature_dim: Dimension of features extracted by CNN.
-          lstm_hidden_size: Hidden size for the LSTM.
-          lstm_num_layers: Number of layers in the LSTM.
-          output_dim: Dimension of the final output (e.g., 2 for (x,y)).
+          cnn_feature_dim: Dimension of features extracted by the CNN.
+          lstm_hidden_size: Hidden state dimension for LSTM.
+          lstm_num_layers: Number of LSTM layers.
+          output_dim: Output dimension (e.g. 2 for (x,y) coordinates).
           input_height: Height of each input image.
           input_width: Width of each input image.
-          input_depth: Depth (or number of frames) provided to the RGC module.
+          input_depth: Number of frames (depth) fed to the RGC module (should be less than the full sequence length).
           conv_out_channels: Parameter for the CNN extractors.
-          is_input_norm: Whether input normalization is applied.
-          is_seq_reshape: Whether to reshape all frames together (for efficiency).
-          CNNextractor_version: Selects which CNN feature extractor to use.
-          is_channel_normalization: If true, use channel-wise normalization; otherwise use full sample norm.
+          is_input_norm: If True, apply normalization to the input.
+          is_seq_reshape: Whether to reshape all frames together to process in one batch.
+          CNNextractor_version: Determines which CNN extractor to use.
+          is_channel_normalization: If True, use channel-wise normalization; otherwise, full-sample normalization.
         """
         super(RGC_CNN_LSTM_ObjectLocation, self).__init__()
         self.is_input_norm = is_input_norm
@@ -1036,17 +1036,20 @@ class RGC_CNN_LSTM_ObjectLocation(nn.Module):
                 self.input_norm = ChannelWiseNormalization()
             else:
                 self.input_norm = FullSampleNormalization()
-                
-        # Initialize the RGC module (assumed imported from a separate file)
-        # Using the parameters provided.
+        
+        # Save the input_depth (window size for RGC module)
+        self.input_depth = input_depth
+
+        # Initialize the RGC module with provided parameters.
+        # Note: the expected input_shape is (H, W, D) as defined by the module.
         self.rgc = RGC_Module(
             temporal_filters=3,
-            in_channels=1,  # assumes input channel = 1 (adjust if needed)
+            in_channels=1,  # Assumes a single channel input; adjust as needed.
             num_filters1=16,
             kernel_size1=3,
             stride1=2,
             pool_size=2,
-            num_filters2=2,   # the expected output channels from RGC_module
+            num_filters2=2,   # This determines the output number of channels.
             kernel_size2=3,
             stride2=2,
             input_shape=(input_height, input_width, input_depth),
@@ -1054,12 +1057,10 @@ class RGC_CNN_LSTM_ObjectLocation(nn.Module):
             dilation1=1,
             dilation2=2
         )
-        # Set the new number of input channels for the CNN extractor according to the RGC module's output.
-        # Here, we assume that the final output channel from RGC_module equals num_filters2.
+        # The output from the RGC module is assumed to have a channel dimension equal to num_filters2.
         new_num_input_channel = 2
         
         self.CNNextractor_version = CNNextractor_version
-        # Create the CNN feature extractor based on selected version.
         if self.CNNextractor_version == 1:
             self.cnn = ParallelCNNFeatureExtractor(
                 input_height=input_height, 
@@ -1143,7 +1144,7 @@ class RGC_CNN_LSTM_ObjectLocation(nn.Module):
         else:
             raise ValueError(f"Invalid CNNextractor_version: {self.CNNextractor_version}")
 
-        # The rest of the architecture remains the same as in the original model.
+        # LSTM and fully connected layers remain unchanged.
         self.lstm = nn.LSTM(input_size=cnn_feature_dim, hidden_size=lstm_hidden_size, 
                             num_layers=lstm_num_layers, batch_first=True)
         self.lstm_norm = nn.LayerNorm(lstm_hidden_size)
@@ -1154,40 +1155,58 @@ class RGC_CNN_LSTM_ObjectLocation(nn.Module):
 
     def forward(self, x):
         """
-        x: Input tensor of shape (batch_size, D, C, H, W) where D is the depth (or original sequence length).
+        Expects:
+          x: A tensor of shape (batch_size, D, C, H, W), where D (the sequence length)
+             is larger than self.input_depth. The model will extract overlapping sliding 
+             windows of length self.input_depth.
         """
         if self.is_input_norm:
             x = self.input_norm(x)
-
+        
         batch_size, D, C, H, W = x.size()
-
-        # --- Pass the input through the RGC module ---
-        # The RGC module is expected to output a tensor of shape (batch_size, T, C_out, H_out, W_out),
-        # where T is the new, shorter temporal dimension (T < D) and C_out is determined by RGC_module parameters.
-        rgc_out = self.rgc(x)
-        # Retrieve new temporal length (for example, T) from the output:
-        T = rgc_out.size(1)
-
+        
+        # Calculate the number of sliding windows (the new temporal dimension).
+        T_out = D - self.input_depth + 1
+        rgc_features_list = []
+        for i in range(T_out):
+            # Extract a sliding window along the time dimension:
+            # Each window is of shape (batch_size, input_depth, C, H, W)
+            window = x[:, i:i+self.input_depth, :, :, :]
+            # Pass the window through the RGC module.
+            # Expected output shape from self.rgc(window) might be 
+            # (batch_size, T_r, out_channels, h_out, w_out). We then take the last time-step.
+            rgc_out = self.rgc(window)
+            # Take the features corresponding to the last time step of the RGC output.
+            # (This ensures that only past data are used to predict the future.)
+            rgc_feature = rgc_out[:, -1, :, :, :]  # shape: (batch_size, out_channels, h_out, w_out)
+            rgc_feature = F.interpolate(rgc_feature, size=(H, W), 
+                                mode='bilinear', align_corners=False)
+            rgc_features_list.append(rgc_feature)
+        
+        # Create a new temporal sequence from the sliding window outputs:
+        # rgc_features_seq: (batch_size, T_out, out_channels, h_out, w_out)
+        rgc_features_seq = torch.stack(rgc_features_list, dim=1)
+        T = rgc_features_seq.size(1)
         # --- Process each “time slice” of the RGC output using the CNN extractor ---
         if self.is_seq_reshape:
-            # Process all frames at once by merging batch and time dimensions.
-            cnn_input = rgc_out.view(batch_size * T, rgc_out.size(2), rgc_out.size(3), rgc_out.size(4))
+            # Merge batch and time dimensions for faster processing.
+            cnn_input = rgc_features_seq.view(batch_size * T, rgc_features_seq.size(2), 
+                                              rgc_features_seq.size(3), rgc_features_seq.size(4))
             cnn_out = self.cnn(cnn_input)
             cnn_features = cnn_out.view(batch_size, T, -1)
         else:
             cnn_features = []
             for t in range(T):
-                # Note: using only past (or present) data — the sliding window moves forward.
-                cnn_out = self.cnn(rgc_out[:, t, :, :, :])
+                cnn_out = self.cnn(rgc_features_seq[:, t, :, :, :])
                 cnn_features.append(cnn_out)
             cnn_features = torch.stack(cnn_features, dim=1)
-
+        
         # --- LSTM processing ---
         lstm_out, _ = self.lstm(cnn_features)
         lstm_out = self.lstm_norm(lstm_out)
         lstm_out = torch.relu(self.fc_o1(lstm_out))
         coord_predictions = self.fc_o2(lstm_out)
-        # Set background predictions to be the same as coordinate predictions.
+        # Background predictions are set equal to coordinate predictions.
         bg_predictions = coord_predictions
 
         return coord_predictions, bg_predictions
@@ -1200,7 +1219,7 @@ class RGC_CNN_LSTM_ObjectLocation(nn.Module):
                     nn.init.constant_(m.bias, 0)
 
 
-class TwoLayerCNN(nn.Module):
+class RGC_ANN(nn.Module):
     def __init__(self,
                  temporal_filters: int,
                  in_channels: int,
@@ -1238,7 +1257,7 @@ class TwoLayerCNN(nn.Module):
           padding should be set to:
               padding = (effective_size - 1) // 2 = dilation*(kernel_size - 1) // 2.
         """
-        super(TwoLayerCNN, self).__init__()
+        super(RGC_ANN, self).__init__()
 
         # Save input dimensions.
         H, W, D = input_shape
