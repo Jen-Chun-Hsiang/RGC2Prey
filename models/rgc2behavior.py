@@ -1168,7 +1168,7 @@ class RGC_CNN_LSTM_ObjectLocation(nn.Module):
             x = self.input_norm(x)
         
         batch_size, D, C, H, W = x.size()
-
+        print(f'x size: {batch_size}, {D}, {C}, {H}, {W}')
         if self.training:
             # Generate noise with the same shape as x. 
             # Adjust the noise level (std_factor) as required.
