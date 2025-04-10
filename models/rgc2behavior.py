@@ -1169,6 +1169,7 @@ class RGC_CNN_LSTM_ObjectLocation(nn.Module):
         
         batch_size, D, C, H, W = x.size()
         x = x.permute(0, 2, 3, 4, 1) # (batch_size, C, H, W, D)
+        
         if self.training:
             # Generate noise with the same shape as x. 
             # Adjust the noise level (std_factor) as required.
@@ -1178,6 +1179,7 @@ class RGC_CNN_LSTM_ObjectLocation(nn.Module):
         # Calculate the number of sliding windows (the new temporal dimension).
         T_out = D - self.input_depth + 1
         rgc_features_list = []
+        print(f'x shape: {x.shape}')
         for i in range(T_out):
             # Extract a sliding window along the time dimension:
             # Each window is of shape (batch_size, input_depth, C, H, W)
