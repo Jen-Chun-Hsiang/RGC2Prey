@@ -27,6 +27,8 @@ def parse_args():
     default_max_steps = 200
     default_num_ext = 50
     default_initial_velocity = 6
+    default_xlim = (-120, 120)
+    default_ylim = (-90, 90)
 
     # Arguments for SynMovieGenerator
     parser.add_argument('--crop_size', type=tuple, default=default_crop_size, help="Crop size as (width, height).")
@@ -56,10 +58,14 @@ def parse_args():
     parser.add_argument('--is_binocular', action='store_true', help='if generate two channels separately by binocular inputs')
     parser.add_argument('--interocular_dist', type=float, default=1.0, help='interocular distance between two eyes (in cm)')
 
+
     # Arguments for CricketMovie (from movies to RGC array activities based on receptive field properties)
     parser.add_argument('--num_samples', type=int, default=20, help="Number of samples in the synthesized dataset")
     parser.add_argument('--is_norm_coords', action='store_true', help='normalize the coordinate as inputs')
     parser.add_argument('--grid_size_fac', type=float, default=1, help='Resize the grid size that transformed from RGC outputs')
+
+    parser.add_argument('--xlim', type=tuple, default=default_xlim, help="x-axis limits for grid centers.")
+    parser.add_argument('--ylim', type=tuple, default=default_ylim, help="y-axis limits for grid centers.")
 
     # Arguments for CNN_LSTM 
     parser.add_argument('--cnn_feature_dim', type=int, default=256, help="Number of CNN feature dimensions.")
