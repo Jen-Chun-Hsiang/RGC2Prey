@@ -1010,6 +1010,7 @@ class RGC_CNN_LSTM_ObjectLocation(nn.Module):
                  input_depth=10,  # Expected window length for the RGC module.
                  conv_out_channels=32, 
                  temporal_noise_level = 0.2, 
+                 num_RGC = 2,
                  is_input_norm=False, 
                  is_seq_reshape=False, 
                  CNNextractor_version=1, 
@@ -1043,6 +1044,7 @@ class RGC_CNN_LSTM_ObjectLocation(nn.Module):
 
         # Initialize the RGC module with provided parameters.
         # Note: the expected input_shape is (H, W, D) as defined by the module.
+        self.num_RGC = num_RGC
         self.rgc = RGC_ANN(
             temporal_filters=2,
             in_channels=1,  # Assumes a single channel input; adjust as needed.
@@ -1050,7 +1052,7 @@ class RGC_CNN_LSTM_ObjectLocation(nn.Module):
             kernel_size1=3,
             stride1=2,
             pool_size=2,
-            num_filters2=2,   # This determines the output number of channels.
+            num_filters2=num_RGC,   # This determines the output number of channels.
             kernel_size2=3,
             stride2=2,
             input_shape=(input_height, input_width, input_depth),
@@ -1059,7 +1061,7 @@ class RGC_CNN_LSTM_ObjectLocation(nn.Module):
             dilation2=2
         )
         # The output from the RGC module is assumed to have a channel dimension equal to num_filters2.
-        new_num_input_channel = 2
+        new_num_input_channel = num_RGC
         
         self.CNNextractor_version = CNNextractor_version
         if self.CNNextractor_version == 1:
@@ -1196,6 +1198,7 @@ class RGC_CNN_LSTM_ObjectLocation(nn.Module):
 
         if self.is_input_norm:
             rgc_features_seq = self.input_norm(rgc_features_seq)
+
         T = rgc_features_seq.size(1)
         # --- Process each “time slice” of the RGC output using the CNN extractor ---
         if self.is_seq_reshape:
