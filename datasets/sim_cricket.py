@@ -1000,11 +1000,12 @@ class CricketMovie(Dataset):
         # Generate the raw movie and associated variables.
         syn_movie, path, path_bg, scaling_factors, bg_image_name, image_id = self.movie_generator.generate()
 
+        print(f'syn_movie shape: {syn_movie.shape}')
         if syn_movie.shape[1] != 2:
             syn_movie = syn_movie[:, 0:1, :, :]
         
         syn_movie = F.interpolate(syn_movie, size=(self.grid_height, self.grid_width), mode='area')
-        
+        print(f'syn_movie (intepolate) shape: {syn_movie.shape}')
         # Create movie_sequence by reordering dimensions to mimic grid_values_sequence output.
         # Original default branch permutation: (time, 2nd dim, 1st dim) + extra dimension.
         # If syn_movie has shape (T, C, H, W) then movie_sequence becomes of shape (T, 1, W, H)
@@ -1018,14 +1019,16 @@ class CricketMovie(Dataset):
         
         # Process the path and background path.
         # Use the last `time_steps` rows of path and path_bg and scale by norm_path_fac.
+        print(f'path (before) shape: {path.shape}')
         path = path[-time_steps:, :] / self.norm_path_fac
         path_bg = path_bg[-time_steps:, :] / self.norm_path_fac
+        print(f'path (time_steps) shape: {path.shape}')
 
         # Return outputs preserving the original structure except that weighted_coords is removed.
         if self.is_syn_mov_shown:
             return movie_sequence, path, path_bg, syn_movie, scaling_factors, bg_image_name, image_id
         else:
-            return movie_sequence, torch.tensor(path, dtype=torch.float32), torch.tensor(path_bg, dtype=torch.float32)
+            return torch.tensor(movie_sequence, dtype=torch.float32), torch.tensor(path, dtype=torch.float32), torch.tensor(path_bg, dtype=torch.float32)
 
 
     
