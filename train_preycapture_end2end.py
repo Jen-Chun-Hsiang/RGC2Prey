@@ -1,12 +1,19 @@
 import argparse
+import os
+import time
 import torch
+import logging
 import torch.nn as nn
 import numpy as np
 from torch.utils.data import DataLoader
+import torch.optim as optim
 
 from utils.initialization import process_seed, initialize_logging, worker_init_fn
 from datasets.sim_cricket import SynMovieGenerator, CricketMovie
 from models.rgc2behavior import RGC_CNN_LSTM_ObjectLocation
+from utils.data_handling import CheckpointLoader
+from utils.tools import timer
+from utils.utils import causal_moving_average
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Script for Model Training to get 3D RF in simulation")
@@ -71,6 +78,14 @@ def parse_args():
     parser.add_argument('--batch_size', type=int, default=4, help="Batch size for dataloader")
     parser.add_argument('--num_worker', type=int, default=0, help="Number of worker for dataloader")
     parser.add_argument('--num_epochs', type=int, default=10, help="Number of worker for dataloader")
+    parser.add_argument('--schedule_method', type=str, default='CAWR', help='Method used for scheduler')
+    parser.add_argument('--schedule_factor', type=float, default=0.2, help='Scheduler reduction factor')
+    parser.add_argument('--learning_rate', type=float, default=0.001, help='Learning rate')
+    parser.add_argument('--min_lr', type=float, default=1e-6, help="minimum learning rate for CAWR")
+    parser.add_argument('--is_gradient_clip', action='store_true', help="Apply gradient clip to training process")
+    parser.add_argument('--bg_info_cost_ratio', type=float, default=0, help="background information ratio of its objective cost, compared to object prediction")
+    parser.add_argument('--exam_batch_idx', type=int, default=None, help='examine the timer and stop code in the middle')
+
     return parser.parse_args()
 
 def main():
@@ -81,6 +96,7 @@ def main():
     syn_save_folder  = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/CricketDataset/Images/syn_img/'
     log_save_folder  = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/Results/Prints/'
     coord_mat_file = f'/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/selected_points_summary_{args.coord_adj_type}.mat' 
+    savemodel_dir = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/Results/CheckPoints/'
 
     initialize_logging(log_save_folder=log_save_folder, experiment_name=args.experiment_name)
     process_seed(args.seed)
@@ -128,6 +144,99 @@ def main():
                                     is_seq_reshape=args.is_seq_reshape, CNNextractor_version=args.cnn_extractor_version,
                                     temporal_noise_level=args.temporal_noise_level, num_RGC=args.num_RGC,
                                     num_input_channel=num_input_channel, is_channel_normalization=args.is_channel_normalization)
+    
+    model = model.to(device)
+    optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate)
+
+    criterion = nn.MSELoss()
+    if args.schedule_method.lower() == 'rlrp':
+        scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=args.schedule_factor, patience=5)
+    elif args.schedule_method.lower() == 'cawr':
+        scheduler = optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer, T_0=5, T_mult=2, eta_min=args.min_lr)
+
+    if args.load_checkpoint_epoch:
+        checkpoint_filename = f'{args.experiment_name}_checkpoint_epoch_{args.load_checkpoint_epoch}'
+        checkpoint_filename = os.path.join(savemodel_dir, f'{checkpoint_filename}.pth')
+        checkpoint_loader = CheckpointLoader(checkpoint_filename)
+        model, optimizer, scheduler = checkpoint_loader.load_checkpoint(model, optimizer, scheduler)
+        start_epoch = checkpoint_loader.load_epoch()
+        training_losses = checkpoint_loader.load_training_losses()
+    else:
+        start_epoch = 0
+        training_losses = []  # To store the loss at each epoch
+    
+    num_epochs = args.num_epochs
+    timer_data_loading = {'min': None, 'max': None, 'moving_avg': None, 'counter': 0}
+    timer_data_transfer = {'min': None, 'max': None, 'moving_avg': None, 'counter': 0}
+    timer_data_processing = {'min': None, 'max': None, 'moving_avg': None, 'counter': 0}
+    timer_data_backpropagate = {'min': None, 'max': None, 'moving_avg': None, 'counter': 0}
+    for epoch in range(start_epoch, num_epochs):
+        model.train()
+        optimizer.zero_grad()
+        epoch_loss = 0.0
+        
+        start_time = time.time()
+        data_iterator = iter(train_loader)
+        for batch_idx in range(len(train_loader)):
+            with timer(timer_data_loading, tau=args.timer_tau, n=args.timer_sample_cicle):
+                sequences, targets, bg_info = next(data_iterator)
+
+            with timer(timer_data_transfer, tau=args.timer_tau, n=args.timer_sample_cicle):
+                sequences, targets, bg_info = sequences.to(device), targets.to(device), bg_info.to(device)
+
+            if args.bg_info_type == 'rloc':
+                bg_info = causal_moving_average(bg_info, args.short_window_length) - \
+                        causal_moving_average(bg_info, args.long_window_length)
+            # Forward pass
+            with timer(timer_data_processing, tau=args.timer_tau, n=args.timer_sample_cicle):
+                outputs, bg_pred = model(sequences)
+            
+            # Compute loss
+            with timer(timer_data_backpropagate, tau=args.timer_tau, n=args.timer_sample_cicle):
+                loss = (1-args.bg_info_cost_ratio) * criterion(outputs, targets) + args.bg_info_cost_ratio * criterion(bg_pred, bg_info)
+                loss.backward()
+
+                # Apply gradient clipping
+                if args.is_gradient_clip:
+                    max_norm = args.max_norm  # Max gradient norm
+                    torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm)
+
+                if (batch_idx + 1) % args.accumulation_steps == 0 or (batch_idx + 1) == len(train_loader):
+                    optimizer.step()
+                    optimizer.zero_grad()
+            
+                epoch_loss += loss.item()
+
+            # Print timer data at specific batch index
+            if args.exam_batch_idx is not None:
+                if batch_idx*args.batch_size > args.exam_batch_idx:
+                    print(f"Batch {batch_idx}:")
+                    print(f"Data Loading: {timer_data_loading}")
+                    print(f"Data Transfer: {timer_data_transfer}")
+                    print(f"Processing: {timer_data_processing}")
+                    print(f"Backpropagation: {timer_data_backpropagate}")
+                    break
+
+        if args.exam_batch_idx is not None:
+            break
+        
+        # Average loss for the epoch
+        avg_train_loss = epoch_loss / len(train_loader)
+        training_losses.append(avg_train_loss)
+        # Scheduler step
+        if args.schedule_method.lower() == 'rlrp':
+            scheduler.step(avg_train_loss)
+        elif args.schedule_method.lower() == 'cawr':
+            scheduler.step(epoch + (epoch / num_epochs))
+
+        elapsed_time = time.time()  - start_time
+        logging.info( f"{args.experiment_name} Epoch [{epoch + 1}/{num_epochs}], Elapsed time: {elapsed_time:.2f} seconds \n"
+                        f"\tLoss: {avg_train_loss:.4f} \n")
+        
+        if (epoch + 1) % args.num_epoch_save == 0:  # Example: Save every 10 epochs
+            checkpoint_filename = f'{args.experiment_name}_checkpoint_epoch_{epoch + 1}.pth'
+            save_checkpoint(epoch, model, optimizer, training_losses=training_losses, scheduler=scheduler, args=args,  
+                                file_path=os.path.join(savemodel_dir, checkpoint_filename))
 
 if __name__ == '__main__':
     main()
