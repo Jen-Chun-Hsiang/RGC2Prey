@@ -56,6 +56,11 @@ def parse_args():
     parser.add_argument('--is_binocular', action='store_true', help='if generate two channels separately by binocular inputs')
     parser.add_argument('--interocular_dist', type=float, default=1.0, help='interocular distance between two eyes (in cm)')
 
+    # Arguments for CricketMovie (from movies to RGC array activities based on receptive field properties)
+    parser.add_argument('--num_samples', type=int, default=20, help="Number of samples in the synthesized dataset")
+    parser.add_argument('--is_norm_coords', action='store_true', help='normalize the coordinate as inputs')
+    parser.add_argument('--grid_size_fac', type=float, default=1, help='Resize the grid size that transformed from RGC outputs')
+
     # Arguments for CNN_LSTM 
     parser.add_argument('--cnn_feature_dim', type=int, default=256, help="Number of CNN feature dimensions.")
     parser.add_argument('--lstm_hidden_size', type=int, default=64, help="Number of LSTM hiddne size.")
@@ -83,8 +88,12 @@ def parse_args():
     parser.add_argument('--learning_rate', type=float, default=0.001, help='Learning rate')
     parser.add_argument('--min_lr', type=float, default=1e-6, help="minimum learning rate for CAWR")
     parser.add_argument('--is_gradient_clip', action='store_true', help="Apply gradient clip to training process")
-    parser.add_argument('--bg_info_cost_ratio', type=float, default=0, help="background information ratio of its objective cost, compared to object prediction")
+    parser.add_argument('--bg_info_cost_ratio', type=float, default=0.0, help="background information ratio of its objective cost, compared to object prediction")
     parser.add_argument('--exam_batch_idx', type=int, default=None, help='examine the timer and stop code in the middle')
+    parser.add_argument('--num_epoch_save', type=int, default=5, help='Number of epoch to save a checkpoint')
+    parser.add_argument('--accumulation_steps', type=int, default=1, help='Number of mini-batch to optimize (gradient accumulation)')
+    parser.add_argument('--timer_tau', type=float, default=0.9, help='moving winder constant')
+    parser.add_argument('--timer_sample_cicle', type=int, default=1, help='Sample circle for the timer')
 
     return parser.parse_args()
 
