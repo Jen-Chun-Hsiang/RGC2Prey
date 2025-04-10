@@ -1,6 +1,7 @@
 import argparse
 import torch
 import torch.nn as nn
+import numpy as np
 from torch.utils.data import DataLoader
 
 from utils.initialization import process_seed, initialize_logging, worker_init_fn
@@ -59,6 +60,8 @@ def parse_args():
     parser.add_argument('--is_input_norm', action='store_true', help="Normalize inputs to the CNN.")
     parser.add_argument('--cnn_extractor_version', type=int, default=1, help="Versioin of CNN extractor")
     parser.add_argument('--is_channel_normalization', action='store_true', help="Is perform channel normalization separately to the inputs")
+    parser.add_argument('--temporal_noise_level', type=float, default=0.2, help='noise level for temporal process with movie, for smooth temporal filter')
+    parser.add_argument('--num_RGC', type=int, default=2, help='Number of RGC in RGC_CNN module')
 
     # Model training parameters
     parser.add_argument('--seed', type=str, default='fixed', help=( "Seed type: 'fixed' for deterministic behavior, "
@@ -123,6 +126,7 @@ def main():
                                     input_height=grid_width, input_width=grid_height, input_depth=args.RGC_time_length, 
                                     conv_out_channels=args.conv_out_channels, is_input_norm=args.is_input_norm, 
                                     is_seq_reshape=args.is_seq_reshape, CNNextractor_version=args.cnn_extractor_version,
+                                    temporal_noise_level=args.temporal_noise_level, num_RGC=args.num_RGC,
                                     num_input_channel=num_input_channel, is_channel_normalization=args.is_channel_normalization)
 
 if __name__ == '__main__':
