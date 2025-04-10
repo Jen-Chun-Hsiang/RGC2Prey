@@ -1009,6 +1009,7 @@ class RGC_CNN_LSTM_ObjectLocation(nn.Module):
                  input_width=32, 
                  input_depth=10,  # Expected window length for the RGC module.
                  conv_out_channels=32, 
+                 temporal_noise_level = 0.2, 
                  is_input_norm=False, 
                  is_seq_reshape=False, 
                  CNNextractor_version=1, 
@@ -1038,11 +1039,12 @@ class RGC_CNN_LSTM_ObjectLocation(nn.Module):
         
         # Save the input_depth (window size for RGC module)
         self.input_depth = input_depth
+        self.temporal_noise_level = temporal_noise_level # induce longer temporal integration like photoreceptors
 
         # Initialize the RGC module with provided parameters.
         # Note: the expected input_shape is (H, W, D) as defined by the module.
         self.rgc = RGC_ANN(
-            temporal_filters=3,
+            temporal_filters=2,
             in_channels=1,  # Assumes a single channel input; adjust as needed.
             num_filters1=16,
             kernel_size1=3,
@@ -1163,6 +1165,12 @@ class RGC_CNN_LSTM_ObjectLocation(nn.Module):
             x = self.input_norm(x)
         
         batch_size, D, C, H, W = x.size()
+
+        if self.training:
+            # Generate noise with the same shape as x. 
+            # Adjust the noise level (std_factor) as required.
+            noise = torch.randn_like(x) * self.temporal_noise_level 
+            x = x + noise
         
         # Calculate the number of sliding windows (the new temporal dimension).
         T_out = D - self.input_depth + 1
@@ -1185,6 +1193,9 @@ class RGC_CNN_LSTM_ObjectLocation(nn.Module):
         # Create a new temporal sequence from the sliding window outputs:
         # rgc_features_seq: (batch_size, T_out, out_channels, h_out, w_out)
         rgc_features_seq = torch.stack(rgc_features_list, dim=1)
+
+        if self.is_input_norm:
+            rgc_features_seq = self.input_norm(rgc_features_seq)
         T = rgc_features_seq.size(1)
         # --- Process each “time slice” of the RGC output using the CNN extractor ---
         if self.is_seq_reshape:
