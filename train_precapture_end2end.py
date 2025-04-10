@@ -48,6 +48,18 @@ def parse_args():
     parser.add_argument('--is_binocular', action='store_true', help='if generate two channels separately by binocular inputs')
     parser.add_argument('--interocular_dist', type=float, default=1.0, help='interocular distance between two eyes (in cm)')
 
+    # Arguments for CNN_LSTM 
+    parser.add_argument('--cnn_feature_dim', type=int, default=256, help="Number of CNN feature dimensions.")
+    parser.add_argument('--lstm_hidden_size', type=int, default=64, help="Number of LSTM hiddne size.")
+    parser.add_argument('--lstm_num_layers', type=int, default=3, help="Number of LSTM hiddne size.")
+    parser.add_argument('--output_dim', type=int, default=2, help="Number of output dimension.")
+    parser.add_argument('--RGC_time_length', type=int, default=50, help='Length of RGC time window')
+    parser.add_argument('--conv_out_channels', type=int, default=16, help="Number of output channel in convultion layers.")
+    parser.add_argument('--is_seq_reshape', action='store_true', help="Use reshape with sequence to remove for loop")
+    parser.add_argument('--is_input_norm', action='store_true', help="Normalize inputs to the CNN.")
+    parser.add_argument('--cnn_extractor_version', type=int, default=1, help="Versioin of CNN extractor")
+    parser.add_argument('--is_channel_normalization', action='store_true', help="Is perform channel normalization separately to the inputs")
+
     # Model training parameters
     parser.add_argument('--seed', type=str, default='fixed', help=( "Seed type: 'fixed' for deterministic behavior, "
                                                                   "'random' for a random seed, or a numeric value for a custom seed."))
@@ -108,10 +120,10 @@ def main():
     grid_height = int(np.round(target_height*args.grid_size_fac))
     model = RGC_CNN_LSTM_ObjectLocation(cnn_feature_dim=args.cnn_feature_dim, lstm_hidden_size=args.lstm_hidden_size,
                                      lstm_num_layers=args.lstm_num_layers, output_dim=args.output_dim,
-                                    input_height=grid_width, input_width=grid_height, conv_out_channels=args.conv_out_channels,
-                                    is_input_norm=args.is_input_norm, is_seq_reshape=args.is_seq_reshape, CNNextractor_version=args.cnn_extractor_version,
-                                    num_input_channel=num_input_channel, bg_info_cost_ratio=args.bg_info_cost_ratio, bg_processing_type=args.bg_processing_type,
-                                    is_channel_normalization=args.is_channel_normalization)
+                                    input_height=grid_width, input_width=grid_height, input_depth=args.RGC_time_length, 
+                                    conv_out_channels=args.conv_out_channels, is_input_norm=args.is_input_norm, 
+                                    is_seq_reshape=args.is_seq_reshape, CNNextractor_version=args.cnn_extractor_version,
+                                    num_input_channel=num_input_channel, is_channel_normalization=args.is_channel_normalization)
 
 if __name__ == '__main__':
     main()
