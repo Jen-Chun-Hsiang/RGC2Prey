@@ -1,8 +1,11 @@
 import argparse
 import torch
+import torch.nn as nn
+from torch.utils.data import DataLoader
 
 from utils.initialization import process_seed, initialize_logging, worker_init_fn
 from datasets.sim_cricket import SynMovieGenerator, CricketMovie
+from models.rgc2behavior import RGC_CNN_LSTM_ObjectLocation
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Script for Model Training to get 3D RF in simulation")
@@ -49,6 +52,10 @@ def parse_args():
     parser.add_argument('--seed', type=str, default='fixed', help=( "Seed type: 'fixed' for deterministic behavior, "
                                                                   "'random' for a random seed, or a numeric value for a custom seed."))
     parser.add_argument('--is_GPU', action='store_true', help='Using GPUs for accelaration')
+    parser.add_argument('--load_checkpoint_epoch', type=int, default=None, help='Epoch number of a load checkpint')
+    parser.add_argument('--batch_size', type=int, default=4, help="Batch size for dataloader")
+    parser.add_argument('--num_worker', type=int, default=0, help="Number of worker for dataloader")
+    parser.add_argument('--num_epochs', type=int, default=10, help="Number of worker for dataloader")
     return parser.parse_args()
 
 def main():
@@ -85,6 +92,21 @@ def main():
     train_dataset = CricketMovie(num_samples=args.num_samples, target_width=target_width, target_height=target_height, 
                                  movie_generator=movie_generator, grid_size_fac=args.grid_size_fac, 
                                 is_norm_coords=args.is_norm_coords, is_syn_mov_shown=True)
+    
+    if args.num_worker==0:
+        train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, worker_init_fn=worker_init_fn)
+    else:
+        train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True,
+                                        num_workers=args.num_worker, pin_memory=True, persistent_workers=False, worker_init_fn=worker_init_fn)
+        
+    grid_width = int(np.round(target_width*args.grid_size_fac))
+    grid_height = int(np.round(target_height*args.grid_size_fac))
+    model = RGC_CNN_LSTM_ObjectLocation(cnn_feature_dim=args.cnn_feature_dim, lstm_hidden_size=args.lstm_hidden_size,
+                                     lstm_num_layers=args.lstm_num_layers, output_dim=args.output_dim,
+                                    input_height=grid_width, input_width=grid_height, conv_out_channels=args.conv_out_channels,
+                                    is_input_norm=args.is_input_norm, is_seq_reshape=args.is_seq_reshape, CNNextractor_version=args.cnn_extractor_version,
+                                    num_input_channel=num_input_channel, bg_info_cost_ratio=args.bg_info_cost_ratio, bg_processing_type=args.bg_processing_type,
+                                    is_channel_normalization=args.is_channel_normalization)
 
 if __name__ == '__main__':
     main()

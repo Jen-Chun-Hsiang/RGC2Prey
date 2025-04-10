@@ -1003,6 +1003,8 @@ class CricketMovie(Dataset):
         if syn_movie.shape[1] != 2:
             syn_movie = syn_movie[:, 0:1, :, :]
         
+        syn_movie = F.interpolate(syn_movie, size=(self.grid_height, self.grid_width), mode='area')
+        
         # Create movie_sequence by reordering dimensions to mimic grid_values_sequence output.
         # Original default branch permutation: (time, 2nd dim, 1st dim) + extra dimension.
         # If syn_movie has shape (T, C, H, W) then movie_sequence becomes of shape (T, 1, W, H)
