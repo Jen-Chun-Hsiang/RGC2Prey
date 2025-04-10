@@ -1168,7 +1168,7 @@ class RGC_CNN_LSTM_ObjectLocation(nn.Module):
             x = self.input_norm(x)
         
         batch_size, D, C, H, W = x.size()
-        print(f'x size: {batch_size}, {D}, {C}, {H}, {W}')
+        x = x.permute(0, 2, 3, 4, 1) # (batch_size, C, H, W, D)
         if self.training:
             # Generate noise with the same shape as x. 
             # Adjust the noise level (std_factor) as required.
@@ -1181,14 +1181,14 @@ class RGC_CNN_LSTM_ObjectLocation(nn.Module):
         for i in range(T_out):
             # Extract a sliding window along the time dimension:
             # Each window is of shape (batch_size, input_depth, C, H, W)
-            window = x[:, i:i+self.input_depth, :, :, :]
+            window = x[:, :, :, :, i:i+self.input_depth]
             # Pass the window through the RGC module.
             # Expected output shape from self.rgc(window) might be 
             # (batch_size, T_r, out_channels, h_out, w_out). We then take the last time-step.
-            rgc_out = self.rgc(window)
+            rgc_feature = self.rgc(window)
             # Take the features corresponding to the last time step of the RGC output.
             # (This ensures that only past data are used to predict the future.)
-            rgc_feature = rgc_out[:, -1, :, :, :]  # shape: (batch_size, out_channels, h_out, w_out)
+            # rgc_feature = rgc_out[:, -1, :, :, :]  # shape: (batch_size, out_channels, h_out, w_out)
             rgc_feature = F.interpolate(rgc_feature, size=(H, W), 
                                 mode='bilinear', align_corners=False)
             rgc_features_list.append(rgc_feature)
@@ -1197,6 +1197,7 @@ class RGC_CNN_LSTM_ObjectLocation(nn.Module):
         # rgc_features_seq: (batch_size, T_out, out_channels, h_out, w_out)
         rgc_features_seq = torch.stack(rgc_features_list, dim=1)
 
+        print(f'rgc_features_seq shape: {rgc_features_seq.shape}')
         if self.is_input_norm:
             rgc_features_seq = self.input_norm(rgc_features_seq)
 
@@ -1342,7 +1343,7 @@ class RGC_ANN(nn.Module):
             return int(x.numel())
 
     def forward(self, x):
-        x = F.relu(self.conv_temporal(x))
+        x = F.relu(self.conv_temporal(x)).squeeze(-1)
         x = F.relu(self.conv1(x))
         x = self.pool(x)
         x = F.relu(self.conv2(x))

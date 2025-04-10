@@ -999,7 +999,7 @@ class CricketMovie(Dataset):
     def __getitem__(self, idx):
         # Generate the raw movie and associated variables.
         syn_movie, path, path_bg, scaling_factors, bg_image_name, image_id = self.movie_generator.generate()
-
+        print('It reachs here!')
         print(f'syn_movie shape: {syn_movie.shape}')
         if syn_movie.shape[1] != 2:
             syn_movie = syn_movie[:, 0:1, :, :]
