@@ -142,7 +142,7 @@ def main():
     target_width = ylim[1]-ylim[0]
     train_dataset = CricketMovie(num_samples=args.num_samples, target_width=target_width, target_height=target_height, 
                                  movie_generator=movie_generator, grid_size_fac=args.grid_size_fac, 
-                                is_norm_coords=args.is_norm_coords, is_syn_mov_shown=True)
+                                is_norm_coords=args.is_norm_coords, is_syn_mov_shown=False)
     
     if args.num_worker==0:
         train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, worker_init_fn=worker_init_fn)
