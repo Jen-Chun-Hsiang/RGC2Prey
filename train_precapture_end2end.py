@@ -75,6 +75,11 @@ def main():
     else:
         device = 'cpu'
 
+    if args.is_binocular:
+        num_input_channel = 2
+    else:
+        num_input_channel = 1
+
     movie_generator = SynMovieGenerator(top_img_folder, bottom_img_folder,
         crop_size=args.crop_size, boundary_size=args.boundary_size, center_ratio=args.center_ratio, max_steps=args.max_steps,
         prob_stay_ob=args.prob_stay_ob, prob_mov_ob=args.prob_mov_ob, prob_stay_bg=args.prob_stay_bg, prob_mov_bg=args.prob_mov_bg, 

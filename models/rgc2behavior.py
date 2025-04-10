@@ -1014,6 +1014,7 @@ class RGC_CNN_LSTM_ObjectLocation(nn.Module):
                  is_input_norm=False, 
                  is_seq_reshape=False, 
                  CNNextractor_version=1, 
+                 num_input_channel = 1,
                  is_channel_normalization=False):
         """
         Parameters:
@@ -1047,7 +1048,7 @@ class RGC_CNN_LSTM_ObjectLocation(nn.Module):
         self.num_RGC = num_RGC
         self.rgc = RGC_ANN(
             temporal_filters=2,
-            in_channels=1,  # Assumes a single channel input; adjust as needed.
+            in_channels=num_input_channel,  # Assumes a single channel input; adjust as needed.
             num_filters1=16,
             kernel_size1=3,
             stride1=2,
