@@ -1,10 +1,9 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-
-
-import torch
-import torch.nn as nn
+import matplotlib.pyplot as plt
+import matplotlib.patches as patches
+import numpy as np
 
 class ParallelCNNFeatureExtractor(nn.Module):
     def __init__(self, input_height=24, input_width=32, conv_out_channels=16, fc_out_features=128, num_input_channel=1):
@@ -1042,7 +1041,7 @@ class RGC_CNN_LSTM_ObjectLocation(nn.Module):
 
         # Initialize the RGC module with provided parameters.
         # Note: the expected input_shape is (H, W, D) as defined by the module.
-        self.rgc = RGC_Module(
+        self.rgc = RGC_ANN(
             temporal_filters=3,
             in_channels=1,  # Assumes a single channel input; adjust as needed.
             num_filters1=16,
@@ -1300,11 +1299,11 @@ class RGC_ANN(nn.Module):
                                dilation=dilation2)
 
         # Automatically compute the flattened size from a dummy input.
-        self.flattened_size = self._get_conv_output((in_channels, *input_shape))
-        print("Automatically computed flattened size:", self.flattened_size)
+        # self.flattened_size = self._get_conv_output((in_channels, *input_shape))
+        # print("Automatically computed flattened size:", self.flattened_size)
 
         # Define a fully connected layer for classification.
-        self.fc = nn.Linear(self.flattened_size, num_classes)
+        # self.fc = nn.Linear(self.flattened_size, num_classes)
 
     def _get_conv_output(self, shape):
         """
@@ -1332,8 +1331,8 @@ class RGC_ANN(nn.Module):
         x = F.relu(self.conv1(x))
         x = self.pool(x)
         x = F.relu(self.conv2(x))
-        x = x.view(x.size(0), -1)
-        x = self.fc(x)
+        # x = x.view(x.size(0), -1)
+        # x = self.fc(x)
         return x
 
     def visualize_kernel_centers(self, input_image, show_conv1=True, show_conv2=True):
