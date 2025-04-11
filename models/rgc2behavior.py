@@ -1179,7 +1179,6 @@ class RGC_CNN_LSTM_ObjectLocation(nn.Module):
         # Calculate the number of sliding windows (the new temporal dimension).
         T_out = D - self.input_depth + 1
         rgc_features_list = []
-        print(f'x shape: {x.shape}')
         for i in range(T_out):
             # Extract a sliding window along the time dimension:
             # Each window is of shape (batch_size, input_depth, C, H, W)
@@ -1198,8 +1197,6 @@ class RGC_CNN_LSTM_ObjectLocation(nn.Module):
         # Create a new temporal sequence from the sliding window outputs:
         # rgc_features_seq: (batch_size, T_out, out_channels, h_out, w_out)
         rgc_features_seq = torch.stack(rgc_features_list, dim=1)
-
-        print(f'rgc_features_seq shape: {rgc_features_seq.shape}')
         if self.is_input_norm:
             rgc_features_seq = self.input_norm(rgc_features_seq)
 
@@ -1316,12 +1313,6 @@ class RGC_ANN(nn.Module):
                                padding=self.padding2,
                                dilation=dilation2)
 
-        # Automatically compute the flattened size from a dummy input.
-        # self.flattened_size = self._get_conv_output((in_channels, *input_shape))
-        # print("Automatically computed flattened size:", self.flattened_size)
-
-        # Define a fully connected layer for classification.
-        # self.fc = nn.Linear(self.flattened_size, num_classes)
 
     def _get_conv_output(self, shape):
         """
@@ -1349,8 +1340,6 @@ class RGC_ANN(nn.Module):
         x = F.relu(self.conv1(x))
         x = self.pool(x)
         x = F.relu(self.conv2(x))
-        # x = x.view(x.size(0), -1)
-        # x = self.fc(x)
         return x
 
     def visualize_kernel_centers(self, input_image, show_conv1=True, show_conv2=True):
