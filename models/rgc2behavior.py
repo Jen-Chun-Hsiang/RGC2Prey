@@ -1287,7 +1287,7 @@ class RGC_ANN(nn.Module):
         self.padding1 = dilation1 * (kernel_size1 - 1) // 2
 
         # Define the temporal convolution (unchanged):
-        self.conv_temporal = nn.Conv3d(in_channels=1,
+        self.conv_temporal = nn.Conv3d(in_channels=in_channels,
                                out_channels=temporal_filters,
                                kernel_size=(1, 1, D),
                                stride=1,
