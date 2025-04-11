@@ -12,6 +12,7 @@ from utils.initialization import process_seed, initialize_logging, worker_init_f
 from datasets.sim_cricket import SynMovieGenerator, CricketMovie
 from models.rgc2behavior import RGC_CNN_LSTM_ObjectLocation
 from utils.data_handling import CheckpointLoader
+from utils.data_handling import save_checkpoint
 from utils.tools import timer
 from utils.utils import causal_moving_average
 
@@ -202,14 +203,15 @@ def main():
             # if args.bg_info_type == 'rloc':
             #     bg_info = causal_moving_average(bg_info, args.short_window_length) - \
             #             causal_moving_average(bg_info, args.long_window_length)
-            
+
             # Forward pass
             with timer(timer_data_processing, tau=args.timer_tau, n=args.timer_sample_cicle):
                 outputs, bg_pred = model(sequences)
             
             # Compute loss
             with timer(timer_data_backpropagate, tau=args.timer_tau, n=args.timer_sample_cicle):
-                loss = (1-args.bg_info_cost_ratio) * criterion(outputs, targets) + args.bg_info_cost_ratio * criterion(bg_pred, bg_info)
+                loss = (1-args.bg_info_cost_ratio) * criterion(outputs, targets[:, -outputs.size(1):, :]) \
+                        + args.bg_info_cost_ratio * criterion(bg_pred, bg_info[:, -bg_pred.size(1):, :])
                 loss.backward()
 
                 # Apply gradient clipping
