@@ -44,7 +44,6 @@ def run_experiment(experiment_name, noise_level=None, test_bg_folder=None, test_
     num_sample = 1000
     is_making_video = True
     is_add_noise = False
-    is_plot_centerFR = True
     is_show_rgc_grid = True
     is_save_movie_sequence_to_mat = False
     checkpoint_path = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/Results/CheckPoints/'
@@ -219,14 +218,11 @@ def run_experiment(experiment_name, noise_level=None, test_bg_folder=None, test_
     
     
     
-    for batch_idx, (inputs, true_path, bg_path, syn_movie, scaling_factors, bg_image_name, image_id, weighted_coords) in enumerate(test_loader):
+    for batch_idx, (inputs, true_path, bg_path, syn_movie, scaling_factors, bg_image_name, image_id) in enumerate(test_loader):
         # inputs = inputs.to(args.device)
         true_path = true_path.squeeze(0).cpu().numpy()
         bg_path = bg_path.squeeze(0).cpu().numpy()
-        if is_plot_centerFR:
-            weighted_coords = weighted_coords.squeeze(0).cpu().numpy()
-        else:
-            weighted_coords = None
+        weighted_coords = None
 
         with torch.no_grad():
             predicted_path, _ = model(inputs, noise_level)
