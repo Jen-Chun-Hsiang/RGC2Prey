@@ -1315,7 +1315,7 @@ class RGC_ANN(nn.Module):
                                stride=stride2,
                                padding=self.padding2,
                                dilation=dilation2)
-        self.output_size = self._get_conv_output(input_shape)
+        self.output_size = self._get_conv_output(in_channels, *input_shape)
 
 
     def _get_conv_output(self, shape):
@@ -1337,7 +1337,7 @@ class RGC_ANN(nn.Module):
             x = F.relu(self.conv1(x))
             x = self.pool(x)
             x = F.relu(self.conv2(x))
-            return int(x.numel())
+            return x.shape
 
     def forward(self, x):
         x = F.relu(self.conv_temporal(x)).squeeze(-1)

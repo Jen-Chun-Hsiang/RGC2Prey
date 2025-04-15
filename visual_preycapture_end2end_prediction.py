@@ -190,7 +190,7 @@ def run_experiment(experiment_name, noise_level=None, test_bg_folder=None, test_
         true_path = torch.tensor(true_path, dtype=torch.float32)  # convert to torch due to different processing
         inputs, true_path = inputs.to(device), true_path.to(device)
         with torch.no_grad():
-            predicted_path, _ = model(inputs)
+            predicted_path, _ = model(inputs, noise_level)
             loss = criterion(predicted_path, true_path)
         test_losses.append(loss.item())
         all_paths_pred.append(predicted_path.cpu().numpy())
@@ -229,7 +229,7 @@ def run_experiment(experiment_name, noise_level=None, test_bg_folder=None, test_
             weighted_coords = None
 
         with torch.no_grad():
-            predicted_path, _ = model(inputs)
+            predicted_path, _ = model(inputs, noise_level)
             predicted_path = predicted_path.squeeze().cpu().numpy()
 
         # Extract x and y coordinates
