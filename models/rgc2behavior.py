@@ -1158,7 +1158,7 @@ class RGC_CNN_LSTM_ObjectLocation(nn.Module):
         
         self.is_seq_reshape = is_seq_reshape
 
-    def forward(self, x):
+    def forward(self, x, noise_level=0.0):
         """
         Expects:
           x: A tensor of shape (batch_size, D, C, H, W), where D (the sequence length)
@@ -1188,6 +1188,8 @@ class RGC_CNN_LSTM_ObjectLocation(nn.Module):
             # Expected output shape from self.rgc(window) might be 
             # (batch_size, T_r, out_channels, h_out, w_out). We then take the last time-step.
             rgc_feature = self.rgc(window)
+            noise = torch.randn_like(rgc_feature) * noise_level
+            rgc_feature = rgc_feature + noise
             # Take the features corresponding to the last time step of the RGC output.
             # (This ensures that only past data are used to predict the future.)
             # rgc_feature = rgc_out[:, -1, :, :, :]  # shape: (batch_size, out_channels, h_out, w_out)

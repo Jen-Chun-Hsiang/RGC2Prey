@@ -3,6 +3,9 @@ import torch
 import os
 import logging
 
+from utils.data_handling import CheckpointLoader
+from utils.initialization import process_seed, initialize_logging, worker_init_fn
+
 def parse_args():
     parser = argparse.ArgumentParser(description="Script for Model Training to get 3D RF in simulation")
     parser.add_argument('--experiment_names', type=str, nargs='+', required=True, help="List of experiment names")
@@ -46,6 +49,41 @@ def run_experiment(experiment_name, noise_level=None, test_bg_folder=None, test_
     video_save_folder = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/Results/Videos/'
     mat_save_folder = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/Results/Mats/'
     log_save_folder  = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/Results/Prints/'
+
+    if test_ob_folder is None:
+        test_ob_folder = 'cricket'
+    elif test_ob_folder == 'white-spot':
+        coord_mat_file = None
+
+    if noise_level is not None:
+        file_name = f'{experiment_name}_{test_ob_folder}_{test_bg_folder}_noise{noise_level}_cricket_location_prediction'
+        is_add_noise = True
+    else:
+        file_name = f'{experiment_name}_{test_ob_folder}_{test_bg_folder}_cricket_location_prediction'
+    initialize_logging(log_save_folder=log_save_folder, experiment_name=file_name)
+
+    checkpoint_filename = os.path.join(checkpoint_path, f'{experiment_name}_checkpoint_epoch_{epoch_number}.pth')
+    checkpoint_loader = CheckpointLoader(checkpoint_filename)
+    args = checkpoint_loader.load_args()
+    training_losses = checkpoint_loader.load_training_losses()
+
+    if test_bg_folder is None:
+        test_bg_folder = args.bg_folder
+    top_img_folder    = f'/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/CricketDataset/Images/cropped/{test_ob_folder}/'
+    bottom_img_folder = f'/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/CricketDataset/Images/cropped/{test_bg_folder}/'  #grass
+
+    if test_ob_folder == 'cricket':
+        coord_mat_file = f'/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/selected_points_summary_{args.coord_adj_type}.mat'   #selected_points_summary.mat
+    
+    if boundary_size is None:
+        boundary_size = args.boundary_size
+
+    if args.is_GPU:
+        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    else:
+        device = 'cpu'
+
+    process_seed(args.seed)
 
 
 if __name__ == "__main__":
