@@ -46,6 +46,7 @@ def run_experiment(experiment_name, noise_level=None, test_bg_folder=None, test_
     is_add_noise = False
     is_show_rgc_grid = True
     is_save_movie_sequence_to_mat = False
+    grid_generate_method = 'rgc_cnn'
     checkpoint_path = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/Results/CheckPoints/'
     
     rf_params_file = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/SimulationParams.xlsx'
@@ -236,7 +237,7 @@ def run_experiment(experiment_name, noise_level=None, test_bg_folder=None, test_
             inputs = inputs.squeeze().cpu().numpy()
             scaling_factors = scaling_factors.squeeze().cpu().numpy()
             data_movie = MovieGenerator(frame_width, frame_height, fps, video_save_folder, bls_tag=f'{file_name}_{epoch_number}',
-                                    grid_generate_method=args.grid_generate_method)
+                                    grid_generate_method=grid_generate_method)
                                 
             data_movie.generate_movie(inputs, syn_movie, true_path, bg_path, predicted_path, scaling_factors, video_id=batch_idx, 
                                       weighted_coords=weighted_coords)
