@@ -1315,7 +1315,7 @@ class RGC_ANN(nn.Module):
                                stride=stride2,
                                padding=self.padding2,
                                dilation=dilation2)
-        self.output_size = self._get_conv_output(in_channels, *input_shape)
+        self.output_size = self._get_conv_output((in_channels, H, W, D))
 
 
     def _get_conv_output(self, shape):
