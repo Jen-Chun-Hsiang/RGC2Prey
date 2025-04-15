@@ -177,12 +177,12 @@ def run_experiment(experiment_name, noise_level=None, test_bg_folder=None, test_
             raise ValueError(f"check mat data range...")
         path = true_path.reshape(1, -1)  # Ensure row vector
         path_bg = path_bg.reshape(1, -1)  # Ensure row vector
-        path_cm = weighted_coords.reshape(1, -1)
+        # path_cm = weighted_coords.reshape(1, -1)
         scaling_factors = scaling_factors.reshape(1, -1)  # Ensure row vector
 
         all_paths.append(path)
         all_paths_bg.append(path_bg)
-        all_path_cm.append(path_cm)
+        # all_path_cm.append(path_cm)
         all_scaling_factors.append(scaling_factors)
         all_bg_file.append(bg_image_name)
         all_id_numbers.append(image_id)
@@ -197,7 +197,7 @@ def run_experiment(experiment_name, noise_level=None, test_bg_folder=None, test_
     
     all_paths = np.vstack(all_paths)
     all_paths_bg = np.vstack(all_paths_bg)
-    all_path_cm = np.vstack(all_path_cm)
+    # all_path_cm = np.vstack(all_path_cm)
     all_scaling_factors = np.vstack(all_scaling_factors)
     all_bg_file = np.array(all_bg_file, dtype=object)  # Keep as string array
     all_id_numbers = np.array(all_id_numbers, dtype=int)  # Convert to int array
@@ -208,7 +208,7 @@ def run_experiment(experiment_name, noise_level=None, test_bg_folder=None, test_
     save_path = os.path.join(mat_save_folder, f'{file_name}_{epoch_number}_prediction_error_with_path.mat')
     savemat(save_path, {'test_losses': test_losses, 'training_losses': training_losses, 'all_paths': all_paths,
                         'all_paths_bg': all_paths_bg, 'all_scaling_factors': all_scaling_factors, 'all_bg_file': all_bg_file,
-                        'all_id_numbers': all_id_numbers, 'all_paths_pred': all_paths_pred, 'all_path_cm':all_path_cm})
+                        'all_id_numbers': all_id_numbers, 'all_paths_pred': all_paths_pred})
 
     # (3) Draw movies
     model.to('cpu')
