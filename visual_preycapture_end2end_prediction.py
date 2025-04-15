@@ -4,12 +4,14 @@ import os
 import logging
 import numpy as np
 import torch.nn as nn
+import matplotlib.pyplot as plt
 from scipy.io import savemat
 from torch.utils.data import DataLoader
 
 from models.rgc2behavior import RGC_CNN_LSTM_ObjectLocation
 from datasets.sim_cricket import SynMovieGenerator, CricketMovie
 from utils.data_handling import CheckpointLoader
+from utils.tools import MovieGenerator
 from utils.initialization import process_seed, initialize_logging, worker_init_fn
 
 def parse_args():
@@ -127,14 +129,15 @@ def run_experiment(experiment_name, noise_level=None, test_bg_folder=None, test_
     model.to(device)
     model.eval()
 
-    train_dataset = CricketMovie(num_samples=args.num_samples, target_width=target_width, target_height=target_height, 
+    # (1) Prediction Test
+    test_dataset = CricketMovie(num_samples=args.num_samples, target_width=target_width, target_height=target_height, 
                                  movie_generator=movie_generator, grid_size_fac=args.grid_size_fac, 
                                 is_norm_coords=args.is_norm_coords, is_syn_mov_shown=False)
     
     if args.num_worker==0:
-        test_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, worker_init_fn=worker_init_fn)
+        test_loader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=True, worker_init_fn=worker_init_fn)
     else:
-        test_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True,
+        test_loader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=True,
                                         num_workers=args.num_worker, pin_memory=True, persistent_workers=False, worker_init_fn=worker_init_fn)
     
     test_losses = [] 
@@ -151,7 +154,143 @@ def run_experiment(experiment_name, noise_level=None, test_bg_folder=None, test_
     save_path = os.path.join(mat_save_folder, f'{file_name}_{epoch_number}_prediction_error.mat')
     savemat(save_path, {'test_losses': test_losses, 'training_losses': training_losses})
     
+    # (2) Prediction Path Data (less datapoint but more details)
+    test_dataset = CricketMovie(num_samples=int(num_sample*0.1), target_width=target_width, target_height=target_height, 
+                                 movie_generator=movie_generator, grid_size_fac=args.grid_size_fac, 
+                                is_norm_coords=args.is_norm_coords, is_syn_mov_shown=True)
+    test_loader = DataLoader(test_dataset, batch_size=1, shuffle=True, worker_init_fn=worker_init_fn)
+    
+    test_losses = [] 
+    all_paths = []
+    all_paths_pred = []
+    all_paths_bg = []
+    all_path_cm = []
+    all_scaling_factors = []
+    all_bg_file = []
+    all_id_numbers = []
 
+    for batch_idx, (inputs, true_path, path_bg, _, scaling_factors, bg_image_name, image_id, weighted_coords) in enumerate(test_loader):
+        # temporalily check
+        if is_save_movie_sequence_to_mat:
+            sequence = inputs.cpu().numpy()
+            savemat(os.path.join(mat_save_folder, 'sequence_evaluation.mat'), {'sequence': sequence})
+            raise ValueError(f"check mat data range...")
+        path = true_path.reshape(1, -1)  # Ensure row vector
+        path_bg = path_bg.reshape(1, -1)  # Ensure row vector
+        path_cm = weighted_coords.reshape(1, -1)
+        scaling_factors = scaling_factors.reshape(1, -1)  # Ensure row vector
+
+        all_paths.append(path)
+        all_paths_bg.append(path_bg)
+        all_path_cm.append(path_cm)
+        all_scaling_factors.append(scaling_factors)
+        all_bg_file.append(bg_image_name)
+        all_id_numbers.append(image_id)
+
+        true_path = torch.tensor(true_path, dtype=torch.float32)  # convert to torch due to different processing
+        inputs, true_path = inputs.to(device), true_path.to(device)
+        with torch.no_grad():
+            predicted_path, _ = model(inputs)
+            loss = criterion(predicted_path, true_path)
+        test_losses.append(loss.item())
+        all_paths_pred.append(predicted_path.cpu().numpy())
+    
+    all_paths = np.vstack(all_paths)
+    all_paths_bg = np.vstack(all_paths_bg)
+    all_path_cm = np.vstack(all_path_cm)
+    all_scaling_factors = np.vstack(all_scaling_factors)
+    all_bg_file = np.array(all_bg_file, dtype=object)  # Keep as string array
+    all_id_numbers = np.array(all_id_numbers, dtype=int)  # Convert to int array
+    all_paths_pred = np.array(all_paths_pred)
+
+    test_losses = np.array(test_losses)
+    training_losses = np.array(training_losses)
+    save_path = os.path.join(mat_save_folder, f'{file_name}_{epoch_number}_prediction_error_with_path.mat')
+    savemat(save_path, {'test_losses': test_losses, 'training_losses': training_losses, 'all_paths': all_paths,
+                        'all_paths_bg': all_paths_bg, 'all_scaling_factors': all_scaling_factors, 'all_bg_file': all_bg_file,
+                        'all_id_numbers': all_id_numbers, 'all_paths_pred': all_paths_pred, 'all_path_cm':all_path_cm})
+
+    # (3) Draw movies
+    model.to('cpu')
+    test_dataset = CricketMovie(num_samples=num_display, target_width=target_width, target_height=target_height, 
+                                 movie_generator=movie_generator, grid_size_fac=args.grid_size_fac, 
+                                is_norm_coords=args.is_norm_coords, is_syn_mov_shown=True)
+    test_loader = DataLoader(test_dataset, batch_size=1, shuffle=True, worker_init_fn=worker_init_fn)
+    
+    
+    
+    for batch_idx, (inputs, true_path, bg_path, syn_movie, scaling_factors, bg_image_name, image_id, weighted_coords) in enumerate(test_loader):
+        # inputs = inputs.to(args.device)
+        true_path = true_path.squeeze(0).cpu().numpy()
+        bg_path = bg_path.squeeze(0).cpu().numpy()
+        if is_plot_centerFR:
+            weighted_coords = weighted_coords.squeeze(0).cpu().numpy()
+        else:
+            weighted_coords = None
+
+        with torch.no_grad():
+            predicted_path, _ = model(inputs)
+            predicted_path = predicted_path.squeeze().cpu().numpy()
+
+        # Extract x and y coordinates
+        sequence_length = len(true_path)
+
+        if is_making_video:
+            syn_movie = syn_movie.squeeze().cpu().numpy()
+            inputs = inputs.squeeze().cpu().numpy()
+            scaling_factors = scaling_factors.squeeze().cpu().numpy()
+            data_movie = MovieGenerator(frame_width, frame_height, fps, video_save_folder, bls_tag=f'{file_name}_{epoch_number}',
+                                    grid_generate_method=args.grid_generate_method)
+                                
+            data_movie.generate_movie(inputs, syn_movie, true_path, bg_path, predicted_path, scaling_factors, video_id=batch_idx, 
+                                      weighted_coords=weighted_coords)
+
+        x1, y1 = true_path[:, 0], true_path[:, 1]
+        x2, y2 = predicted_path[:, 0], predicted_path[:, 1]
+        x3, y3 = bg_path[:, 0], bg_path[:, 1]
+        label_1 = 'Truth'
+        label_2 = 'Prediction'
+        label_3 = 'Background'
+
+        # Plot the loss over epochs
+        plt.figure(figsize=(12, 12))
+
+        # Loss plot
+        plt.subplot(2, 2, 1)
+        plt.plot(range(1, len(training_losses) + 1), training_losses, label="Training Loss")
+        plt.xlabel("Epoch")
+        plt.ylabel("Loss")
+        plt.title("Training Loss per Epoch")
+        plt.legend()
+
+        plt.subplot(2, 2, 2)
+        plt.plot(x1, y1, label=label_1, color="darkblue", linestyle="-", linewidth=2)
+        plt.plot(x2, y2, label=label_2, color="maroon", linestyle="--", linewidth=2)
+        
+        # X-coordinate over time
+        plt.subplot(2, 2, 3)
+        plt.plot(range(sequence_length), x1, label=label_1, color='darkblue')
+        plt.plot(range(sequence_length), x2, label=label_2, color='maroon')
+        plt.plot(range(sequence_length), x3, label=label_3, color='seagreen')
+        plt.xlabel("Time step")
+        plt.ylabel("X-coordinate")
+        plt.title("X-Coordinate Trace over Time")
+        plt.legend()
+
+        # X-coordinate over time
+        plt.subplot(2, 2, 4)
+        plt.plot(range(sequence_length), y1, label=label_1, color='darkblue')
+        plt.plot(range(sequence_length), y2, label=label_2, color='maroon')
+        plt.plot(range(sequence_length), y3, label=label_3, color='seagreen')
+        plt.xlabel("Time step")
+        plt.ylabel("Y-coordinate")
+        plt.title("Y-Coordinate Trace over Time")
+        plt.legend()
+
+        # Save the plot
+        save_path = os.path.join(test_save_folder, f'{file_name}_{epoch_number}_prediction_plot_sample_{batch_idx + 1}.png')
+        plt.savefig(save_path, bbox_inches="tight")
+        plt.close()
 
 if __name__ == "__main__":
     main()
