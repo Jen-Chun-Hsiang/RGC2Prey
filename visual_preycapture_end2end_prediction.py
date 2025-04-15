@@ -169,7 +169,7 @@ def run_experiment(experiment_name, noise_level=None, test_bg_folder=None, test_
     all_bg_file = []
     all_id_numbers = []
 
-    for batch_idx, (inputs, true_path, path_bg, _, scaling_factors, bg_image_name, image_id, weighted_coords) in enumerate(test_loader):
+    for batch_idx, (inputs, true_path, path_bg, _, scaling_factors, bg_image_name, image_id) in enumerate(test_loader):
         # temporalily check
         if is_save_movie_sequence_to_mat:
             sequence = inputs.cpu().numpy()
