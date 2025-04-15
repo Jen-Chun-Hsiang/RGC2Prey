@@ -229,8 +229,7 @@ def run_experiment(experiment_name, noise_level=None, test_bg_folder=None, test_
             predicted_path, _ = model(inputs, noise_level)
             predicted_path = predicted_path.squeeze().cpu().numpy()
 
-        # Extract x and y coordinates
-        sequence_length = len(true_path)
+        
 
         if is_making_video:
             syn_movie = syn_movie.squeeze().cpu().numpy()
@@ -242,9 +241,16 @@ def run_experiment(experiment_name, noise_level=None, test_bg_folder=None, test_
             data_movie.generate_movie(inputs, syn_movie, true_path, bg_path, predicted_path, scaling_factors, video_id=batch_idx, 
                                       weighted_coords=weighted_coords)
 
+        seq_len = predicted_path.size(0)
+        true_path = true_path[-seq_len:, :]
+        bg_path = bg_path[-seq_len:, :]
+
+        # Extract coordinates
         x1, y1 = true_path[:, 0], true_path[:, 1]
         x2, y2 = predicted_path[:, 0], predicted_path[:, 1]
         x3, y3 = bg_path[:, 0], bg_path[:, 1]
+
+        # Optional: labels for plotting
         label_1 = 'Truth'
         label_2 = 'Prediction'
         label_3 = 'Background'
@@ -266,9 +272,9 @@ def run_experiment(experiment_name, noise_level=None, test_bg_folder=None, test_
         
         # X-coordinate over time
         plt.subplot(2, 2, 3)
-        plt.plot(range(sequence_length), x1, label=label_1, color='darkblue')
-        plt.plot(range(sequence_length), x2, label=label_2, color='maroon')
-        plt.plot(range(sequence_length), x3, label=label_3, color='seagreen')
+        plt.plot(range(seq_len), x1, label=label_1, color='darkblue')
+        plt.plot(range(seq_len), x2, label=label_2, color='maroon')
+        plt.plot(range(seq_len), x3, label=label_3, color='seagreen')
         plt.xlabel("Time step")
         plt.ylabel("X-coordinate")
         plt.title("X-Coordinate Trace over Time")
@@ -276,9 +282,9 @@ def run_experiment(experiment_name, noise_level=None, test_bg_folder=None, test_
 
         # X-coordinate over time
         plt.subplot(2, 2, 4)
-        plt.plot(range(sequence_length), y1, label=label_1, color='darkblue')
-        plt.plot(range(sequence_length), y2, label=label_2, color='maroon')
-        plt.plot(range(sequence_length), y3, label=label_3, color='seagreen')
+        plt.plot(range(seq_len), y1, label=label_1, color='darkblue')
+        plt.plot(range(seq_len), y2, label=label_2, color='maroon')
+        plt.plot(range(seq_len), y3, label=label_3, color='seagreen')
         plt.xlabel("Time step")
         plt.ylabel("Y-coordinate")
         plt.title("Y-Coordinate Trace over Time")
