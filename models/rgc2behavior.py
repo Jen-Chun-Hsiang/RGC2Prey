@@ -1061,6 +1061,7 @@ class RGC_CNN_LSTM_ObjectLocation(nn.Module):
             dilation1=1,
             dilation2=2
         )
+        self.rgc_output_size = self.rgc.output_size
         # The output from the RGC module is assumed to have a channel dimension equal to num_filters2.
         new_num_input_channel = num_RGC
         
@@ -1312,6 +1313,7 @@ class RGC_ANN(nn.Module):
                                stride=stride2,
                                padding=self.padding2,
                                dilation=dilation2)
+        self.output_size = self._get_conv_output(input_shape)
 
 
     def _get_conv_output(self, shape):

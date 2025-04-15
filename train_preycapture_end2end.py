@@ -160,7 +160,7 @@ def main():
                                     is_seq_reshape=args.is_seq_reshape, CNNextractor_version=args.cnn_extractor_version,
                                     temporal_noise_level=args.temporal_noise_level, num_RGC=args.num_RGC,
                                     num_input_channel=num_input_channel, is_channel_normalization=args.is_channel_normalization)
-    
+    logging.info(f'RGC output size: {model.rgc_output_size} \n')
     model = model.to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate)
 
