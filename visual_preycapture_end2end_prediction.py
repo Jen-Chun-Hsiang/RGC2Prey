@@ -146,7 +146,7 @@ def run_experiment(experiment_name, noise_level=None, test_bg_folder=None, test_
         inputs, true_path, bg_info = inputs.to(device), true_path.to(device), bg_info.to(device)
         with torch.no_grad():
             predicted_path, _ = model(inputs, noise_level)
-            loss = criterion(predicted_path, true_path)
+            loss = criterion(predicted_path, true_path[:, -predicted_path.size(1):, :])
         test_losses.append(loss.item())
     
     test_losses = np.array(test_losses)
@@ -191,7 +191,7 @@ def run_experiment(experiment_name, noise_level=None, test_bg_folder=None, test_
         inputs, true_path = inputs.to(device), true_path.to(device)
         with torch.no_grad():
             predicted_path, _ = model(inputs, noise_level)
-            loss = criterion(predicted_path, true_path)
+            loss = criterion(predicted_path, true_path[:, -predicted_path.size(1):, :])
         test_losses.append(loss.item())
         all_paths_pred.append(predicted_path.cpu().numpy())
     
