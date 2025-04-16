@@ -229,7 +229,9 @@ def run_experiment(experiment_name, noise_level=None, test_bg_folder=None, test_
             predicted_path, _ = model(inputs, noise_level)
             predicted_path = predicted_path.squeeze().cpu().numpy()
 
-        
+        seq_len = predicted_path.shape[0]
+        true_path = true_path[-seq_len:, :]
+        bg_path = bg_path[-seq_len:, :]
 
         if is_making_video:
             syn_movie = syn_movie.squeeze().cpu().numpy()
@@ -240,10 +242,6 @@ def run_experiment(experiment_name, noise_level=None, test_bg_folder=None, test_
                                 
             data_movie.generate_movie(inputs, syn_movie, true_path, bg_path, predicted_path, scaling_factors, video_id=batch_idx, 
                                       weighted_coords=weighted_coords)
-
-        seq_len = predicted_path.shape[0]
-        true_path = true_path[-seq_len:, :]
-        bg_path = bg_path[-seq_len:, :]
 
         # Extract coordinates
         x1, y1 = true_path[:, 0], true_path[:, 1]
