@@ -238,6 +238,9 @@ def run_experiment(experiment_name, noise_level=None, test_bg_folder=None, test_
             syn_movie = syn_movie.squeeze().cpu().numpy()
             inputs = inputs.squeeze().cpu().numpy()
             scaling_factors = scaling_factors.squeeze().cpu().numpy()
+            syn_movie = syn_movie[-seq_len]
+            inputs = inputs[-seq_len]
+            scaling_factors = scaling_factors[-seq_len]
 
             print(f"Shape of syn_movie after operations: {syn_movie.shape}")
             print(f"Shape of inputs after operations: {inputs.shape}")
