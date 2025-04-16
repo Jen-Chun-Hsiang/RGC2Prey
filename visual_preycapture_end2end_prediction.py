@@ -241,7 +241,7 @@ def run_experiment(experiment_name, noise_level=None, test_bg_folder=None, test_
             data_movie.generate_movie(inputs, syn_movie, true_path, bg_path, predicted_path, scaling_factors, video_id=batch_idx, 
                                       weighted_coords=weighted_coords)
 
-        seq_len = predicted_path.size(0)
+        seq_len = predicted_path.shape[0]
         true_path = true_path[-seq_len:, :]
         bg_path = bg_path[-seq_len:, :]
 
