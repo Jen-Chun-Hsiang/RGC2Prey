@@ -242,9 +242,9 @@ def run_experiment(experiment_name, noise_level=None, test_bg_folder=None, test_
             inputs = inputs[-seq_len]
             scaling_factors = scaling_factors[-seq_len]
 
-            print(f"Shape of syn_movie after operations: {syn_movie.shape}")
-            print(f"Shape of inputs after operations: {inputs.shape}")
-            print(f"Shape of scaling_factors after operations: {scaling_factors.shape}")
+            # print(f"Shape of syn_movie after operations: {syn_movie.shape}")
+            # print(f"Shape of inputs after operations: {inputs.shape}")
+            # print(f"Shape of scaling_factors after operations: {scaling_factors.shape}")
 
             data_movie = MovieGenerator(frame_width, frame_height, fps, video_save_folder, bls_tag=f'{file_name}_{epoch_number}',
                                     grid_generate_method=grid_generate_method)
@@ -252,7 +252,7 @@ def run_experiment(experiment_name, noise_level=None, test_bg_folder=None, test_
             data_movie.generate_movie(inputs, syn_movie, true_path, bg_path, predicted_path, scaling_factors, video_id=batch_idx, 
                                       weighted_coords=weighted_coords)
 
-        raise ValueError(f"exam output...")
+        # raise ValueError(f"exam output...")
         # Extract coordinates
         x1, y1 = true_path[:, 0], true_path[:, 1]
         x2, y2 = predicted_path[:, 0], predicted_path[:, 1]
