@@ -228,6 +228,7 @@ def run_experiment(experiment_name, epoch_number=200):
 
                 # c) Jitter (now automatically scales to H_full,W_full)
                 up_j = jitter_image_3d(up)
+                up_j = up_j.permute(0, 2, 1, 3, 4) 
 
                 if i == 1:
                     print(f'up_j shape: {up_j.shape}')
@@ -238,7 +239,7 @@ def run_experiment(experiment_name, epoch_number=200):
                 mid_r, mid_c = H_out//2, W_out//2
 
                 # e) Loss = –center activation of kernel k
-                loss = -act_map[k, mid_r, mid_c]
+                loss = -act_cmap[k, mid_r, mid_c]
                 # + regularization on *small_img*
                 loss = loss + 1e-4 * small_img.norm() + 1e-4 * total_variation_3d(small_img)
 
