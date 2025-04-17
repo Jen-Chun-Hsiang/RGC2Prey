@@ -252,7 +252,7 @@ def run_experiment(experiment_name, noise_level=None, test_bg_folder=None, test_
             data_movie.generate_movie(inputs, syn_movie, true_path, bg_path, predicted_path, scaling_factors, video_id=batch_idx, 
                                       weighted_coords=weighted_coords)
 
-        raise ValueError(f"exam output...")
+        # raise ValueError(f"exam output...")
         # Extract coordinates
         x1, y1 = true_path[:, 0], true_path[:, 1]
         x2, y2 = predicted_path[:, 0], predicted_path[:, 1]
