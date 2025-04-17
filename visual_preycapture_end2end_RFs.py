@@ -174,7 +174,9 @@ def run_experiment(experiment_name, epoch_number=200):
         input_raw = torch.randn(B, C, H, W, D, device=device)
 
         # Permute to (B, C, D, H, W) for 3D ops
-        input_img = input_raw.permute(0, 1, 4, 2, 3).contiguous().requires_grad_(True)
+        input_img = input_raw.permute(0, 1, 4, 2, 3).contiguous()
+        input_img = input_img.detach().requires_grad_(True)
+
 
         # 4) Multi‐scale settings (note the comma after the first tuple!)
         scales = [
@@ -191,9 +193,8 @@ def run_experiment(experiment_name, epoch_number=200):
         for scale in scales:
             # Resize if needed
             if input_img.shape[2:] != scale:
-                input_img = F.interpolate(
-                    input_img, size=scale, mode='trilinear', align_corners=False
-                ).requires_grad_(True)
+                input_img = F.interpolate(input_img, size=scale, mode='trilinear', align_corners=False)
+                input_img = input_img.detach().requires_grad_(True)
 
             optimizer = optim.Adam([input_img], lr=0.05)
             print(f"Optimizing at scale (D,H,W) = {scale}")
