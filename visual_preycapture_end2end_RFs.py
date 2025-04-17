@@ -97,9 +97,20 @@ def run_experiment(experiment_name, epoch_number=200):
 
     # 1. Grab the raw conv_temporal weights and move to NumPy:
     #    shape is (out_channels, in_channels, D, kH, kW)
-    wt = rgc_net.conv_temporal.weight.detach().cpu().numpy()
+    wt_param = rgc_net.conv_temporal.weight
+    print("Has conv_temporal?", hasattr(rgc_net, "conv_temporal"))
+    print("Parameter object:", wt_param)
+
+    wt = wt_param.detach().cpu().numpy()
+    print("Weight shape (out_ch, in_ch, D, kH, kW):", wt.shape)
     out_ch, in_ch, D, kH, kW = wt.shape
 
+    assert wt.size != 0, "Weight tensor is empty!"
+    assert D > 0, "Temporal dimension is zero!"
+    assert kH == 1 and kW == 1, f"Unexpected spatial kernel dims: {(kH,kW)}"
+
+    print(f'D: {D}')
+    print(f'out_ch: {out_ch}')
     # 2. Prepare x‐axis (1…D) and a figure
     x = np.arange(1, D+1)
     plt.figure(figsize=(6,4))
@@ -108,6 +119,9 @@ def run_experiment(experiment_name, epoch_number=200):
     for oc in range(out_ch):
         v = wt[oc, 0, :, 0, 0]    # shape (D,)
         plt.plot(x, v, label=f"ch{oc}")
+        print(f"Channel {oc:2d}: length={v.shape[0]}, "
+          f"min={v.min():.4f}, max={v.max():.4f}, mean={v.mean():.4f}, "
+          f"all_zero={np.allclose(v, 0)}")
 
     # 4. Label and show
     plt.xlabel("Depth index (D)")
