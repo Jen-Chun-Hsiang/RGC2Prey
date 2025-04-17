@@ -103,7 +103,7 @@ def run_experiment(experiment_name, epoch_number=200):
 
     wt = wt_param.detach().cpu().numpy()
     print("Weight shape (out_ch, in_ch, D, kH, kW):", wt.shape)
-    out_ch, in_ch, D, kH, kW = wt.shape
+    out_ch, in_ch, kH, kW, D = wt.shape
 
     assert wt.size != 0, "Weight tensor is empty!"
     assert D > 0, "Temporal dimension is zero!"
@@ -117,7 +117,7 @@ def run_experiment(experiment_name, epoch_number=200):
 
     # 3. For each output‐channel, extract the depth‐vector at (in_ch=0, h=0, w=0)
     for oc in range(out_ch):
-        v = wt[oc, 0, :, 0, 0]    # shape (D,)
+        v = wt[oc, 0, 0, 0, :]    # shape (D,)
         plt.plot(x, v, label=f"ch{oc}")
         print(f"Channel {oc:2d}: length={v.shape[0]}, "
           f"min={v.min():.4f}, max={v.max():.4f}, mean={v.mean():.4f}, "
