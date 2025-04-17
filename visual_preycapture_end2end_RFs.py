@@ -2,11 +2,15 @@ import argparse
 import torch
 import os
 import logging
+import random
 import numpy as np
 import torch.nn as nn
 import matplotlib.pyplot as plt
+import torch.nn.functional as F
+import torch.optim as optim
 from scipy.io import savemat
 from torch.utils.data import DataLoader
+
 
 from models.rgc2behavior import RGC_CNN_LSTM_ObjectLocation
 from datasets.sim_cricket import SynMovieGenerator, CricketMovie
@@ -20,6 +24,25 @@ def parse_args():
     parser.add_argument('--epoch_number', type=int, default=200, help="Epoch number to check")
 
     return parser.parse_args()
+
+def total_variation_3d(x):
+    diff_d = x[:, :, 1:, :, :] - x[:, :, :-1, :, :]
+    diff_h = x[:, :, :, 1:, :] - x[:, :, :, :-1, :]
+    diff_w = x[:, :, :, :, 1:] - x[:, :, :, :, :-1]
+    return (diff_d.abs().mean() +
+            diff_h.abs().mean() +
+            diff_w.abs().mean())
+
+def jitter_image_3d(x, max_jitter=(1, 5, 5)):
+    shift_d = random.randint(-max_jitter[0], max_jitter[0])
+    shift_h = random.randint(-max_jitter[1], max_jitter[1])
+    shift_w = random.randint(-max_jitter[2], max_jitter[2])
+    return torch.roll(x,
+                     shifts=(shift_d, shift_h, shift_w),
+                     dims=(2, 3, 4))
+
+def normalize_image_3d(x, eps=1e-8):
+    return x / (x.norm() + eps)
 
 
 def main():
@@ -135,6 +158,108 @@ def run_experiment(experiment_name, epoch_number=200):
     plt.savefig(save_path, bbox_inches="tight")
     plt.close()
 
+    # Activation
+    target_layer = rgc_net.conv2   # or whichever sub‐layer in RGC_ANN
+    num_kernels = target_layer.out_channels
+
+    optimized_volumes = []
+
+    for k in range(num_kernels):
+        activations = {}
+        hook_handle = target_layer.register_forward_hook(
+            lambda module, inp, out: activations.setdefault("out", out)
+        )
+
+        B, C, H, W, D = 1, 3, 240, 180, 50
+        input_raw = torch.randn(B, C, H, W, D, device=device)
+
+        input_img = input_raw.permute(0, 1, 4, 2, 3).contiguous()
+        input_img.requires_grad_(True)
+
+        # 4) Multi‐scale settings (note the comma after the first tuple!)
+        scales = [
+            (5, 32, 24),    # very coarse
+            (10, 60, 45),
+            (25, 120, 90),
+            (50, 240, 180)  # final target
+        ]
+        num_iterations = 100
+
+        # 5) Initialize random input at coarsest scale
+        # input_img = torch.randn(1, 3, *scales[0], device=device, requires_grad=True)
+
+        for scale in scales:
+            # Resize if needed
+            if input_img.shape[2:] != scale:
+                input_img = F.interpolate(
+                    input_img, size=scale, mode='trilinear', align_corners=False
+                ).requires_grad_(True)
+
+            optimizer = optim.Adam([input_img], lr=0.05)
+            print(f"Optimizing at scale (D,H,W) = {scale}")
+
+            for it in range(1, num_iterations+1):
+                optimizer.zero_grad()
+
+                # a) Jitter
+                img_j = jitter_image_3d(input_img)
+
+                # b) Forward through RGC
+                rgc_net(img_j)
+
+                # c) Pull out the hooked activation
+                act_map = activations["out"][0]   # shape (out_ch, H', W')
+                C_out, H_out, W_out = act_map.shape
+
+                # c) Choose the center cell
+                mid_row = H_out // 2
+                mid_col = W_out // 2
+                
+                loss_activation = -act_map[k, mid_row, mid_col]
+
+                # d) Regularization
+                loss_l2 = 1e-4 * input_img.norm()
+                loss_tv = 1e-4 * total_variation_3d(input_img)
+                loss = loss_activation + loss_l2 + loss_tv
+
+                loss.backward()
+                optimizer.step()
+
+                # e) Normalize & clamp
+                with torch.no_grad():
+                    input_img.copy_(normalize_image_3d(input_img))
+                    input_img.clamp_(-1.5, 1.5)
+
+                if it % 25 == 0:
+                    print(f"  iter {it}/{num_iterations}  loss {loss.item():.4f}")
+        
+        hook_handle.remove()
+        optimized_volumes.append(input_img.detach().cpu().squeeze())  # (C_in, D, H, W)
+
+
+    # 9) Visualize the middle frame of the final optimized volume
+    fig, axes = plt.subplots(2, num_kernels, figsize=(4 * num_kernels, 8))
+    for k, vol in enumerate(optimized_volumes):
+        # vol shape: (C_in, D, H, W); assume C_in=1 for simplicity
+        vol = vol[0]               # (D, H, W)
+        mid_idx = vol.shape[0] // 2
+
+        mid_frame = vol[mid_idx]   # (H, W)
+        std_map   = vol.std(dim=0) # (H, W)
+
+        axes[0, k].imshow(mid_frame, cmap='gray')
+        axes[0, k].set_title(f"Kernel {k} Mid Frame")
+        axes[0, k].axis('off')
+
+        axes[1, k].imshow(std_map, cmap='gray')
+        axes[1, k].set_title(f"Kernel {k} STD")
+        axes[1, k].axis('off')
+
+    plt.tight_layout()
+
+    save_path = os.path.join(test_save_folder, f'{file_name}_{epoch_number}_optimized_stimuli4conv2.png')
+    plt.savefig(save_path, bbox_inches="tight")
+    plt.close()
 
 if __name__ == "__main__":
     main()
