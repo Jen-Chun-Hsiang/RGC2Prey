@@ -239,7 +239,7 @@ def run_experiment(experiment_name, epoch_number=200):
                 mid_r, mid_c = H_out//2, W_out//2
 
                 # e) Loss = –center activation of kernel k
-                loss = -act_cmap[k, mid_r, mid_c]
+                loss = -act_map[k, mid_r, mid_c]
                 # + regularization on *small_img*
                 loss = loss + 1e-4 * small_img.norm() + 1e-4 * total_variation_3d(small_img)
 
