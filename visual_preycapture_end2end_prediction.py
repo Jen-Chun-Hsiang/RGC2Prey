@@ -239,11 +239,11 @@ def run_experiment(experiment_name, noise_level=None, test_bg_folder=None, test_
             inputs = inputs.squeeze().cpu().numpy()
             scaling_factors = scaling_factors.squeeze().cpu().numpy()
             
-            inputs = inputs[-seq_len]
+            inputs = inputs[-seq_len:]
             
 
             # print(f"Shape of syn_movie after operations: {syn_movie.shape}")
-            print(f"Shape of inputs after operations: {inputs.shape}")
+            # print(f"Shape of inputs after operations: {inputs.shape}")
             # print(f"Shape of scaling_factors after operations: {scaling_factors.shape}")
 
             data_movie = MovieGenerator(frame_width, frame_height, fps, video_save_folder, bls_tag=f'{file_name}_{epoch_number}',
