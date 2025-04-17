@@ -173,8 +173,8 @@ def run_experiment(experiment_name, epoch_number=200):
         B, C, H, W, D = 1, 3, 240, 180, 50
         input_raw = torch.randn(B, C, H, W, D, device=device)
 
-        input_img = input_raw.permute(0, 1, 4, 2, 3).contiguous()
-        input_img.requires_grad_(True)
+        # Permute to (B, C, D, H, W) for 3D ops
+        input_img = input_raw.permute(0, 1, 4, 2, 3).contiguous().requires_grad_(True)
 
         # 4) Multi‐scale settings (note the comma after the first tuple!)
         scales = [
