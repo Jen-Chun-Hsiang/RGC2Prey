@@ -117,7 +117,7 @@ def run_experiment(experiment_name, epoch_number=200):
     plt.tight_layout()
 
     # Save the plot
-    save_path = os.path.join(test_save_folder, f'{file_name}_{epoch_number}_temporal_filter_{batch_idx + 1}.png')
+    save_path = os.path.join(test_save_folder, f'{file_name}_{epoch_number}_temporal_filter.png')
     plt.savefig(save_path, bbox_inches="tight")
     plt.close()
 
