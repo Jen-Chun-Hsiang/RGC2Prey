@@ -170,11 +170,11 @@ def run_experiment(experiment_name, epoch_number=200):
             lambda module, inp, out: activations.setdefault("out", out)
         )
 
-        B, C, H, W, D = 1, 3, 240, 180, 50
-        input_raw = torch.randn(B, C, H, W, D, device=device)
+        B, C, H, W, D = 1, 2, 120, 90, 50
+        input_raw = torch.randn(B, D, C, H, W, device=device)
 
         # Permute to (B, C, D, H, W) for 3D ops
-        input_img = input_raw.permute(0, 1, 4, 2, 3).contiguous()
+        input_img = input_raw.permute(0, 2, 3, 4, 1).contiguous()
         input_img = input_img.detach().requires_grad_(True)
 
 
