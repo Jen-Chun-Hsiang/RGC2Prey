@@ -33,13 +33,26 @@ def total_variation_3d(x):
             diff_h.abs().mean() +
             diff_w.abs().mean())
 
-def jitter_image_3d(x, max_jitter=(1, 5, 5)):
-    shift_d = random.randint(-max_jitter[0], max_jitter[0])
-    shift_h = random.randint(-max_jitter[1], max_jitter[1])
-    shift_w = random.randint(-max_jitter[2], max_jitter[2])
-    return torch.roll(x,
-                     shifts=(shift_d, shift_h, shift_w),
-                     dims=(2, 3, 4))
+def jitter_image_3d(x, max_jitter=None):
+    """
+    Jitter by up to max_jitter along each axis.
+    If max_jitter is None, we compute it as:
+      d: ±1 frame, 
+      h: ±max(1, H//20) pixels, 
+      w: ±max(1, W//20) pixels
+    """
+    _, _, D, H, W = x.shape
+    if max_jitter is None:
+        jd = 1
+        jh = max(1, H // 20)
+        jw = max(1, W // 20)
+    else:
+        jd, jh, jw = max_jitter
+
+    sd = random.randint(-jd, jd)
+    sh = random.randint(-jh, jh)
+    sw = random.randint(-jw, jw)
+    return torch.roll(x, shifts=(sd, sh, sw), dims=(2, 3, 4))
 
 def normalize_image_3d(x, eps=1e-8):
     return x / (x.norm() + eps)
@@ -164,78 +177,81 @@ def run_experiment(experiment_name, epoch_number=200):
 
     optimized_volumes = []
 
+    B, C_in, H_full, W_full, D = 1, 2, 120, 90, 50
+
+    # 4) Multi‐scale settings (note the comma after the first tuple!)
+    spatial_scales = [
+        (32,  24),    # small spatial
+        (60,  45), # full spatial
+        (120, 90),
+    ]
+
+    iters_per_scale = 100
+
     for k in range(num_kernels):
         activations = {}
-        hook_handle = target_layer.register_forward_hook(
-            lambda module, inp, out: activations.setdefault("out", out)
+        hook = target_layer.register_forward_hook(
+            lambda m, inp, out, d=activations: d.setdefault("out", out)
         )
 
-        B, C, H, W, D = 1, 2, 120, 90, 50
-        input_raw = torch.randn(B, D, C, H, W, device=device)
-
-        # Permute to (B, C, D, H, W) for 3D ops
-        input_img = input_raw.permute(0, 2, 3, 4, 1).contiguous()
-        input_img = input_img.detach().requires_grad_(True)
-
-
-        # 4) Multi‐scale settings (note the comma after the first tuple!)
-        scales = [
-            (5, 32, 24),    # very coarse
-            (10, 60, 45),
-            (25, 120, 90),
-            (50, 240, 180)  # final target
-        ]
-        num_iterations = 100
+        h0, w0 = spatial_scales[0]
+        small_img = torch.randn(B, C_in, D, h0, w0, device=device)
+        small_img = small_img.detach().requires_grad_(True)
 
         # 5) Initialize random input at coarsest scale
         # input_img = torch.randn(1, 3, *scales[0], device=device, requires_grad=True)
 
-        for scale in scales:
-            # Resize if needed
-            if input_img.shape[2:] != scale:
-                input_img = F.interpolate(input_img, size=scale, mode='trilinear', align_corners=False)
-                input_img = input_img.detach().requires_grad_(True)
+        for (h_s, w_s) in spatial_scales:
+            # a) Upsample small_img to its own target (D,h_s,w_s)
+            if (small_img.shape[3], small_img.shape[4]) != (h_s, w_s):
+                small_img = F.interpolate(
+                    small_img,
+                    size=(D, h_s, w_s),
+                    mode='trilinear',
+                    align_corners=False
+                ).detach().requires_grad_(True)
 
-            optimizer = optim.Adam([input_img], lr=0.05)
-            print(f"Optimizing at scale (D,H,W) = {scale}")
+            optimizer = optim.Adam([small_img], lr=0.05)
 
-            for it in range(1, num_iterations+1):
+            for i in range(1, iters_per_scale+1):
                 optimizer.zero_grad()
 
-                # a) Jitter
-                img_j = jitter_image_3d(input_img)
+                # b) Upsample to the fixed model size
+                up = F.interpolate(
+                    small_img,
+                    size=(D, H_full, W_full),
+                    mode='trilinear',
+                    align_corners=False
+                )
 
-                # b) Forward through RGC
-                rgc_net(img_j)
+                # c) Jitter (now automatically scales to H_full,W_full)
+                up_j = jitter_image_3d(up)
 
-                # c) Pull out the hooked activation
-                act_map = activations["out"][0]   # shape (out_ch, H', W')
-                C_out, H_out, W_out = act_map.shape
+                # d) Forward and grab activation map
+                rgc_net(up_j)
+                act_map = activations["out"][0]       # (C_out, H_out, W_out)
+                _, H_out, W_out = act_map.shape
+                mid_r, mid_c = H_out//2, W_out//2
 
-                # c) Choose the center cell
-                mid_row = H_out // 2
-                mid_col = W_out // 2
-                
-                loss_activation = -act_map[k, mid_row, mid_col]
-
-                # d) Regularization
-                loss_l2 = 1e-4 * input_img.norm()
-                loss_tv = 1e-4 * total_variation_3d(input_img)
-                loss = loss_activation + loss_l2 + loss_tv
+                # e) Loss = –center activation of kernel k
+                loss = -act_map[k, mid_r, mid_c]
+                # + regularization on *small_img*
+                loss = loss + 1e-4 * small_img.norm() + 1e-4 * total_variation_3d(small_img)
 
                 loss.backward()
                 optimizer.step()
 
-                # e) Normalize & clamp
+                # f) Normalize & clamp small_img
                 with torch.no_grad():
-                    input_img.copy_(normalize_image_3d(input_img))
-                    input_img.clamp_(-1.5, 1.5)
+                    small_img.copy_(normalize_image_3d(small_img))
+                    small_img.clamp_(-1.5, 1.5)
 
-                if it % 25 == 0:
-                    print(f"  iter {it}/{num_iterations}  loss {loss.item():.4f}")
-        
-        hook_handle.remove()
-        optimized_volumes.append(input_img.detach().cpu().squeeze())  # (C_in, D, H, W)
+                if i % 25 == 0:
+                    print(f" scale {(h_s,w_s)} iter {i}/{iters_per_scale} loss {loss.item():.4f}")
+
+        hook.remove()
+        optimized_volumes.append(small_img.detach().cpu().squeeze())  # (C_in, D, H, W)
+
 
 
     # 9) Visualize the middle frame of the final optimized volume
