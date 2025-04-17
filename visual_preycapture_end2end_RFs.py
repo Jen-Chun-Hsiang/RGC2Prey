@@ -229,7 +229,7 @@ def run_experiment(experiment_name, epoch_number=200):
                 # c) Jitter (now automatically scales to H_full,W_full)
                 up_j = jitter_image_3d(up)
 
-                if i == 0:
+                if i == 1:
                     print(f'up_j shape: {up_j.shape}')
                 # d) Forward and grab activation map
                 rgc_net(up_j)
