@@ -134,8 +134,8 @@ def run_experiment(experiment_name, epoch_number=200):
     # 1. Grab the raw conv_temporal weights and move to NumPy:
     #    shape is (out_channels, in_channels, D, kH, kW)
     wt_param = rgc_net.conv_temporal.weight
-    print("Has conv_temporal?", hasattr(rgc_net, "conv_temporal"))
-    print("Parameter object:", wt_param)
+    # print("Has conv_temporal?", hasattr(rgc_net, "conv_temporal"))
+    # print("Parameter object:", wt_param)
 
     wt = wt_param.detach().cpu().numpy()
     print("Weight shape (out_ch, in_ch, D, kH, kW):", wt.shape)
@@ -213,6 +213,8 @@ def run_experiment(experiment_name, epoch_number=200):
 
             optimizer = optim.Adam([small_img], lr=0.05)
 
+            print(f'small_img shape: {small_img.shape}')
+
             for i in range(1, iters_per_scale+1):
                 optimizer.zero_grad()
 
@@ -227,6 +229,8 @@ def run_experiment(experiment_name, epoch_number=200):
                 # c) Jitter (now automatically scales to H_full,W_full)
                 up_j = jitter_image_3d(up)
 
+                if i == 0:
+                    print(f'up_j shape: {up_j.shape}')
                 # d) Forward and grab activation map
                 rgc_net(up_j)
                 act_map = activations["out"][0]       # (C_out, H_out, W_out)
