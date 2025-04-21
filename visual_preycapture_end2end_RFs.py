@@ -187,112 +187,131 @@ def run_experiment(experiment_name, epoch_number=200):
         (D, H_full, W_full), # full spatial (50, 120, 90)
     ]
 
+    triangle_fracs = [
+        (0.25, 0.50),  # top center
+        (0.75, 0.25),  # bottom left
+        (0.75, 0.75),  # bottom right
+    ]
+
     iters_per_scale = 128
 
     for k in range(num_kernels):
-        activations = {}
+        loc_vols = []
+        for (frac_r, frac_c) in triangle_fracs:
+            activations = {}
 
-        def hook_fn(module, inp, out):
-            activations["out"] = out
-        
-        hook = target_layer.register_forward_hook(hook_fn)
-        # hook = target_layer.register_forward_hook(
-        #     lambda m, inp, out, d=activations: d.setdefault("out", out)
-        # )
+            def hook_fn(module, inp, out):
+                activations["out"] = out
+            
+            hook = target_layer.register_forward_hook(hook_fn)
+            # hook = target_layer.register_forward_hook(
+            #     lambda m, inp, out, d=activations: d.setdefault("out", out)
+            # )
 
-        d0, h0, w0 = spatial_scales[0]
-        small_img = torch.randn(B, C_in, d0, h0, w0, device=device)
-        small_img = small_img.detach().requires_grad_(True)
+            d0, h0, w0 = spatial_scales[0]
+            small_img = torch.randn(B, C_in, d0, h0, w0, device=device)
+            small_img = small_img.detach().requires_grad_(True)
 
-        # 5) Initialize random input at coarsest scale
-        # input_img = torch.randn(1, 3, *scales[0], device=device, requires_grad=True)
+            # 5) Initialize random input at coarsest scale
+            # input_img = torch.randn(1, 3, *scales[0], device=device, requires_grad=True)
 
-        for (d_s, h_s, w_s) in spatial_scales:
-            # a) Upsample small_img to its own target (D,h_s,w_s)
-            if small_img.shape[2:] != (d_s, h_s, w_s):
-                small_img = F.interpolate(
-                    small_img,
-                    size=(d_s, h_s, w_s),
-                    mode='trilinear',
-                    align_corners=False
-                ).detach().requires_grad_(True)
+            for (d_s, h_s, w_s) in spatial_scales:
+                # a) Upsample small_img to its own target (D,h_s,w_s)
+                if small_img.shape[2:] != (d_s, h_s, w_s):
+                    small_img = F.interpolate(
+                        small_img,
+                        size=(d_s, h_s, w_s),
+                        mode='trilinear',
+                        align_corners=False
+                    ).detach().requires_grad_(True)
 
-            optimizer = optim.Adam([small_img], lr=0.05)
+                optimizer = optim.Adam([small_img], lr=0.05)
 
-            print(f'small_img shape: {small_img.shape}')
+                print(f'small_img shape: {small_img.shape}')
 
-            for i in range(1, iters_per_scale+1):
-                optimizer.zero_grad()
+                for i in range(1, iters_per_scale+1):
+                    optimizer.zero_grad()
 
-                # b) Upsample to the fixed model size
-                up = F.interpolate(
-                    small_img,
-                    size=(D, H_full, W_full),
-                    mode='trilinear',
-                    align_corners=False
-                )
+                    # b) Upsample to the fixed model size
+                    up = F.interpolate(
+                        small_img,
+                        size=(D, H_full, W_full),
+                        mode='trilinear',
+                        align_corners=False
+                    )
 
-                # c) Jitter (now automatically scales to H_full,W_full)
-                up_j = jitter_image_3d(up)
-                up_j = up_j.permute(0, 1, 3, 4, 2) 
+                    # c) Jitter (now automatically scales to H_full,W_full)
+                    up_j = jitter_image_3d(up)
+                    up_j = up_j.permute(0, 1, 3, 4, 2) 
 
-                if i == 1:
-                    print(f'up_j shape: {up_j.shape}')
-                # d) Forward and grab activation map
-                rgc_net(up_j)
-                assert activations["out"].shape[1] == 2, \
-                    f"Expected 2 channels, got {activations['out'].shape[1]}"
-                act_map = activations["out"][0]       # (C_out, H_out, W_out)
-                _, H_out, W_out = act_map.shape
-                mid_r, mid_c = H_out//2, W_out//2
+                    if i == 1:
+                        print(f'up_j shape: {up_j.shape}')
+                    # d) Forward and grab activation map
+                    rgc_net(up_j)
+                    assert activations["out"].shape[1] == 2, \
+                        f"Expected 2 channels, got {activations['out'].shape[1]}"
+                    act_map = activations["out"][0]       # (C_out, H_out, W_out)
+                    _, H_out, W_out = act_map.shape
 
-                # e) Loss = –center activation of kernel k
-                loss_act = -act_map[k, mid_r, mid_c]
-                # + regularization on *small_img*
-                loss_norm = 1e-4 * small_img.norm() 
-                loss_var = 1e-4 * total_variation_3d(small_img)
-                loss = loss_act + loss_norm + loss_var
+                    # compute the *one* target location for this run
+                    r_loc = int(frac_r * H_out)
+                    c_loc = int(frac_c * W_out)
 
-                loss.backward()
-                optimizer.step()
+                    # mid_r, mid_c = H_out//2, W_out//2
 
-                # f) Normalize & clamp small_img
-                with torch.no_grad():
-                    small_img.copy_(normalize_image_3d(small_img))
-                    small_img.clamp_(-1.5, 1.5)
+                    # e) Loss = –center activation of kernel k
+                    loss_act = -act_map[k, r_loc, c_loc]  
+                    # + regularization on *small_img*
+                    loss_norm = 1e-4 * small_img.norm() 
+                    loss_var = 1e-4 * total_variation_3d(small_img)
+                    loss = loss_act + loss_norm + loss_var
 
-                if i % 25 == 0:
-                    logging.info(f" scale {(h_s,w_s)} iter {i}/{iters_per_scale} loss {loss.item():.4f}")
-                    logging.info(f" loss_act:{loss_act.item():.4f} | loss_norm:{loss_norm.item():.4f} | loss_var:{loss_var.item():.4f}")
+                    loss.backward()
+                    optimizer.step()
+
+                    # f) Normalize & clamp small_img
+                    with torch.no_grad():
+                        small_img.copy_(normalize_image_3d(small_img))
+                        small_img.clamp_(-1.5, 1.5)
+
+                    if i % 25 == 0:
+                        logging.info(f" scale {(h_s,w_s)} iter {i}/{iters_per_scale} loss {loss.item():.4f}")
+                        logging.info(f" loss_act:{loss_act.item():.4f} | loss_norm:{loss_norm.item():.4f} | loss_var:{loss_var.item():.4f}")
 
         hook.remove()
-        optimized_volumes.append(small_img.detach().cpu().squeeze())  # (C_in, D, H, W)
+        loc_vols.append(small_img.detach().cpu().squeeze())
+
+    optimized_volumes.append(loc_vols)  # (C_in, D, H, W)
 
 
 
     # 9) Visualize the middle frame of the final optimized volume
-    fig, axes = plt.subplots(2, num_kernels, figsize=(4 * num_kernels, 8))
-    for k, vol in enumerate(optimized_volumes):
-        # vol shape: (C_in, D, H, W); assume C_in=1 for simplicity
-        vol = vol[0]               # (D, H, W)
-        mid_idx = vol.shape[0] // 2
+    for k, loc_vols in enumerate(optimized_volumes):
+        fig, axes = plt.subplots(2, len(triangle_fracs),
+                                figsize=(4 * len(triangle_fracs), 8))
+        for j, vol in enumerate(loc_vols):
+            vol = vol[0]                # (D, H, W)
+            mid_idx   = vol.shape[0] // 2
+            mid_frame = vol[mid_idx]    # (H, W)
+            std_map   = vol.std(dim=0)  # (H, W)
 
-        mid_frame = vol[mid_idx]   # (H, W)
-        std_map   = vol.std(dim=0) # (H, W)
+            # top row: mid frame
+            ax = axes[0, j]
+            ax.imshow(mid_frame, cmap='gray')
+            ax.set_title(f"Kernel {k} — Loc {j} (mid slice)")
+            ax.axis('off')
 
-        axes[0, k].imshow(mid_frame, cmap='gray')
-        axes[0, k].set_title(f"Kernel {k} Mid Frame")
-        axes[0, k].axis('off')
+            # bottom row: std map
+            ax = axes[1, j]
+            ax.imshow(std_map, cmap='gray')
+            ax.set_title(f"Kernel {k} — Loc {j} (std)")
+            ax.axis('off')
 
-        axes[1, k].imshow(std_map, cmap='gray')
-        axes[1, k].set_title(f"Kernel {k} STD")
-        axes[1, k].axis('off')
+        plt.tight_layout()
 
-    plt.tight_layout()
-
-    save_path = os.path.join(test_save_folder, f'{file_name}_{epoch_number}_optimized_stimuli4conv2.png')
-    plt.savefig(save_path, bbox_inches="tight")
-    plt.close()
+        save_path = os.path.join(test_save_folder, f'{file_name}_{epoch_number}_k{k}_optimized_stimuli4conv2.png')
+        plt.savefig(save_path, bbox_inches="tight")
+        plt.close(fig)
 
 if __name__ == "__main__":
     main()
