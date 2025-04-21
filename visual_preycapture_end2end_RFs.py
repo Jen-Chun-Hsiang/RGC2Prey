@@ -138,15 +138,14 @@ def run_experiment(experiment_name, epoch_number=200):
     # print("Parameter object:", wt_param)
 
     wt = wt_param.detach().cpu().numpy()
-    print("Weight shape (out_ch, in_ch, D, kH, kW):", wt.shape)
+    logging.info( f"Weight shape (out_ch, in_ch, D, kH, kW): {wt.shape}")
     out_ch, in_ch, kH, kW, D = wt.shape
 
     assert wt.size != 0, "Weight tensor is empty!"
     assert D > 0, "Temporal dimension is zero!"
     assert kH == 1 and kW == 1, f"Unexpected spatial kernel dims: {(kH,kW)}"
 
-    print(f'D: {D}')
-    print(f'out_ch: {out_ch}')
+    logging.info( f"D: {D} out_ch: {out_ch} ")
     # 2. Prepare x‐axis (1…D) and a figure
     x = np.arange(1, D+1)
     plt.figure(figsize=(6,4))
@@ -244,9 +243,11 @@ def run_experiment(experiment_name, epoch_number=200):
                 mid_r, mid_c = H_out//2, W_out//2
 
                 # e) Loss = –center activation of kernel k
-                loss = -act_map[k, mid_r, mid_c]
+                loss_act = -act_map[k, mid_r, mid_c]
                 # + regularization on *small_img*
-                loss = loss + 1e-4 * small_img.norm() + 1e-4 * total_variation_3d(small_img)
+                loss_norm = 1e-4 * small_img.norm() 
+                loss_var = 1e-4 * total_variation_3d(small_img)
+                loss = loss_act + loss_norm + loss_var
 
                 loss.backward()
                 optimizer.step()
@@ -257,7 +258,8 @@ def run_experiment(experiment_name, epoch_number=200):
                     small_img.clamp_(-1.5, 1.5)
 
                 if i % 25 == 0:
-                    print(f" scale {(h_s,w_s)} iter {i}/{iters_per_scale} loss {loss.item():.4f}")
+                    logging.info(f" scale {(h_s,w_s)} iter {i}/{iters_per_scale} loss {loss.item():.4f}")
+                    logging.info(f" loss_act:{loss_act.item():.4f} | loss_norm:{loss_norm.item():.4f} | loss_var:{loss_var.item():.4f}")
 
         hook.remove()
         optimized_volumes.append(small_img.detach().cpu().squeeze())  # (C_in, D, H, W)
