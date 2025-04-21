@@ -240,6 +240,8 @@ def run_experiment(experiment_name, epoch_number=200):
                     print(f'up_j shape: {up_j.shape}')
                 # d) Forward and grab activation map
                 rgc_net(up_j)
+                assert activations["out"].shape[1] == 2, \
+                    f"Expected 2 channels, got {activations['out'].shape[1]}"
                 act_map = activations["out"][0]       # (C_out, H_out, W_out)
                 _, H_out, W_out = act_map.shape
                 mid_r, mid_c = H_out//2, W_out//2
