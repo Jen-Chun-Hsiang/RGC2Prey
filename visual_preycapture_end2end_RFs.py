@@ -108,6 +108,9 @@ def run_experiment(experiment_name, epoch_number=200):
     else:
         num_input_channel = 1
 
+    if not hasattr(args, 'min_lr'):
+        args.min_lr = 1e-6
+
     xlim, ylim = args.xlim, args.ylim
     target_height = xlim[1]-xlim[0]
     target_width = ylim[1]-ylim[0]
@@ -226,6 +229,8 @@ def run_experiment(experiment_name, epoch_number=200):
                     ).detach().requires_grad_(True)
 
                 optimizer = optim.Adam([small_img], lr=0.05)
+                scheduler = optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer, T_0=4, T_mult=2, eta_min=args.min_lr)
+
 
                 print(f'small_img shape: {small_img.shape}')
 
@@ -268,6 +273,8 @@ def run_experiment(experiment_name, epoch_number=200):
 
                     loss.backward()
                     optimizer.step()
+
+                    scheduler.step(i + (i / (iters_per_scale+1)))
 
                     # f) Normalize & clamp small_img
                     with torch.no_grad():
