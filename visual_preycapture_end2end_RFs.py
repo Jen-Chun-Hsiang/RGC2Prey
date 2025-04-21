@@ -138,7 +138,7 @@ def run_experiment(experiment_name, epoch_number=200):
     # print("Parameter object:", wt_param)
 
     wt = wt_param.detach().cpu().numpy()
-    logging.info( f"Weight shape (out_ch, in_ch, D, kH, kW): {wt.shape}")
+    logging.info( f"Weight shape (out_ch, in_ch, kH, kW, D): {wt.shape}")
     out_ch, in_ch, kH, kW, D = wt.shape
 
     assert wt.size != 0, "Weight tensor is empty!"
@@ -180,12 +180,14 @@ def run_experiment(experiment_name, epoch_number=200):
 
     # 4) Multi‐scale settings (note the comma after the first tuple!)
     spatial_scales = [
+        (8, 6),
+        (16,  12),
         (32,  24),    # small spatial
         (60,  45), # full spatial
         (120, 90),
     ]
 
-    iters_per_scale = 500
+    iters_per_scale = 128
 
     for k in range(num_kernels):
         activations = {}
