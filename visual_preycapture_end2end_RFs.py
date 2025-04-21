@@ -186,7 +186,7 @@ def run_experiment(experiment_name, epoch_number=200):
         (120, 90),
     ]
 
-    iters_per_scale = 100
+    iters_per_scale = 500
 
     for k in range(num_kernels):
         activations = {}
