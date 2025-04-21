@@ -228,7 +228,7 @@ def run_experiment(experiment_name, epoch_number=200):
 
                 # c) Jitter (now automatically scales to H_full,W_full)
                 up_j = jitter_image_3d(up)
-                up_j = up_j.permute(0, 2, 1, 3, 4) 
+                up_j = up_j.permute(0, 1, 3, 4, 2) 
 
                 if i == 1:
                     print(f'up_j shape: {up_j.shape}')
