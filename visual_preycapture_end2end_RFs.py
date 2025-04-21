@@ -278,10 +278,10 @@ def run_experiment(experiment_name, epoch_number=200):
                         logging.info(f" scale {(h_s,w_s)} iter {i}/{iters_per_scale} loss {loss.item():.4f}")
                         logging.info(f" loss_act:{loss_act.item():.4f} | loss_norm:{loss_norm.item():.4f} | loss_var:{loss_var.item():.4f}")
 
-        hook.remove()
-        loc_vols.append(small_img.detach().cpu().squeeze())
+            hook.remove()
+            loc_vols.append(small_img.detach().cpu().squeeze())
 
-    optimized_volumes.append(loc_vols)  # (C_in, D, H, W)
+        optimized_volumes.append(loc_vols)  # (C_in, D, H, W)
 
 
 
