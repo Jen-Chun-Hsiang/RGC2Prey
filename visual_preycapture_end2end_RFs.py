@@ -180,11 +180,11 @@ def run_experiment(experiment_name, epoch_number=200):
 
     # 4) Multi‐scale settings (note the comma after the first tuple!)
     spatial_scales = [
-        (8, 6),
-        (16,  12),
-        (32,  24),    # small spatial
-        (60,  45), # full spatial
-        (120, 90),
+        (3, 8, 6),
+        (6, 16,  12),
+        (12, 32,  24),    # small spatial
+        (24, 60,  45), 
+        (D, H_full, W_full), # full spatial (50, 120, 90)
     ]
 
     iters_per_scale = 128
@@ -200,19 +200,19 @@ def run_experiment(experiment_name, epoch_number=200):
         #     lambda m, inp, out, d=activations: d.setdefault("out", out)
         # )
 
-        h0, w0 = spatial_scales[0]
-        small_img = torch.randn(B, C_in, D, h0, w0, device=device)
+        d0, h0, w0 = spatial_scales[0]
+        small_img = torch.randn(B, C_in, d0, h0, w0, device=device)
         small_img = small_img.detach().requires_grad_(True)
 
         # 5) Initialize random input at coarsest scale
         # input_img = torch.randn(1, 3, *scales[0], device=device, requires_grad=True)
 
-        for (h_s, w_s) in spatial_scales:
+        for (d_s, h_s, w_s) in spatial_scales:
             # a) Upsample small_img to its own target (D,h_s,w_s)
-            if (small_img.shape[3], small_img.shape[4]) != (h_s, w_s):
+            if small_img.shape[2:] != (d_s, h_s, w_s):
                 small_img = F.interpolate(
                     small_img,
-                    size=(D, h_s, w_s),
+                    size=(d_s, h_s, w_s),
                     mode='trilinear',
                     align_corners=False
                 ).detach().requires_grad_(True)
