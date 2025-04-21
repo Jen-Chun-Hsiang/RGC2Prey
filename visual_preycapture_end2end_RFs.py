@@ -190,9 +190,14 @@ def run_experiment(experiment_name, epoch_number=200):
 
     for k in range(num_kernels):
         activations = {}
-        hook = target_layer.register_forward_hook(
-            lambda m, inp, out, d=activations: d.setdefault("out", out)
-        )
+
+        def hook_fn(module, inp, out):
+            activations["out"] = out
+        
+        hook = target_layer.register_forward_hook(hook_fn)
+        # hook = target_layer.register_forward_hook(
+        #     lambda m, inp, out, d=activations: d.setdefault("out", out)
+        # )
 
         h0, w0 = spatial_scales[0]
         small_img = torch.randn(B, C_in, D, h0, w0, device=device)
