@@ -318,7 +318,7 @@ class Cricket2RGCs(Dataset):
                  multi_opt_sf_off=None, tf_off=None, map_func_off=None, grid2value_mapping_off=None, 
                  is_both_ON_OFF=False, quantize_scale = 1, add_noise=False, rgc_noise_std=0.0, smooth_data=False, 
                  smooth_kernel_size=20, sampleing_rate=100, smooth_sigma=0.05, is_rectified=True, is_direct_image=False,
-                 grid_coords=None):
+                 grid_coords=None, is_reversed_OFF_sign=False):
         self.num_samples = num_samples
         self.multi_opt_sf = torch.from_numpy(multi_opt_sf).float()
         self.tf = torch.from_numpy(tf.copy()).float().view(1, 1, -1)
@@ -352,6 +352,7 @@ class Cricket2RGCs(Dataset):
         self.smooth_sigma = smooth_sigma
         self.is_rectified = is_rectified
         self.is_direct_image = is_direct_image
+        self.is_reversed_OFF_sign = is_reversed_OFF_sign
         self.grid_coords = torch.tensor(grid_coords, dtype=torch.float32) if grid_coords is not None else None
 
     def __len__(self):
@@ -469,7 +470,10 @@ class Cricket2RGCs(Dataset):
             map_funcs = [self.map_func, self.map_func_off]
             grid2value_mappings = [self.grid2value_mapping, self.grid2value_mapping_off]
 
-            tfs = [self.tf, -self.tf_off]  # Given that they are the same but sign
+            if self.is_reversed_OFF_sign:
+                tfs = [self.tf, self.tf_off]
+            else:
+                tfs = [self.tf, -self.tf_off]  # Given that they are the same but sign
 
             for sf, map_func, grid2value_mapping, tf in zip(multi_opt_sfs, map_funcs, grid2value_mappings, tfs):
                 sf_frame = torch.einsum('whn,thw->nt', sf, syn_movie)
