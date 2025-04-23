@@ -101,6 +101,8 @@ def parse_args():
     parser.add_argument('--accumulation_steps', type=int, default=1, help='Number of mini-batch to optimize (gradient accumulation)')
     parser.add_argument('--timer_tau', type=float, default=0.9, help='moving winder constant')
     parser.add_argument('--timer_sample_cicle', type=int, default=1, help='Sample circle for the timer')
+    parser.add_argument('--add_noise', action='store_true', help='Add noise to the RGC outputs')
+    parser.add_argument('--rgc_noise_std', type=float, default=0.0, help="Level of noise added to the RGC outputs")
 
     return parser.parse_args()
 
@@ -206,7 +208,8 @@ def main():
 
             # Forward pass
             with timer(timer_data_processing, tau=args.timer_tau, n=args.timer_sample_cicle):
-                outputs, bg_pred = model(sequences)
+                if args.add_noise:
+                    outputs, bg_pred = model(sequences, args.rgc_noise_std)
             
             # Compute loss
             with timer(timer_data_backpropagate, tau=args.timer_tau, n=args.timer_sample_cicle):
