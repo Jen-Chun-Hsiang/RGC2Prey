@@ -1181,18 +1181,8 @@ class RGC_CNN_LSTM_ObjectLocation(nn.Module):
         T_out = D - self.input_depth + 1
         rgc_features_list = []
         for i in range(T_out):
-            # Extract a sliding window along the time dimension:
-            # Each window is of shape (batch_size, input_depth, C, H, W)
             window = x[:, :, :, :, i:i+self.input_depth]
-            # Pass the window through the RGC module.
-            # Expected output shape from self.rgc(window) might be 
-            # (batch_size, T_r, out_channels, h_out, w_out). We then take the last time-step.
             rgc_feature = self.rgc(window)
-            noise = torch.randn_like(rgc_feature) * noise_level
-            rgc_feature = rgc_feature + noise
-            # Take the features corresponding to the last time step of the RGC output.
-            # (This ensures that only past data are used to predict the future.)
-            # rgc_feature = rgc_out[:, -1, :, :, :]  # shape: (batch_size, out_channels, h_out, w_out)
             rgc_feature = F.interpolate(rgc_feature, size=(H, W), 
                                 mode='bilinear', align_corners=False)
             rgc_features_list.append(rgc_feature)
@@ -1202,6 +1192,8 @@ class RGC_CNN_LSTM_ObjectLocation(nn.Module):
         rgc_features_seq = torch.stack(rgc_features_list, dim=1)
         if self.is_input_norm:
             rgc_features_seq = self.input_norm(rgc_features_seq)
+        noise = torch.randn_like(rgc_features_seq) * noise_level
+        rgc_features_seq = rgc_features_seq + noise
 
         T = rgc_features_seq.size(1)
         # --- Process each “time slice” of the RGC output using the CNN extractor ---
