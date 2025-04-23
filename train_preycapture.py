@@ -81,6 +81,7 @@ def parse_args():
     parser.add_argument('--smooth_data', action='store_true', help='Smooth data of RGC outputs, especially quantized one')
     parser.add_argument('--is_rectified', action='store_true', help='Rectify the RGC outputs')
     parser.add_argument('--is_direct_image', action='store_true', help='By passing RGC convolution')
+    parser.add_argument('--is_two_grids', action='store_true', help='Make two grids instead of one, like ON and OFF, but same sign')
     
     # Arguments for RGCrfArray
     parser.add_argument('--rgc_array_rf_size', type=tuple, default=default_rg_array_rf_size, help="Receptive field size (height, width).")
@@ -192,10 +193,12 @@ def main():
 
     logging.info( f"{args.experiment_name} processing...2")
 
-    if args.is_both_ON_OFF:
+    if args.is_both_ON_OFF or args.is_two_grids:
         num_input_channel = 2
         # sf_param_table = pd.read_excel(rf_params_file, sheet_name='SF_params_OFF', usecols='A:L')
         multi_opt_sf_off, tf_off, grid2value_mapping_off, map_func_off, rgc_locs_off = rgc_array.get_additional_results(anti_alignment=args.anti_alignment)  
+        if args.is_binocular: 
+            num_input_channel = 4
     else:
         if args.is_binocular:
             num_input_channel = 2
@@ -250,7 +253,8 @@ def main():
                                 is_norm_coords=args.is_norm_coords, is_syn_mov_shown=True, fr2spikes=args.fr2spikes,
                                 is_both_ON_OFF=args.is_both_ON_OFF, quantize_scale=args.quantize_scale, 
                                 add_noise=args.add_noise, rgc_noise_std=args.rgc_noise_std, smooth_data=args.smooth_data,
-                                is_rectified=args.is_rectified, is_direct_image=args.is_direct_image, is_reversed_OFF_sign=args.is_reversed_OFF_sign)
+                                is_rectified=args.is_rectified, is_direct_image=args.is_direct_image, is_reversed_OFF_sign=args.is_reversed_OFF_sign,
+                                is_two_grids=args.is_two_grids)
     
     
     logging.info( f"{args.experiment_name} processing...6")
