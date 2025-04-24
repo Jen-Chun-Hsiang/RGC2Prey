@@ -239,7 +239,8 @@ def run_experiment(experiment_name, noise_level=None, test_bg_folder=None, test_
                                 is_norm_coords=args.is_norm_coords, is_syn_mov_shown=True, fr2spikes=args.fr2spikes, 
                                 is_both_ON_OFF=args.is_both_ON_OFF, quantize_scale=args.quantize_scale, 
                                 add_noise=is_add_noise, rgc_noise_std=noise_level, smooth_data=args.smooth_data, 
-                                is_rectified=args.is_rectified, is_direct_image=args.is_direct_image, grid_coords=grid_centers)
+                                is_rectified=args.is_rectified, is_direct_image=args.is_direct_image, grid_coords=grid_centers,
+                                is_reversed_OFF_sign=args.is_reversed_OFF_sign)
     test_loader = DataLoader(test_dataset, batch_size=1, shuffle=True, worker_init_fn=worker_init_fn)
 
     logging.info( f"{file_name} processing...7")
@@ -306,7 +307,8 @@ def run_experiment(experiment_name, noise_level=None, test_bg_folder=None, test_
                                 is_norm_coords=args.is_norm_coords, is_syn_mov_shown=True, fr2spikes=args.fr2spikes, 
                                 is_both_ON_OFF=args.is_both_ON_OFF, quantize_scale=args.quantize_scale, 
                                 add_noise=is_add_noise, rgc_noise_std=noise_level, smooth_data=args.smooth_data, 
-                                is_rectified=args.is_rectified, is_direct_image=args.is_direct_image, grid_coords=grid_centers)
+                                is_rectified=args.is_rectified, is_direct_image=args.is_direct_image, grid_coords=grid_centers,
+                                is_reversed_OFF_sign=args.is_reversed_OFF_sign)
     test_loader = DataLoader(test_dataset, batch_size=1, shuffle=False, worker_init_fn=worker_init_fn)
 
     logging.info( f"{file_name} processing...10")
