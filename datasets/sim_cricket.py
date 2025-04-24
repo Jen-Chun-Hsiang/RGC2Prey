@@ -403,6 +403,8 @@ class Cricket2RGCs(Dataset):
             if grid_coords is not None else None
         )
 
+        logging.info( f"Testing on the new efficient version...")
+
     def __len__(self):
         return self.num_samples
 
@@ -414,7 +416,7 @@ class Cricket2RGCs(Dataset):
         rgc_time = F.conv1d(sf_frame, tf_rep, stride=1, padding=0, groups=sf_frame.shape[1]).squeeze()
 
         if self.fr2spikes:
-            rgc_time = torch.poisson(torch.clamp_min(rgc_time * self.quantize_scale, 0)) / self.quantize_scale
+            rgc_time = torch.poisson(torch.clamp_min(rgc_time * self.bze_scale, 0)) / self.quantize_scale
         if self.smooth_data:
             rgc_time = gaussian_smooth_1d(
                 rgc_time,
