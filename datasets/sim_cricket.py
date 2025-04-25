@@ -462,6 +462,7 @@ class Cricket2RGCs(Dataset):
         else:
             mono = syn_movie[:, 0] if syn_movie.ndim == 4 else syn_movie
             movies = [mono]
+            syn_movie = syn_movie[:, 0, :, :] 
 
         grid_values_list = []
 
@@ -564,7 +565,7 @@ class Cricket2RGCs(Dataset):
 
         # Return with or without synthetic movie
         if self.is_syn_mov_shown:
-            return grid_seq, path, path_bg, *rest, weighted_coords
+            return grid_seq, path, path_bg, syn_movie, *rest, weighted_coords
         return grid_seq, out_path, out_bg
 
     
