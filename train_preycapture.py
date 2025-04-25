@@ -151,7 +151,7 @@ def parse_args():
 
 def main():
     is_show_rgc_rf_individual = False #True
-    is_show_rgc_tf = False #True
+    is_show_rgc_tf = True #True
     is_show_movie_frames = False 
     is_show_pathes = False #True
     is_show_grids = False #True
@@ -232,6 +232,7 @@ def main():
     if is_show_rgc_tf:
         plot_vector_and_save(tf, plot_save_folder, file_name=f'{args.experiment_name}_temporal_filter.png')
         
+    raise ValueError(f"temporal filter display..."
     movie_generator = SynMovieGenerator(top_img_folder, bottom_img_folder,
         crop_size=args.crop_size, boundary_size=args.boundary_size, center_ratio=args.center_ratio, max_steps=args.max_steps,
         prob_stay_ob=args.prob_stay_ob, prob_mov_ob=args.prob_mov_ob, prob_stay_bg=args.prob_stay_bg, prob_mov_bg=args.prob_mov_bg, 
