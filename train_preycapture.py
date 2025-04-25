@@ -154,7 +154,7 @@ def main():
     is_show_rgc_tf = False #True
     is_show_movie_frames = False 
     is_show_pathes = False #True
-    is_show_grids = False #True
+    is_show_grids = True #True
     is_show_rgc_grid = True
 
     args = parse_args()
@@ -280,7 +280,7 @@ def main():
                 plot_tensor_and_save(Timg, syn_save_folder, f'{args.experiment_name}_RGCgrid_activity_doublecheck_OFF_{i + 1}.png')
         if is_show_pathes:
             plot_two_path_comparison(path, path_bg, plot_save_folder, file_name=f'{args.experiment_name}_dataset_path.png')
-    
+    raise ValueError(f"done shoing grid...")
     logging.info( f"{args.experiment_name} processing...7")
     if args.is_generate_movie:
         frame_width = 640
