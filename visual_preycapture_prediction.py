@@ -131,6 +131,10 @@ def run_experiment(experiment_name, noise_level=None, test_bg_folder=None, test_
         args.is_reversed_tf = False
     if not hasattr(args, 'is_reversed_OFF_sign'):
         args.is_reversed_OFF_sign = False
+    if not hasattr(args, 'rectifed_thr_ON'):
+        args.rectifed_thr_ON = 0.0
+    if not hasattr(args, 'rectifed_thr_OFF'):
+        args.rectifed_thr_OFF = 0.0
 
     process_seed(args.seed)
 
@@ -209,7 +213,8 @@ def run_experiment(experiment_name, noise_level=None, test_bg_folder=None, test_
                                 is_norm_coords=args.is_norm_coords, is_syn_mov_shown=False, fr2spikes=args.fr2spikes, 
                                 is_both_ON_OFF=args.is_both_ON_OFF, quantize_scale=args.quantize_scale, 
                                 add_noise=is_add_noise, rgc_noise_std=noise_level, smooth_data=args.smooth_data, 
-                                is_rectified=args.is_rectified, is_direct_image=args.is_direct_image, is_reversed_OFF_sign=args.is_reversed_OFF_sign)
+                                is_rectified=args.is_rectified, is_direct_image=args.is_direct_image, is_reversed_OFF_sign=args.is_reversed_OFF_sign,
+                                rectifed_thr_ON=args.rectifed_thr_ON, rectifed_thr_OFF=args.rectifed_thr_OFF)
 
     test_loader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=True, 
                              num_workers=args.num_worker, pin_memory=True, persistent_workers=False, worker_init_fn=worker_init_fn)
@@ -240,7 +245,8 @@ def run_experiment(experiment_name, noise_level=None, test_bg_folder=None, test_
                                 is_both_ON_OFF=args.is_both_ON_OFF, quantize_scale=args.quantize_scale, 
                                 add_noise=is_add_noise, rgc_noise_std=noise_level, smooth_data=args.smooth_data, 
                                 is_rectified=args.is_rectified, is_direct_image=args.is_direct_image, grid_coords=grid_centers,
-                                is_reversed_OFF_sign=args.is_reversed_OFF_sign)
+                                is_reversed_OFF_sign=args.is_reversed_OFF_sign, rectifed_thr_ON=args.rectifed_thr_ON, 
+                                rectifed_thr_OFF=args.rectifed_thr_OFF)
     test_loader = DataLoader(test_dataset, batch_size=1, shuffle=True, worker_init_fn=worker_init_fn)
 
     logging.info( f"{file_name} processing...7")
@@ -308,7 +314,8 @@ def run_experiment(experiment_name, noise_level=None, test_bg_folder=None, test_
                                 is_both_ON_OFF=args.is_both_ON_OFF, quantize_scale=args.quantize_scale, 
                                 add_noise=is_add_noise, rgc_noise_std=noise_level, smooth_data=args.smooth_data, 
                                 is_rectified=args.is_rectified, is_direct_image=args.is_direct_image, grid_coords=grid_centers,
-                                is_reversed_OFF_sign=args.is_reversed_OFF_sign)
+                                is_reversed_OFF_sign=args.is_reversed_OFF_sign, rectifed_thr_ON=args.rectifed_thr_ON, 
+                                rectifed_thr_OFF=args.rectifed_thr_OFF)
     test_loader = DataLoader(test_dataset, batch_size=1, shuffle=False, worker_init_fn=worker_init_fn)
 
     logging.info( f"{file_name} processing...10")
