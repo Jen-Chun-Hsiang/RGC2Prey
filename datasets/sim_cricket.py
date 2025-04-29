@@ -344,6 +344,8 @@ class Cricket2RGCs(Dataset):
         grid_coords=None,
         is_reversed_OFF_sign=False,
         is_two_grids=False,
+        rectifed_thr_ON=-0.1,
+        rectifed_thr_OFF=0.0
     ):
         # Core attributes
         self.num_samples = num_samples
@@ -371,6 +373,8 @@ class Cricket2RGCs(Dataset):
         self.is_both_ON_OFF = is_both_ON_OFF
         self.is_two_grids = is_two_grids
         self.is_reversed_OFF_sign = is_reversed_OFF_sign
+        self.rectifed_thr_ON=rectifed_thr_ON
+        self.rectifed_thr_OFF=rectifed_thr_OFF
 
         # Normalization for path coordinates
         self.norm_path_fac = (
@@ -385,6 +389,7 @@ class Cricket2RGCs(Dataset):
                 'tf': torch.from_numpy(tf.copy()).float().view(1, 1, -1),
                 'map_func': map_func,
                 'grid2value': grid2value_mapping,
+                'rect_thr': self.rectifed_thr_ON, 
             }
         ]
         # Add OFF channel config if required
@@ -397,6 +402,7 @@ class Cricket2RGCs(Dataset):
                 'tf': off_tf_signed,
                 'map_func': map_func_off,
                 'grid2value': grid2value_mapping_off,
+                'rect_thr': self.rectifed_thr_OFF,
             })
 
         # Optional grid-coordinates for weighted output
@@ -408,7 +414,7 @@ class Cricket2RGCs(Dataset):
     def __len__(self):
         return self.num_samples
 
-    def _compute_rgc_time(self, movie, sf, tf):
+    def _compute_rgc_time(self, movie, sf, tf, rect_thr):
         # movie: [T, H, W], sf: [W, H, n], tf: [1, 1, T]
         sf_frame = torch.einsum('whn,thw->nt', sf, movie)
         sf_frame = sf_frame.unsqueeze(0)
@@ -435,7 +441,7 @@ class Cricket2RGCs(Dataset):
         if self.add_noise:
             rgc_time += torch.randn_like(rgc_time) * self.rgc_noise_std
         if self.is_rectified:
-            rgc_time = torch.clamp_min(rgc_time, 0)
+            rgc_time = torch.clamp_min(rgc_time, rect_thr)
         return rgc_time
 
     def _process_direct_image(self, syn_movie):
@@ -475,7 +481,7 @@ class Cricket2RGCs(Dataset):
             if self.is_both_ON_OFF and is_binocular:
                 for ch in self.channels:
                     for mv in movies:
-                        rgc_time = self._compute_rgc_time(mv, ch['sf'], ch['tf'])
+                        rgc_time = self._compute_rgc_time(mv, ch['sf'], ch['tf'], ch['rect_thr'])
                         grid_values_list.append(
                             ch['map_func'](
                                 rgc_time,
@@ -489,7 +495,7 @@ class Cricket2RGCs(Dataset):
             elif self.is_two_grids and is_binocular:
                 for ch in self.channels:
                     for mv in movies:
-                        rgc_time = self._compute_rgc_time(mv, ch['sf'], ch['tf'])
+                        rgc_time = self._compute_rgc_time(mv, ch['sf'], ch['tf'], ch['rect_thr'])
                         grid_values_list.append(
                             ch['map_func'](
                                 rgc_time,
@@ -503,7 +509,7 @@ class Cricket2RGCs(Dataset):
             elif is_binocular:
                 ch = self.channels[0]
                 for mv in movies:
-                    rgc_time = self._compute_rgc_time(mv, ch['sf'], ch['tf'])
+                    rgc_time = self._compute_rgc_time(mv, ch['sf'], ch['tf'], ch['rect_thr'])
                     grid_values_list.append(
                         ch['map_func'](
                             rgc_time,
@@ -516,7 +522,7 @@ class Cricket2RGCs(Dataset):
             # 4) ON/OFF only => 2 outputs
             elif self.is_both_ON_OFF:
                 for ch in self.channels:
-                    rgc_time = self._compute_rgc_time(movies[0], ch['sf'], ch['tf'])
+                    rgc_time = self._compute_rgc_time(movies[0], ch['sf'], ch['tf'], ch['rect_thr'])
                     grid_values_list.append(
                         ch['map_func'](
                             rgc_time,
@@ -529,7 +535,7 @@ class Cricket2RGCs(Dataset):
             # 5) Default single pathway => 1 output
             else:
                 ch = self.channels[0]
-                rgc_time = self._compute_rgc_time(movies[0], ch['sf'], ch['tf'])
+                rgc_time = self._compute_rgc_time(movies[0], ch['sf'], ch['tf'], ch['rect_thr'])
                 grid_values_list.append(
                     ch['map_func'](
                         rgc_time,
