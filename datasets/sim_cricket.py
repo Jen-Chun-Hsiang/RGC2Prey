@@ -344,7 +344,7 @@ class Cricket2RGCs(Dataset):
         grid_coords=None,
         is_reversed_OFF_sign=False,
         is_two_grids=False,
-        rectifed_thr_ON=-0.1,
+        rectifed_thr_ON=0.0,
         rectifed_thr_OFF=0.0
     ):
         # Core attributes

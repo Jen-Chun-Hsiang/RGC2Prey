@@ -82,6 +82,8 @@ def parse_args():
     parser.add_argument('--is_rectified', action='store_true', help='Rectify the RGC outputs')
     parser.add_argument('--is_direct_image', action='store_true', help='By passing RGC convolution')
     parser.add_argument('--is_two_grids', action='store_true', help='Make two grids instead of one, like ON and OFF, but same sign')
+    parser.add_argument('--rectifed_thr_ON', type=float, default=0.0, help='Threshold for ON rectification')
+    parser.add_argument('--rectifed_thr_OFF', type=float, default=0.0, help='Threshold for OFF rectification')
     
     # Arguments for RGCrfArray
     parser.add_argument('--rgc_array_rf_size', type=tuple, default=default_rg_array_rf_size, help="Receptive field size (height, width).")
@@ -254,7 +256,7 @@ def main():
                                 is_both_ON_OFF=args.is_both_ON_OFF, quantize_scale=args.quantize_scale, 
                                 add_noise=args.add_noise, rgc_noise_std=args.rgc_noise_std, smooth_data=args.smooth_data,
                                 is_rectified=args.is_rectified, is_direct_image=args.is_direct_image, is_reversed_OFF_sign=args.is_reversed_OFF_sign,
-                                is_two_grids=args.is_two_grids)
+                                is_two_grids=args.is_two_grids, rectifed_thr_ON=args.rectifed_thr_ON, rectifed_thr_OFF=args.rectifed_thr_OFF)
     
     
     logging.info( f"{args.experiment_name} processing...6")
