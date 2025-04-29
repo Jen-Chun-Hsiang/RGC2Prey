@@ -560,6 +560,7 @@ class Cricket2RGCs(Dataset):
         path = path[-rgc_time.shape[1]:] / self.norm_path_fac
         path_bg = path_bg[-rgc_time.shape[1]:] / self.norm_path_fac
 
+        print(f'grid_seq shape: {grid_seq.shape}')
         # Permute for final shape
         if self.is_both_ON_OFF or self.is_two_grids or is_binocular:
             grid_seq = grid_seq.permute(0, 1, 3, 2)
