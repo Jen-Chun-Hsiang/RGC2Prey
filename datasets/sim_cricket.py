@@ -344,8 +344,8 @@ class Cricket2RGCs(Dataset):
         grid_coords=None,
         is_reversed_OFF_sign=False,
         is_two_grids=False,
-        rectifed_thr_ON=0.0,
-        rectifed_thr_OFF=0.0
+        rectified_thr_ON=0.0,
+        rectified_thr_OFF=0.0
     ):
         # Core attributes
         self.num_samples = num_samples
@@ -373,8 +373,8 @@ class Cricket2RGCs(Dataset):
         self.is_both_ON_OFF = is_both_ON_OFF
         self.is_two_grids = is_two_grids
         self.is_reversed_OFF_sign = is_reversed_OFF_sign
-        self.rectifed_thr_ON=rectifed_thr_ON
-        self.rectifed_thr_OFF=rectifed_thr_OFF
+        self.rectified_thr_ON=rectified_thr_ON
+        self.rectified_thr_OFF=rectified_thr_OFF
 
         # Normalization for path coordinates
         self.norm_path_fac = (
@@ -389,7 +389,7 @@ class Cricket2RGCs(Dataset):
                 'tf': torch.from_numpy(tf.copy()).float().view(1, 1, -1),
                 'map_func': map_func,
                 'grid2value': grid2value_mapping,
-                'rect_thr': self.rectifed_thr_ON, 
+                'rect_thr': self.rectified_thr_ON, 
             }
         ]
         # Add OFF channel config if required
@@ -402,7 +402,7 @@ class Cricket2RGCs(Dataset):
                 'tf': off_tf_signed,
                 'map_func': map_func_off,
                 'grid2value': grid2value_mapping_off,
-                'rect_thr': self.rectifed_thr_OFF,
+                'rect_thr': self.rectified_thr_OFF,
             })
 
         # Optional grid-coordinates for weighted output
