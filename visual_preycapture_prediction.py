@@ -132,9 +132,16 @@ def run_experiment(experiment_name, noise_level=None, test_bg_folder=None, test_
     if not hasattr(args, 'is_reversed_OFF_sign'):
         args.is_reversed_OFF_sign = False
     if not hasattr(args, 'rectified_thr_ON'):
-        args.rectified_thr_ON = 0.0
+        if not hasattr(args, 'rectifed_thr_ON'):
+            args.rectified_thr_ON = args.rectifed_thr_ON
+        else:
+            args.rectified_thr_ON = 0.0
     if not hasattr(args, 'rectified_thr_OFF'):
-        args.rectified_thr_OFF = 0.0
+        if not hasattr(args, 'rectifed_thr_OFF'):
+            args.rectified_thr_OFF = args.rectifed_thr_OFF
+        else:
+            args.rectified_thr_OFF = 0.0
+            
 
     process_seed(args.seed)
 
