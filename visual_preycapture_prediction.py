@@ -166,6 +166,9 @@ def run_experiment(experiment_name, noise_level=None, test_bg_folder=None, test_
         is_plot_centerFR = False
         # sf_param_table = pd.read_excel(rf_params_file, sheet_name='SF_params_OFF', usecols='A:L')
         multi_opt_sf_off, tf_off, grid2value_mapping_off, map_func_off, rgc_locs_off = rgc_array.get_additional_results(anti_alignment=args.anti_alignment)
+        if args.is_binocular:
+            num_input_channel = 4
+            
     else:
         if args.is_binocular:
             num_input_channel = 2
