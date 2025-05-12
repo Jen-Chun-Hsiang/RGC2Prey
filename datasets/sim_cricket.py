@@ -1,6 +1,6 @@
 import random
 import ast
-from PIL import Image
+from PIL import Image, ImageEnhance
 import numpy as np
 import torch
 import torchvision.transforms as T
@@ -583,7 +583,8 @@ class SynMovieGenerator:
                  prob_mov_ob=0.975, prob_stay_bg=0.95, prob_mov_bg=0.975,num_ext=50, initial_velocity=6, momentum_decay_ob=0.95, 
                  momentum_decay_bg=0.5, scale_factor=1.0, velocity_randomness_ob=0.02, velocity_randomness_bg=0.01, angle_range_ob=0.5, 
                  angle_range_bg=0.25, coord_mat_file=None, correction_direction=1, is_reverse_xy=False, start_scaling=1, 
-                 end_scaling=2, dynamic_scaling=0, is_binocular=False, interocular_dist=1):
+                 end_scaling=2, dynamic_scaling=0, is_binocular=False, interocular_dist=1, bottom_contrast=1.0, top_contrast=1.0,
+                 mean_diff_offset=0.0):
         """
         Initializes the SynMovieGenerator with configuration parameters.
 
@@ -627,6 +628,9 @@ class SynMovieGenerator:
         self.dynamic_scaling = dynamic_scaling
         self.is_binocular = is_binocular
         self.interocular_dist = interocular_dist  # in cm
+        self.bottom_contrast       = bottom_contrast
+        self.top_contrast          = top_contrast
+        self.mean_diff_offset = mean_diff_offset
 
     def _modify_scaling(self):
         start_scaling = self.start_scaling
@@ -715,7 +719,8 @@ class SynMovieGenerator:
         
         syn_movie = synthesize_image_with_params_batch(
                 bottom_img_path, top_img_path, top_img_positions_shifted, bottom_img_positions,
-                scaling_factors, self.crop_size, alpha=1.0, top_img_positions_shifted=top_img_disparity_positions_shifted
+                scaling_factors, self.crop_size, alpha=1.0, top_img_positions_shifted=top_img_disparity_positions_shifted,
+                bottom_contrast=self.bottom_contrast, top_contrast=self.top_contrast, mean_diff_offset=self.mean_diff_offset
             )
         # Correct for the cricket head position
         bg_image_name = get_filename_without_extension(bottom_img_path)
@@ -736,7 +741,8 @@ class SynMovieGenerator:
 
 
 def synthesize_image_with_params_batch(bottom_img_path, top_img_path, top_img_positions, bottom_img_positions,
-                                       scaling_factors, crop_size, alpha=1.0, top_img_positions_shifted=None):
+                                       scaling_factors, crop_size, alpha=1.0, top_img_positions_shifted=None,
+                                       bottom_contrast=1.0, top_contrast=1.0, mean_diff_offset=0.0):
     """
     Synthesizes a batch of images by overlaying the top image on the bottom image at specific positions.
 
@@ -758,6 +764,9 @@ def synthesize_image_with_params_batch(bottom_img_path, top_img_path, top_img_po
     bottom_tensor = T.ToTensor()(bottom_img)
 
     original_top_img = Image.open(top_img_path).convert("RGBA")
+    if top_contrast != 1.0:
+        original_top_img = ImageEnhance.Contrast(original_top_img).enhance(top_contrast)
+
     batch_size = len(top_img_positions)
     bottom_w, bottom_h = bottom_img.size
 
