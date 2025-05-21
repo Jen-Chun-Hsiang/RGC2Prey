@@ -762,10 +762,7 @@ def synthesize_image_with_params_batch(bottom_img_path, top_img_path, top_img_po
     # Open and process the images
     bottom_img = Image.open(bottom_img_path).convert("RGBA")
     bottom_tensor = T.ToTensor()(bottom_img)
-
     original_top_img = Image.open(top_img_path).convert("RGBA")
-    if top_contrast != 1.0:
-        original_top_img = ImageEnhance.Contrast(original_top_img).enhance(top_contrast)
 
     batch_size = len(top_img_positions)
     bottom_w, bottom_h = bottom_img.size
@@ -773,9 +770,14 @@ def synthesize_image_with_params_batch(bottom_img_path, top_img_path, top_img_po
     channels = 2 if top_img_positions_shifted is not None else 1
     syn_images = torch.zeros((batch_size, channels, crop_size[1], crop_size[0]))
 
+
     # Variables to cache the last scaling factor and scaled image
     last_scaling_factor = None
     cached_scaled_image = None
+
+    # flags for no-op
+    do_mean  = abs(mean_diff_offset) > 1e-9
+    do_contr = (bottom_contrast != 1.0) or (top_contrast != 1.0)
 
     for i in range(batch_size):
         current_scaling_factor = scaling_factors[i]
@@ -789,12 +791,32 @@ def synthesize_image_with_params_batch(bottom_img_path, top_img_path, top_img_po
 
         top_tensor = cached_scaled_image
         top_w, top_h = scaled_top_img.size
+
+        # clone for per-frame ops
+        b = bottom_tensor.clone()
+        t = top_tensor.clone()
+
+        # 2) optionally apply mean-difference offset & contrast squeeze
+        if do_mean or do_contr:
+            if do_mean:
+                m_b = b[1].mean()
+                m_t = t[1].mean()
+                Δ_total = mean_diff_offset
+                d_b, d_t = abs(m_b-0.5), abs(m_t-0.5)
+                r_b = d_b/(d_b+d_t) if (d_b+d_t)>0 else 0.5
+                B_b =  r_b * Δ_total
+                B_t = -(1-r_b) * Δ_total
+                b[1] = (b[1] + B_b).clamp(0, 1)
+                t[1] = (t[1] + B_t).clamp(0, 1)
+            if do_contr:
+                b[1] = (0.5 + (b[1]-0.5)*bottom_contrast).clamp(0, 1)
+                t[1] = (0.5 + (t[1]-0.5)*top_contrast).clamp(0, 1)
+
         fill_h = (bottom_h - top_h) // 2
         fill_w = (bottom_w - top_w) // 2
 
-        def overlay_and_crop(relative_pos, crop_pos):
-            # Clone the bottom image tensor
-            final_tensor = bottom_tensor.clone()
+        def overlay_and_crop(canvas, top_ten, relative_pos, crop_pos):
+            
 
             # Compute relative position
             relative_pos = relative_pos - crop_pos
@@ -803,17 +825,17 @@ def synthesize_image_with_params_batch(bottom_img_path, top_img_path, top_img_po
             y_offset = fill_h + relative_pos[1]
 
             # Overlay the top image using green channel only (index 1)
-            final_tensor[1,  # Green channel
+            canvas[1,  # Green channel
                          y_offset:y_offset + top_h,
                          x_offset:x_offset + top_w] = (
-                top_tensor[1, :, :] * top_tensor[3:4, :, :] * alpha +  # Green channel overlay
-                final_tensor[1,
+                top_ten[1, :, :] * top_ten[3:4, :, :] * alpha +  # Green channel overlay
+                canvas[1,
                              y_offset:y_offset + top_h,
-                             x_offset:x_offset + top_w] * (1 - top_tensor[3:4, :, :] * alpha)
+                             x_offset:x_offset + top_w] * (1 - top_ten[3:4, :, :] * alpha)
             )
 
             # Convert back to PIL image and crop to desired size from the center
-            final_img = T.ToPILImage()(final_tensor)
+            final_img = T.ToPILImage()(canvas)
             cropped_img = crop_image(final_img, crop_size, crop_pos)
             if cropped_img.mode == "RGBA":
                 cropped_img = cropped_img.convert("RGB")
@@ -822,10 +844,10 @@ def synthesize_image_with_params_batch(bottom_img_path, top_img_path, top_img_po
             # Return green channel [1, width, height]
             return cropped_img[1:2]
         
-        syn_images[i, 0] = overlay_and_crop(top_img_positions[i], bottom_img_positions[i])
+        syn_images[i, 0] = overlay_and_crop(b, t, top_img_positions[i], bottom_img_positions[i])
 
-        if top_img_positions_shifted is not None:
-            syn_images[i, 1] = overlay_and_crop(top_img_positions_shifted[i], bottom_img_positions[i])
+        if channels == 2:
+            syn_images[i, 1] = overlay_and_crop(b, t, top_img_positions_shifted[i], bottom_img_positions[i])
 
     return syn_images
 
