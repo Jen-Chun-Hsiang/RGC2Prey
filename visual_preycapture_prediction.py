@@ -197,7 +197,8 @@ def run_experiment(experiment_name, noise_level=None, test_bg_folder=None, test_
         velocity_randomness_bg=args.velocity_randomness_bg, angle_range_ob=args.angle_range_ob, angle_range_bg=args.angle_range_bg, 
         coord_mat_file=coord_mat_file, correction_direction=args.coord_adj_dir, is_reverse_xy=args.is_reverse_xy, 
         start_scaling=args.start_scaling, end_scaling=args.end_scaling, dynamic_scaling=args.dynamic_scaling, is_binocular=args.is_binocular,
-        interocular_dist=args.interocular_dist, bottom_contrast=1.0, top_contrast=1.0, mean_diff_offset=0.0
+        interocular_dist=args.interocular_dist, bottom_contrast=args.bottom_contrast, top_contrast=args.top_contrast, 
+        mean_diff_offset=args.mean_diff_offset
     )
 
     logging.info( f"{file_name} processing...3")
