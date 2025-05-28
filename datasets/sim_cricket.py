@@ -577,9 +577,6 @@ class Cricket2RGCs(Dataset):
         return grid_seq, out_path, out_bg
     
 
-
-    
-
 class SynMovieGenerator:
     def __init__(self, top_img_folder, bottom_img_folder, crop_size, boundary_size, center_ratio, max_steps=200, prob_stay_ob=0.95, 
                  prob_mov_ob=0.975, prob_stay_bg=0.95, prob_mov_bg=0.975,num_ext=50, initial_velocity=6, momentum_decay_ob=0.95, 

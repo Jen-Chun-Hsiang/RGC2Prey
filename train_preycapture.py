@@ -265,13 +265,25 @@ def main():
             'is_two_grids': args.is_two_grids,'rectified_thr_ON': args.rectified_thr_ON,'rectified_thr_OFF': args.rectified_thr_OFF,
         }
         train_dataset = Cricket2RGCs(**cfg)
-        mu, sigma = estimate_rgc_signal_distribution(
+        mu, sigma, (hist, edges) = estimate_rgc_signal_distribution(
             train_dataset,
             N=1000,
             channel_idx=0,
-            return_histogram=False
+            return_histogram=True,
+            bins=100
         )
         logging.info(f"Signal μ={mu:.3f}, σ={sigma:.3f}")
+
+        # Plot & save histogram
+        # centers = (edges[:-1] + edges[1:]) / 2
+        # plt.figure(figsize=(8, 5))
+        # plt.bar(centers, hist, width=edges[1]-edges[0], align='center')
+        # plt.xlabel('RGC response value')
+        # plt.ylabel('Probability density')
+        # plt.title(f'RGC Signal Distribution (μ={mu:.2f}, σ={sigma:.2f})')
+        # plt.tight_layout()
+        # plt.savefig('rgc_signal_distribution.png', dpi=300)
+        # plt.show()
     
     raise ValueError(f"check data range...")
 
