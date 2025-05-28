@@ -9,6 +9,7 @@ import torch.nn as nn
 import logging
 from datetime import datetime
 import torch.optim as optim
+from scipy.io import savemat
 
 from datasets.sim_cricket import RGCrfArray, SynMovieGenerator, Cricket2RGCs
 from utils.utils import plot_tensor_and_save, plot_vector_and_save, plot_two_path_comparison, plot_coordinate_and_save
@@ -176,6 +177,7 @@ def main():
     rf_params_file = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/SimulationParams.xlsx'
     coord_mat_file = f'/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/selected_points_summary_{args.coord_adj_type}.mat'   #selected_points_summary.mat
     video_save_folder = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/Results/Videos/RFs/'
+    mat_save_folder = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/Results/Mats/'
 
     initialize_logging(log_save_folder=log_save_folder, experiment_name=args.experiment_name)
     process_seed(args.seed)
@@ -274,6 +276,8 @@ def main():
         )
         logging.info(f"Signal μ={mu:.3f}, σ={sigma:.3f}")
 
+        save_path = os.path.join(mat_save_folder, f'{args.experiment_name}_rgc_time_distribution.mat')
+        savemat(save_path, {'mu': mu, 'sigma': sigma, 'hist': hist, 'edges': edges})
         # Plot & save histogram
         # centers = (edges[:-1] + edges[1:]) / 2
         # plt.figure(figsize=(8, 5))
@@ -285,7 +289,7 @@ def main():
         # plt.savefig('rgc_signal_distribution.png', dpi=300)
         # plt.show()
     
-    raise ValueError(f"check data range...")
+        raise ValueError(f"check data range...")
 
     train_dataset = Cricket2RGCs(num_samples=args.num_samples, multi_opt_sf=multi_opt_sf, tf=tf, map_func=map_func,
                                 grid2value_mapping=grid2value_mapping, multi_opt_sf_off=multi_opt_sf_off, tf_off=tf_off, 
