@@ -336,9 +336,9 @@ class Cricket2RGCs(Dataset):
         add_noise=False,
         rgc_noise_std=0.0,
         smooth_data=False,
-        smooth_kernel_size=20,
+        smooth_kernel_size=10,  # was 20
         sampleing_rate=100,
-        smooth_sigma=0.05,
+        smooth_sigma=0.025,   # was 0.05
         is_rectified=True,
         is_direct_image=False,
         grid_coords=None,
