@@ -18,6 +18,7 @@ from utils.tools import timer, MovieGenerator, save_distributions
 from utils.utils import causal_moving_average
 from utils.data_handling import CheckpointLoader
 from utils.initialization import process_seed, initialize_logging, worker_init_fn
+from utils.helper import estimate_rgc_signal_distribution
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Script for Model Training to get 3D RF in simulation")
@@ -161,6 +162,7 @@ def main():
     is_show_pathes = False #True
     is_show_grids = False #True
     is_show_rgc_grid = True
+    is_rgc_distribution = True
 
     args = parse_args()
     bottom_img_folder = f'/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/CricketDataset/Images/cropped/{args.bg_folder}/'  #grass
@@ -252,6 +254,27 @@ def main():
     xlim, ylim = args.xlim, args.ylim
     target_height = xlim[1]-xlim[0]
     target_width = ylim[1]-ylim[0]
+
+    if is_rgc_distribution:
+        cfg = {'num_samples': args.num_samples,'multi_opt_sf': multi_opt_sf,'tf': tf,'map_func': map_func,'grid2value_mapping': grid2value_mapping,
+            'multi_opt_sf_off': multi_opt_sf_off,'tf_off': tf_off,'map_func_off': map_func_off,'grid2value_mapping_off': grid2value_mapping_off,
+            'target_width': target_width,'target_height': target_height,'movie_generator': movie_generator,'grid_size_fac': args.grid_size_fac,
+            'is_norm_coords': args.is_norm_coords,'is_syn_mov_shown': True,'fr2spikes': args.fr2spikes,'is_both_ON_OFF': args.is_both_ON_OFF,
+            'quantize_scale': args.quantize_scale,'add_noise': args.add_noise,'rgc_noise_std': args.rgc_noise_std,'smooth_data': args.smooth_data,
+            'is_rectified': args.is_rectified,'is_direct_image': args.is_direct_image,'is_reversed_OFF_sign': args.is_reversed_OFF_sign,
+            'is_two_grids': args.is_two_grids,'rectified_thr_ON': args.rectified_thr_ON,'rectified_thr_OFF': args.rectified_thr_OFF,
+        }
+        train_dataset = Cricket2RGCs(**cfg)
+        mu, sigma = estimate_rgc_signal_distribution(
+            train_dataset,
+            N=1000,
+            channel_idx=0,
+            return_histogram=False
+        )
+        logging.info(f"Signal μ={mu:.3f}, σ={sigma:.3f}")
+    
+    raise ValueError(f"check data range...")
+
     train_dataset = Cricket2RGCs(num_samples=args.num_samples, multi_opt_sf=multi_opt_sf, tf=tf, map_func=map_func,
                                 grid2value_mapping=grid2value_mapping, multi_opt_sf_off=multi_opt_sf_off, tf_off=tf_off, 
                                 map_func_off=map_func_off, grid2value_mapping_off=grid2value_mapping_off, target_width=target_width, 
@@ -262,6 +285,8 @@ def main():
                                 is_rectified=args.is_rectified, is_direct_image=args.is_direct_image, is_reversed_OFF_sign=args.is_reversed_OFF_sign,
                                 is_two_grids=args.is_two_grids, rectified_thr_ON=args.rectified_thr_ON, rectified_thr_OFF=args.rectified_thr_OFF)
     
+    
+
     
     logging.info( f"{args.experiment_name} processing...6")
     # Visualize one data points

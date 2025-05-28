@@ -575,6 +575,8 @@ class Cricket2RGCs(Dataset):
         if self.is_syn_mov_shown:
             return grid_seq, path, path_bg, syn_movie, *rest, weighted_coords
         return grid_seq, out_path, out_bg
+    
+
 
     
 
