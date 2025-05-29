@@ -55,7 +55,13 @@ def estimate_rgc_signal_distribution(
     # compute μ, σ and mean reliability
     data   = np.concatenate(all_vals)
     μ, σ    = data.mean(), data.std()
-    mean_r = np.mean(r_list) if r_list else np.nan
+    mean_r = float(np.nanmean(r_list))
+
+    n_trials = len(r_list)
+    # count NaNs
+    n_nan = int(np.sum(np.isnan(r_list)))
+    # percentage of NaNs
+    pct_nan = n_nan / n_trials * 100
 
     # Restore original noise settings
     dataset.add_noise = orig_noise_flag
@@ -63,6 +69,6 @@ def estimate_rgc_signal_distribution(
 
     if return_histogram:
         hist, edges = np.histogram(data, bins=bins, density=True)
-        return μ, σ, mean_r, (hist, edges)
+        return μ, σ, mean_r, (hist, edges), pct_nan
 
-    return μ, σ, mean_r
+    return μ, σ, mean_r, pct_nan

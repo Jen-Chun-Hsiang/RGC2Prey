@@ -267,14 +267,14 @@ def main():
             'is_two_grids': args.is_two_grids,'rectified_thr_ON': args.rectified_thr_ON,'rectified_thr_OFF': args.rectified_thr_OFF,
         }
         train_dataset = Cricket2RGCs(**cfg)
-        mu, sigma, mean_r, (hist, edges) = estimate_rgc_signal_distribution(
+        mu, sigma, mean_r, (hist, edges), pct_nan = estimate_rgc_signal_distribution(
             train_dataset,
             N=1000,
             channel_idx=0,
             return_histogram=True,
             bins=100
         )
-        logging.info(f"Signal μ={mu:.3f}, σ={sigma:.3f}, mean_r={mean_r:.3f}")
+        logging.info(f"Signal μ={mu:.3f}, σ={sigma:.3f}, mean_r={mean_r:.3f}, pct_nan={pct_nan:.3f}")
 
         save_path = os.path.join(mat_save_folder, f'{args.experiment_name}_rgc_time_distribution.mat')
         savemat(save_path, {'mu': mu, 'sigma': sigma, 'mean_r': mean_r, 'hist': hist, 'edges': edges})
