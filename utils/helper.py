@@ -20,10 +20,6 @@ def estimate_rgc_signal_distribution(
     orig_noise_flag = dataset.add_noise
     orig_noise_std  = dataset.rgc_noise_std
 
-    # Disable noise for μ/σ estimation
-    dataset.add_noise = False
-    dataset.rgc_noise_std = 0.0
-
     all_vals = []
     r_list  = []
 
@@ -43,9 +39,6 @@ def estimate_rgc_signal_distribution(
 
         # 3) If original config had noise, do two noisy replicates
         if orig_noise_flag:
-            dataset.add_noise = True
-            dataset.rgc_noise_std = orig_noise_std
-
             rgc_noisy1 = dataset._compute_rgc_time(
                 mv, ch['sf'], ch['tf'], ch['rect_thr']
             )
@@ -58,9 +51,6 @@ def estimate_rgc_signal_distribution(
             # Pearson r
             r_list.append(np.corrcoef(f1, f2)[0, 1])
 
-            # switch noise back off for next μ/σ
-            dataset.add_noise = False
-            dataset.rgc_noise_std = 0.0
 
     # compute μ, σ and mean reliability
     data   = np.concatenate(all_vals)
