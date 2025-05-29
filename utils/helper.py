@@ -73,6 +73,6 @@ def estimate_rgc_signal_distribution(
 
     if return_histogram:
         hist, edges = np.histogram(data, bins=bins, density=True)
-        return μ, σ, (hist, edges), mean_r
+        return μ, σ, mean_r, (hist, edges)
 
     return μ, σ, mean_r
