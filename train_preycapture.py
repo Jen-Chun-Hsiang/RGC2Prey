@@ -276,7 +276,7 @@ def main():
         )
         logging.info(f"Signal μ={mu:.3f}, σ={sigma:.3f}, mean_r={mean_r:.3f}, mean_width={mean_width:.3f}")
 
-        save_path = os.path.join(mat_save_folder, f'{args.experiment_name}_rgc_time_distribution.mat')
+        save_path = os.path.join(mat_save_folder, f'{args.experiment_name}_rgc_time_distribution_singleRGC.mat')
         savemat(save_path, {'mu': mu, 'sigma': sigma, 'mean_r': mean_r, 'hist': hist, 'edges': edges, 'pct_nan':pct_nan, 
                             'rgc_noise_std':args.rgc_noise_std, 'pct_nan_width': pct_nan_width, 'mean_width': mean_width,
                             'data': data, 'corr': corr})
