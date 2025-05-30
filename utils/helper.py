@@ -16,6 +16,9 @@ def estimate_rgc_signal_distribution(
     or, if return_histogram:
       (μ, σ, (hist, edges), mean_r)
     """
+    is_xcorr_width = False
+    is_single_middle_rgc = True
+    is_data_saved = False
     # Backup original noise settings
     orig_noise_flag = dataset.add_noise
     orig_noise_std  = dataset.rgc_noise_std
@@ -39,16 +42,17 @@ def estimate_rgc_signal_distribution(
         vals = rgc_clean.flatten().detach().cpu().numpy()
         all_vals.append(vals)
 
-        corr = np.correlate(vals, vals, mode='full')
-        corr_min, corr_max = corr.min(), corr.max()
-        corr = (corr - corr_min) / (corr_max - corr_min)
+        if is_xcorr_width:
+            corr = np.correlate(vals, vals, mode='full')
+            corr_min, corr_max = corr.min(), corr.max()
+            corr = (corr - corr_min) / (corr_max - corr_min)
 
-        width_idx = np.where(corr >= corr_threshold)[0]
-        if width_idx.size == 0:
-            continue
+            width_idx = np.where(corr >= corr_threshold)[0]
+            if width_idx.size == 0:
+                continue
 
-        width = width_idx.max() - width_idx.min()
-        width_list.append(width)
+            width = width_idx.max() - width_idx.min()
+            width_list.append(width)
 
         # 3) If original config had noise, do two noisy replicates
         if orig_noise_flag:
@@ -58,9 +62,20 @@ def estimate_rgc_signal_distribution(
             rgc_noisy2 = dataset._compute_rgc_time(
                 mv, ch['sf'], ch['tf'], ch['rect_thr']
             )
+            
+            if is_single_middle_rgc:
+                n_chan   = rgc_noisy1.shape[0]      # number of filters
+                mid_idx  = n_chan // 2              # integer division gives the “middle” index
 
-            f1 = rgc_noisy1.flatten().detach().cpu().numpy()
-            f2 = rgc_noisy2.flatten().detach().cpu().numpy()
+                ts1 = rgc_noisy1[mid_idx, :]        # shape: (time_points,)
+                ts2 = rgc_noisy2[mid_idx, :]
+
+                f1 = ts1.detach().cpu().numpy()
+                f2 = ts2.detach().cpu().numpy()
+            else:
+                f1 = rgc_noisy1.flatten().detach().cpu().numpy()
+                f2 = rgc_noisy2.flatten().detach().cpu().numpy()
+
             # Pearson r
             r_list.append(np.corrcoef(f1, f2)[0, 1])
 
@@ -69,14 +84,22 @@ def estimate_rgc_signal_distribution(
     data   = np.concatenate(all_vals)
     μ, σ    = data.mean(), data.std()
     mean_r = float(np.nanmean(r_list))
-    mean_width = np.nanmean(width_list)
-
     n_trials = len(r_list)
     n_nan = int(np.sum(np.isnan(r_list)))
     pct_nan = n_nan / n_trials * 100
-    
-    n_nan = int(np.sum(np.isnan(width_list)))
-    pct_nan_width = n_nan / N * 100
+
+    if is_xcorr_width:
+        mean_width = np.nanmean(width_list)
+        n_nan = int(np.sum(np.isnan(width_list)))
+        pct_nan_width = n_nan / N * 100
+    else:
+        mean_width = np.nan
+        pct_nan_width = np.nan
+        corr = np.nan
+
+    if not is_data_saved:
+        data = np.nan
+
 
     # Restore original noise settings
     dataset.add_noise = orig_noise_flag

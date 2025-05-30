@@ -269,7 +269,7 @@ def main():
         train_dataset = Cricket2RGCs(**cfg)
         mu, sigma, mean_r, mean_width, (hist, edges), pct_nan, pct_nan_width, data, corr = estimate_rgc_signal_distribution(
             train_dataset,
-            N=2,
+            N=1000,
             channel_idx=0,
             return_histogram=True,
             bins=100    
