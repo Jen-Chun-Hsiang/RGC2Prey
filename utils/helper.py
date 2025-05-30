@@ -42,9 +42,13 @@ def estimate_rgc_signal_distribution(
         corr = np.correlate(vals, vals, mode='full')
         peak_corr_idx = np.argmax(corr)
         peak_corr_val = corr[peak_corr_idx]
-        threshold = 0.5 * peak_corr_val
-        width_idx = np.where(corr < threshold)[0]
-        width = np.min(width_idx) - peak_corr_idx
+        threshold = 0.75 * peak_corr_val
+        width_idx = np.where(corr >= threshold)[0]
+        if width_idx.size == 0:
+            # nothing above half‐max => skip this trial
+            continue
+
+        width = np.max(width_idx)-np.min(width_idx)
         width_list.append(width)
 
         # 3) If original config had noise, do two noisy replicates
