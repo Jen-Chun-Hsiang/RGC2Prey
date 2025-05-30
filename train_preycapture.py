@@ -267,7 +267,7 @@ def main():
             'is_two_grids': args.is_two_grids,'rectified_thr_ON': args.rectified_thr_ON,'rectified_thr_OFF': args.rectified_thr_OFF,
         }
         train_dataset = Cricket2RGCs(**cfg)
-        mu, sigma, mean_r, (hist, edges), pct_nan = estimate_rgc_signal_distribution(
+        mu, sigma, mean_r, mean_width, (hist, edges), pct_nan, pct_nan_width = estimate_rgc_signal_distribution(
             train_dataset,
             N=1000,
             channel_idx=0,
@@ -278,7 +278,7 @@ def main():
 
         save_path = os.path.join(mat_save_folder, f'{args.experiment_name}_rgc_time_distribution.mat')
         savemat(save_path, {'mu': mu, 'sigma': sigma, 'mean_r': mean_r, 'hist': hist, 'edges': edges, 'pct_nan':pct_nan, 
-                            'rgc_noise_std':args.rgc_noise_std})
+                            'rgc_noise_std':args.rgc_noise_std, 'pct_nan_width': pct_nan_width, 'mean_width': mean_width})
         # Plot & save histogram
         # centers = (edges[:-1] + edges[1:]) / 2
         # plt.figure(figsize=(8, 5))

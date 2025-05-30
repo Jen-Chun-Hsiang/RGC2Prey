@@ -22,6 +22,7 @@ def estimate_rgc_signal_distribution(
 
     all_vals = []
     r_list  = []
+    width_list = [] 
 
     for _ in range(N):
         # 1) generate a movie
@@ -36,6 +37,15 @@ def estimate_rgc_signal_distribution(
         )
         vals = rgc_clean.flatten().detach().cpu().numpy()
         all_vals.append(vals)
+
+        # Calculate cross-correlation width
+        corr = np.correlate(vals, vals, mode='full')
+        peak_corr_idx = np.argmax(corr)
+        peak_corr_val = corr[peak_corr_idx]
+        threshold = 0.5 * peak_corr_val
+        width_idx = np.where(corr < threshold)[0]
+        width = np.min(width_idx) - peak_corr_idx
+        width_list.append(width)
 
         # 3) If original config had noise, do two noisy replicates
         if orig_noise_flag:
@@ -56,12 +66,14 @@ def estimate_rgc_signal_distribution(
     data   = np.concatenate(all_vals)
     μ, σ    = data.mean(), data.std()
     mean_r = float(np.nanmean(r_list))
+    mean_width = np.nanmean(width_list)
 
     n_trials = len(r_list)
-    # count NaNs
     n_nan = int(np.sum(np.isnan(r_list)))
-    # percentage of NaNs
     pct_nan = n_nan / n_trials * 100
+    
+    n_nan = int(np.sum(np.isnan(width_list)))
+    pct_nan_width = n_nan / N * 100
 
     # Restore original noise settings
     dataset.add_noise = orig_noise_flag
@@ -69,6 +81,6 @@ def estimate_rgc_signal_distribution(
 
     if return_histogram:
         hist, edges = np.histogram(data, bins=bins, density=True)
-        return μ, σ, mean_r, (hist, edges), pct_nan
+        return μ, σ, mean_r, mean_width, (hist, edges), pct_nan, pct_nan_width
 
-    return μ, σ, mean_r, pct_nan
+    return μ, σ, mean_r, mean_width
