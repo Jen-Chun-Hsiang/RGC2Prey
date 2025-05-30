@@ -272,9 +272,9 @@ def main():
             N=1000,
             channel_idx=0,
             return_histogram=True,
-            bins=100
+            bins=100    
         )
-        logging.info(f"Signal μ={mu:.3f}, σ={sigma:.3f}, mean_r={mean_r:.3f}, pct_nan={pct_nan:.3f}")
+        logging.info(f"Signal μ={mu:.3f}, σ={sigma:.3f}, mean_r={mean_r:.3f}, mean_width={mean_width:.3f}")
 
         save_path = os.path.join(mat_save_folder, f'{args.experiment_name}_rgc_time_distribution.mat')
         savemat(save_path, {'mu': mu, 'sigma': sigma, 'mean_r': mean_r, 'hist': hist, 'edges': edges, 'pct_nan':pct_nan, 
