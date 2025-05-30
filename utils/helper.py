@@ -19,6 +19,7 @@ def estimate_rgc_signal_distribution(
     # Backup original noise settings
     orig_noise_flag = dataset.add_noise
     orig_noise_std  = dataset.rgc_noise_std
+    corr_threshold = 0.75
 
     all_vals = []
     r_list  = []
@@ -38,17 +39,15 @@ def estimate_rgc_signal_distribution(
         vals = rgc_clean.flatten().detach().cpu().numpy()
         all_vals.append(vals)
 
-        # Calculate cross-correlation width
         corr = np.correlate(vals, vals, mode='full')
-        peak_corr_idx = np.argmax(corr)
-        peak_corr_val = corr[peak_corr_idx]
-        threshold = 0.75 * peak_corr_val
-        width_idx = np.where(corr >= threshold)[0]
+        corr_min, corr_max = corr.min(), corr.max()
+        corr = (corr - corr_min) / (corr_max - corr_min)
+
+        width_idx = np.where(corr >= corr_threshold)[0]
         if width_idx.size == 0:
-            # nothing above half‐max => skip this trial
             continue
 
-        width = np.max(width_idx)-np.min(width_idx)
+        width = width_idx.max() - width_idx.min()
         width_list.append(width)
 
         # 3) If original config had noise, do two noisy replicates
