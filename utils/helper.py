@@ -84,6 +84,6 @@ def estimate_rgc_signal_distribution(
 
     if return_histogram:
         hist, edges = np.histogram(data, bins=bins, density=True)
-        return μ, σ, mean_r, mean_width, (hist, edges), pct_nan, pct_nan_width
+        return μ, σ, mean_r, mean_width, (hist, edges), pct_nan, pct_nan_width, data, corr
 
     return μ, σ, mean_r, mean_width
