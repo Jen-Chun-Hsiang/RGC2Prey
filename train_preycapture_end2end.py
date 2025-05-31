@@ -215,6 +215,8 @@ def main():
             with timer(timer_data_processing, tau=args.timer_tau, n=args.timer_sample_cicle):
                 if args.add_noise:
                     outputs, bg_pred = model(sequences, args.rgc_noise_std)
+                else:
+                    outputs, bg_pred = model(sequences)
             
             # Compute loss
             with timer(timer_data_backpropagate, tau=args.timer_tau, n=args.timer_sample_cicle):
