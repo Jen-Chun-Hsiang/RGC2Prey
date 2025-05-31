@@ -58,6 +58,10 @@ def parse_args():
     parser.add_argument('--dynamic_scaling', type=float, default=0.0, help='Final scale factor of the cricket image')
     parser.add_argument('--is_binocular', action='store_true', help='if generate two channels separately by binocular inputs')
     parser.add_argument('--interocular_dist', type=float, default=1.0, help='interocular distance between two eyes (in cm)')
+    parser.add_argument('--is_reversed_OFF_sign', action='store_true', help='reversed off temporal filter to be the same as ON')
+    parser.add_argument('--bottom_contrast', type=float, default=1.0, help='Contrast level of bottom, 1.0 original contrast')
+    parser.add_argument('--top_contrast', type=float, default=1.0, help='Contrast level of top, 1.0 original contrast')
+    parser.add_argument('--mean_diff_offset', type=float, default=0.0, help='control bias to mean diff_offset (bottom minius top)')
 
 
     # Arguments for CricketMovie (from movies to RGC array activities based on receptive field properties)
@@ -137,7 +141,8 @@ def main():
         velocity_randomness_bg=args.velocity_randomness_bg, angle_range_ob=args.angle_range_ob, angle_range_bg=args.angle_range_bg, 
         coord_mat_file=coord_mat_file, correction_direction=args.coord_adj_dir, is_reverse_xy=args.is_reverse_xy, 
         start_scaling=args.start_scaling, end_scaling=args.end_scaling, dynamic_scaling=args.dynamic_scaling, is_binocular=args.is_binocular,
-        interocular_dist=args.interocular_dist
+        interocular_dist=args.interocular_dist, bottom_contrast=args.bottom_contrast, top_contrast=args.top_contrast, 
+        mean_diff_offset=args.mean_diff_offset
     )
 
     xlim, ylim = args.xlim, args.ylim
