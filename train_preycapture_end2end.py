@@ -132,6 +132,7 @@ def main():
         num_input_channel = 2
     else:
         num_input_channel = 1
+    logging.info(f'num_input_channel: {num_input_channel}. 1:monocular, 2:binocular \n')
 
     movie_generator = SynMovieGenerator(top_img_folder, bottom_img_folder,
         crop_size=args.crop_size, boundary_size=args.boundary_size, center_ratio=args.center_ratio, max_steps=args.max_steps,
@@ -167,7 +168,7 @@ def main():
                                     is_seq_reshape=args.is_seq_reshape, CNNextractor_version=args.cnn_extractor_version,
                                     temporal_noise_level=args.temporal_noise_level, num_RGC=args.num_RGC,
                                     num_input_channel=num_input_channel, is_channel_normalization=args.is_channel_normalization)
-    logging.info(f'RGC output size: {model.rgc_output_size} \n')
+        
     model = model.to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate)
 
