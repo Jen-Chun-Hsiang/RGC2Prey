@@ -157,7 +157,7 @@ def parse_args():
     return parser.parse_args()
 
 def main():
-    is_show_rgc_rf_individual = False #True
+    is_show_rgc_rf_individual = True #True
     is_show_rgc_tf = True #True
     is_show_movie_frames = False 
     is_show_pathes = False #True
@@ -223,19 +223,20 @@ def main():
     # Check results of RGC array synthesis
     if is_show_rgc_rf_individual:
         for i in range(multi_opt_sf.shape[2]): 
-            temp_sf = multi_opt_sf[:, :, i].copy()
-            temp_sf = torch.from_numpy(temp_sf).float()
-            plot_tensor_and_save(temp_sf, rf_save_folder, f'{args.experiment_name}_receptive_field_check_{i + 1}.png')
-            if i == 3:
-                break
+            if i > 50 and i < 70:
+                temp_sf = multi_opt_sf[:, :, i].copy()
+                temp_sf = torch.from_numpy(temp_sf).float()
+                plot_tensor_and_save(temp_sf, rf_save_folder, f'{args.experiment_name}_receptive_field_check_{i + 1}.png')
+            
 
         if args.is_both_ON_OFF:
             for i in range(multi_opt_sf_off.shape[2]): 
-                temp_sf = multi_opt_sf_off[:, :, i].copy()
-                temp_sf = torch.from_numpy(temp_sf).float()
-                plot_tensor_and_save(temp_sf, rf_save_folder, f'{args.experiment_name}_receptive_field_check_OFF_{i + 1}.png')
-                if i == 3:
-                    break
+                if i > 50 and i < 70:
+                    temp_sf = multi_opt_sf_off[:, :, i].copy()
+                    temp_sf = torch.from_numpy(temp_sf).float()
+                    plot_tensor_and_save(temp_sf, rf_save_folder, f'{args.experiment_name}_receptive_field_check_OFF_{i + 1}.png')
+                # if i == 3:
+                #     break
         
         raise ValueError(f"check data range...")
 
