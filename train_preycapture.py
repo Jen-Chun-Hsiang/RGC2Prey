@@ -157,7 +157,7 @@ def parse_args():
     return parser.parse_args()
 
 def main():
-    is_show_rgc_rf_individual = False #True
+    is_show_rgc_rf_individual = True #True
     is_show_rgc_tf = True #True
     is_show_movie_frames = False 
     is_show_pathes = False #True
@@ -236,6 +236,8 @@ def main():
                 plot_tensor_and_save(temp_sf, rf_save_folder, f'{args.experiment_name}_receptive_field_check_OFF_{i + 1}.png')
                 if i == 3:
                     break
+        
+        raise ValueError(f"check data range...")
 
     logging.info( f"{args.experiment_name} processing...4")
     if is_show_rgc_tf:
