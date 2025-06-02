@@ -110,6 +110,8 @@ def run_experiment(experiment_name, epoch_number=200):
 
     if not hasattr(args, 'min_lr'):
         args.min_lr = 1e-6
+    if not hasattr(args, 'rgc_ann_stride2'):
+        args.rgc_ann_stride2 = 2
 
     xlim, ylim = args.xlim, args.ylim
     target_height = xlim[1]-xlim[0]
