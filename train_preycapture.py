@@ -19,7 +19,7 @@ from utils.tools import timer, MovieGenerator, save_distributions
 from utils.utils import causal_moving_average
 from utils.data_handling import CheckpointLoader
 from utils.initialization import process_seed, initialize_logging, worker_init_fn
-from utils.helper import estimate_rgc_signal_distribution
+from utils.helper import estimate_rgc_signal_distribution, save_sf_data_to_mat
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Script for Model Training to get 3D RF in simulation")
@@ -235,8 +235,14 @@ def main():
                     temp_sf = multi_opt_sf_off[:, :, i].copy()
                     temp_sf = torch.from_numpy(temp_sf).float()
                     plot_tensor_and_save(temp_sf, rf_save_folder, f'{args.experiment_name}_receptive_field_check_OFF_{i + 1}.png')
-                # if i == 3:
-                #     break
+             
+            save_sf_data_to_mat(multi_opt_sf=multi_opt_sf, multi_opt_sf_off=multi_opt_sf_off, rf_save_folder=mat_save_folder,
+                experiment_name=args.experiment_name, index_range=(51, 69)
+            )
+        else:
+            save_sf_data_to_mat(multi_opt_sf=multi_opt_sf,rf_save_folder=mat_save_folder, experiment_name=args.experiment_name,
+                index_range=(51, 69)
+            )
         
         raise ValueError(f"check data range...")
 

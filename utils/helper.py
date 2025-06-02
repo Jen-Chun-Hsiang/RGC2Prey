@@ -1,4 +1,7 @@
 import numpy as np
+import os
+import scipy.io as sio
+import torch
 
 def estimate_rgc_signal_distribution(
     dataset,            # instance of Cricket2RGCs
@@ -110,3 +113,82 @@ def estimate_rgc_signal_distribution(
         return μ, σ, mean_r, mean_width, (hist, edges), pct_nan, pct_nan_width, data, corr
 
     return μ, σ, mean_r, mean_width
+
+
+def save_sf_data_to_mat(
+    multi_opt_sf,
+    rf_save_folder,
+    experiment_name,
+    multi_opt_sf_off=None,
+    index_range=(51, 69)
+):
+    """
+    Save the full volumes and the selected slices (index_range) of `multi_opt_sf`
+    (and, if provided, `multi_opt_sf_off`) into a single .mat file.
+
+    Parameters
+    ----------
+    multi_opt_sf : torch.Tensor or np.ndarray
+        A 3D array of shape (H, W, D). If torch.Tensor, must be convertible to NumPy.
+    rf_save_folder : str
+        Folder where the .mat file will be written.
+    experiment_name : str
+        Base name used for the .mat filename.
+    multi_opt_sf_off : torch.Tensor or np.ndarray, optional
+        A second 3D array (H, W, D). Only saved if not None.
+    index_range : tuple(int, int), default (51, 69)
+        Inclusive range of slice‐indices along the 3rd dimension to collect into
+        `temp_sf_selected` (and `temp_sf_off_selected` if provided).
+        For example, (51, 69) will grab slices 51,52,…,69 (0‐based indexing).
+    """
+    # 1) Prepare the dictionary
+    mat_dict = {}
+
+    # Helper to convert to NumPy if needed
+    def to_numpy(x):
+        if isinstance(x, torch.Tensor):
+            return x.detach().cpu().numpy()
+        else:
+            return np.array(x)
+
+    # 2) Full volume of multi_opt_sf
+    mat_dict['multi_opt_sf'] = to_numpy(multi_opt_sf)
+
+    # 3) If OFF‐channel is given, save it too
+    if multi_opt_sf_off is not None:
+        mat_dict['multi_opt_sf_off'] = to_numpy(multi_opt_sf_off)
+
+    # 4) Collect selected 2D slices from multi_opt_sf
+    start_idx, end_idx = index_range
+    temp_sfs = []
+    H, W, D = mat_dict['multi_opt_sf'].shape
+    for i in range(start_idx, end_idx + 1):
+        # double‐check i is within range
+        if 0 <= i < D:
+            temp_sfs.append(mat_dict['multi_opt_sf'][:, :, i])
+    if temp_sfs:
+        # shape = (num_slices, H, W)
+        mat_dict['temp_sf_selected'] = np.stack(temp_sfs, axis=0)
+    else:
+        mat_dict['temp_sf_selected'] = np.empty((0, 0, 0))
+
+    # 5) If OFF‐channel was provided, collect its slices too
+    if multi_opt_sf_off is not None:
+        temp_sfs_off = []
+        H_off, W_off, D_off = mat_dict['multi_opt_sf_off'].shape
+        for i in range(start_idx, end_idx + 1):
+            if 0 <= i < D_off:
+                temp_sfs_off.append(mat_dict['multi_opt_sf_off'][:, :, i])
+        if temp_sfs_off:
+            mat_dict['temp_sf_off_selected'] = np.stack(temp_sfs_off, axis=0)
+        else:
+            mat_dict['temp_sf_off_selected'] = np.empty((0, 0, 0))
+
+    # 6) Write out the .mat
+    os.makedirs(rf_save_folder, exist_ok=True)
+    save_mat_path = os.path.join(
+        rf_save_folder,
+        f"{experiment_name}_sf_data.mat"
+    )
+    sio.savemat(save_mat_path, mat_dict)
+
