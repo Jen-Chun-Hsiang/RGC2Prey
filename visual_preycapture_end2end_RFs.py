@@ -323,5 +323,17 @@ def run_experiment(experiment_name, epoch_number=200):
         plt.savefig(save_path, bbox_inches="tight")
         plt.close(fig)
 
+        mat_dict = {}
+        for j, vol in enumerate(loc_vols):
+            # vol is [1, D, H, W] → take vol[0] to get (D, H, W)
+            arr_3d = vol[0].detach().cpu().numpy()
+            mat_dict[f"vol_loc{j}"] = arr_3d
+
+        save_mat_path = os.path.join(
+            mat_save_folder,
+            f"{file_name}_{epoch_number}_k{k}_optimized_volumes.mat"
+        )
+        savemat(save_mat_path, mat_dict)
+
 if __name__ == "__main__":
     main()
