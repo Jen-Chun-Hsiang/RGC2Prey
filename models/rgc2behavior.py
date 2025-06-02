@@ -1011,6 +1011,7 @@ class RGC_CNN_LSTM_ObjectLocation(nn.Module):
                  conv_out_channels=32, 
                  temporal_noise_level = 0.2, 
                  num_RGC = 2,
+                 rgc_ann_stride2 = 2,
                  is_input_norm=False, 
                  is_seq_reshape=False, 
                  CNNextractor_version=1, 
@@ -1055,7 +1056,7 @@ class RGC_CNN_LSTM_ObjectLocation(nn.Module):
             pool_size=2,
             num_filters2=num_RGC,   # This determines the output number of channels.
             kernel_size2=3,
-            stride2=2,
+            stride2=rgc_ann_stride2,
             input_shape=(input_height, input_width, input_depth),
             num_classes=10,
             dilation1=1,
