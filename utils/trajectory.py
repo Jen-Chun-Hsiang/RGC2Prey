@@ -80,12 +80,22 @@ def binocular_disparity(iod_cm, distance_cm):
     return 2 * math.degrees(math.atan((iod_cm / 2) / distance_cm))
 
 
-def disparity_from_scaling_factor(scaling_factors, start_distance, end_distance, iod_cm):
+def disparity_from_scaling_factor(
+    scaling_factors,
+    start_distance,
+    end_distance,
+    iod_cm,
+    fix_disparity: float | None = None,
+):
     """
     Given:
       - scaling_factors: a list of numbers (e.g., [1, 1.1, 1.1, 1.2, 1.4, ...])
       - start_distance and end_distance: e.g. 21 and 4
       - iod_cm: interocular distance (cm)
+      - fix_disparity : float | None, optional
+        • None (default): compute normal geometry-based disparities.  
+        • float: return this disparity value for every element
+          (array length = len(scaling_factors)).
     
     1) Maps each element in scaling_factors from [min_sf, max_sf]
        into [start_distance, end_distance].
@@ -106,14 +116,19 @@ def disparity_from_scaling_factor(scaling_factors, start_distance, end_distance,
         distances = np.full(len(scaling_factors), start_distance)
     else:
         # Map scaling factor to distance via linear interpolation
-        distances = np.array([
-            start_distance + (end_distance - start_distance)
-            * (sf - min_sf) / (max_sf - min_sf)
-            for sf in scaling_factors
-        ])
+        sf = np.asarray(scaling_factors, dtype=float)
+        distances = start_distance + (end_distance - start_distance) * (
+            sf - min_sf
+        ) / (max_sf - min_sf)
     
-    # Compute the disparities for each distance using a vectorized approach
-    disparities = np.array([binocular_disparity(iod_cm, d) for d in distances])
+    if fix_disparity is None:
+        # normal computation
+        disparities = np.array(
+            [binocular_disparity(iod_cm, d) for d in distances]
+        )
+    else:
+        # override with fixed value
+        disparities = np.full(len(scaling_factors), float(fix_disparity))
     
     return disparities, distances
 
