@@ -14,7 +14,7 @@ from scipy.io import savemat
 from datasets.sim_cricket import RGCrfArray, SynMovieGenerator, Cricket2RGCs
 from utils.utils import plot_tensor_and_save, plot_vector_and_save, plot_two_path_comparison, plot_coordinate_and_save
 from models.rgc2behavior import CNN_LSTM_ObjectLocation
-from utils.data_handling import save_checkpoint
+from utils.data_handling import save_checkpoint, none_or_float
 from utils.tools import timer, MovieGenerator, save_distributions
 from utils.utils import causal_moving_average
 from utils.data_handling import CheckpointLoader
@@ -75,6 +75,8 @@ def parse_args():
     parser.add_argument('--bottom_contrast', type=float, default=1.0, help='Contrast level of bottom, 1.0 original contrast')
     parser.add_argument('--top_contrast', type=float, default=1.0, help='Contrast level of top, 1.0 original contrast')
     parser.add_argument('--mean_diff_offset', type=float, default=0.0, help='control bias to mean diff_offset (bottom minius top)')
+    parser.add_argument('----fix_disparity', type=float, default=0.0, help='a fixed floating disparity')
+    parser.add_argument('--fix_disparity', metavar="FLOAT", type=none_or_float, default=None, nargs="?", help="Fix all disparities to FLOAT. Omit the flag or pass 'None' ")
 
     # Arguments for Cricket2RGCs (from movies to RGC array activities based on receptive field properties)
     parser.add_argument('--num_samples', type=int, default=20, help="Number of samples in the synthesized dataset")
@@ -259,7 +261,7 @@ def main():
         coord_mat_file=coord_mat_file, correction_direction=args.coord_adj_dir, is_reverse_xy=args.is_reverse_xy, 
         start_scaling=args.start_scaling, end_scaling=args.end_scaling, dynamic_scaling=args.dynamic_scaling, is_binocular=args.is_binocular,
         interocular_dist=args.interocular_dist, bottom_contrast=args.bottom_contrast, top_contrast=args.top_contrast, 
-        mean_diff_offset=args.mean_diff_offset
+        mean_diff_offset=args.mean_diff_offset, fix_disparity=args.fix_disparity
     )
     logging.info( f"{args.experiment_name} processing...5")
     xlim, ylim = args.xlim, args.ylim
