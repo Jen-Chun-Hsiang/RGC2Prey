@@ -75,7 +75,6 @@ def parse_args():
     parser.add_argument('--bottom_contrast', type=float, default=1.0, help='Contrast level of bottom, 1.0 original contrast')
     parser.add_argument('--top_contrast', type=float, default=1.0, help='Contrast level of top, 1.0 original contrast')
     parser.add_argument('--mean_diff_offset', type=float, default=0.0, help='control bias to mean diff_offset (bottom minius top)')
-    parser.add_argument('----fix_disparity', type=float, default=0.0, help='a fixed floating disparity')
     parser.add_argument('--fix_disparity', metavar="FLOAT", type=none_or_float, default=None, nargs="?", help="Fix all disparities to FLOAT. Omit the flag or pass 'None' ")
 
     # Arguments for Cricket2RGCs (from movies to RGC array activities based on receptive field properties)
