@@ -124,3 +124,19 @@ def estimate_finish_time(checkpoints, final_epoch):
     return estimated_finish_time
 
 
+def none_or_float(value: str | None) -> float | None:
+    """
+    Accepts a string from the command-line and returns:
+      • None            if the user writes nothing or explicitly types 'None'
+      • float(value)    otherwise
+    """
+    if value is None or value.lower() == "none":
+        return None
+    try:
+        return float(value)
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError(
+            f"'{value}' is neither a float nor 'None'"
+        ) from exc
+
+
