@@ -951,14 +951,21 @@ class RGCrfArray:
 
         return grid2value_mapping, map_func
 
-    def _create_multi_opt_sf(self, points):
+    def _create_multi_opt_sf(self, points, pids=None):
         # Create multi-optical spatial filters
         multi_opt_sf = np.zeros((self.rgc_array_rf_size[0], self.rgc_array_rf_size[1], len(points)))
         num_sim_data = len(self.sf_param_table)
+        pid_list = None if pid is None else list(pids)
         pid = np.random.randint(0, num_sim_data)
-        row = self.sf_param_table.iloc[pid]
-        s_scale = row['s_scale'] if not self.set_s_scale else self.set_s_scale[0]
+        
         for i, point in enumerate(points):
+            if pid_list is None:
+                pid_i = np.random.randint(0, num_sim_data)
+            else:
+                pid_i = np.random.choice(pid_list)
+
+            row = self.sf_param_table.iloc[pid_i]
+            s_scale = row['s_scale'] if not self.set_s_scale else self.set_s_scale[0]
             sf_params = np.array([
                 point[1], point[0], row['sigma_x'] * self.sf_scalar, row['sigma_y'] * self.sf_scalar,
                 row['theta'], row['bias'], row['c_scale'], row['s_sigma_x'] * self.sf_scalar,
