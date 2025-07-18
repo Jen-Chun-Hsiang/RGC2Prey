@@ -117,7 +117,8 @@ def parse_args():
     parser.add_argument('--grid_noise_level', type=float, default=0.3, help='Grid noise level (float)')
     parser.add_argument('--is_reversed_tf', action='store_true', help='Convert TF to the opposite contrast')
     parser.add_argument('--sf_sheet_name', type=str, default='SF_params_modified', help='Excel sheet name for the spatial filter')
-    parser.add_argument("--sf_id_list_ON", type=int, nargs="+", default=None, help='select RF ids from sf_sheet_name --pid 2 7 12')
+    parser.add_argument("--sf_id_list", type=int, nargs="+", default=None, help='select RF ids from sf_sheet_name --pid 2 7 12')
+    parser.add_argument("--sf_id_list_additional", type=int, nargs="+", default=None, help='select RF ids from sf_sheet_name --pid 2 7 12')
     
     # Arguments for CNN_LSTM 
     parser.add_argument('--cnn_feature_dim', type=int, default=256, help="Number of CNN feature dimensions.")
@@ -208,7 +209,8 @@ def main():
     if args.is_both_ON_OFF or args.is_two_grids:
         num_input_channel = 2
         # sf_param_table = pd.read_excel(rf_params_file, sheet_name='SF_params_OFF', usecols='A:L')
-        multi_opt_sf_off, tf_off, grid2value_mapping_off, map_func_off, rgc_locs_off = rgc_array.get_additional_results(anti_alignment=args.anti_alignment)  
+        multi_opt_sf_off, tf_off, grid2value_mapping_off, map_func_off, rgc_locs_off = \
+            rgc_array.get_additional_results(anti_alignment=args.anti_alignment, sf_id_list_additional=args.sf_id_list_additional)  
         if args.is_binocular: 
             num_input_channel = 4
     else:
