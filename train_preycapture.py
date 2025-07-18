@@ -116,7 +116,9 @@ def parse_args():
     parser.add_argument('--anti_alignment', type=float, default=1, help="value of anti-alignment from 0 (overlapping) to 1 (maximum spacing)")
     parser.add_argument('--grid_noise_level', type=float, default=0.3, help='Grid noise level (float)')
     parser.add_argument('--is_reversed_tf', action='store_true', help='Convert TF to the opposite contrast')
-
+    parser.add_argument('--sf_sheet_name', type=str, default='SF_params_modified', help='Excel sheet name for the spatial filter')
+    parser.add_argument("--sf_id_list_ON", type=int, nargs="+", default=None, help='select RF ids from sf_sheet_name --pid 2 7 12')
+    
     # Arguments for CNN_LSTM 
     parser.add_argument('--cnn_feature_dim', type=int, default=256, help="Number of CNN feature dimensions.")
     parser.add_argument('--lstm_hidden_size', type=int, default=64, help="Number of LSTM hiddne size.")
@@ -188,7 +190,7 @@ def main():
     else:
         device = 'cpu'
 
-    sf_param_table = pd.read_excel(rf_params_file, sheet_name='SF_params_modified', usecols='A:L')
+    sf_param_table = pd.read_excel(rf_params_file, sheet_name=args.sf_sheet_name, usecols='A:L')
     tf_param_table = pd.read_excel(rf_params_file, sheet_name=args.tf_sheet_name, usecols='A:I')
     rgc_array = RGCrfArray(
         sf_param_table, tf_param_table, rgc_array_rf_size=args.rgc_array_rf_size, xlim=args.xlim, ylim=args.ylim,
