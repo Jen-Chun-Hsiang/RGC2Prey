@@ -859,7 +859,7 @@ class RGCrfArray:
                  grid_generate_method, tau=None, mask_radius=None, rgc_rand_seed=42, num_gauss_example=1, sf_mask_radius=35, 
                  sf_pixel_thr=99.7, sf_constraint_method=None, temporal_filter_len=50, grid_size_fac=0.5, is_pixelized_tf=False, 
                  set_s_scale=[], is_rf_median_subtract=True, is_rescale_diffgaussian=True, is_both_ON_OFF = False,
-                 grid_noise_level=0.3, is_reversed_tf = False):
+                 grid_noise_level=0.3, is_reversed_tf = False, sf_id_list=None):
         """
         Args:
             sf_param_table (DataFrame): Table of spatial frequency parameters.
@@ -901,19 +901,20 @@ class RGCrfArray:
         self.grid_generator = HexagonalGridGenerator(xlim, ylim, target_num_centers=self.target_num_centers, rand_seed=self.rgc_rand_seed, 
                                                      noise_level=self.grid_noise_level)
         self.is_reversed_tf = is_reversed_tf
+        self.sf_id_list = sf_id_list
         
         logging.info( f"   subprocessing...1.1")
 
     def get_results(self):
         points = self.grid_generator.generate_first_grid()
-        multi_opt_sf = self._create_multi_opt_sf(points)
+        multi_opt_sf = self._create_multi_opt_sf(points, self.sf_id_list)
         tf = self._create_temporal_filter()
         grid2value_mapping, map_func = self._get_grid_mapping(points)
         return multi_opt_sf, tf, grid2value_mapping, map_func, points
     
-    def get_additional_results(self, anti_alignment=1):
+    def get_additional_results(self, anti_alignment=1, sf_id_list_additional=None):
         points = self.grid_generator.generate_second_grid(anti_alignment=anti_alignment)
-        multi_opt_sf = self._create_multi_opt_sf(points)
+        multi_opt_sf = self._create_multi_opt_sf(points, sf_id_list_additional)
         tf = self._create_temporal_filter()
         grid2value_mapping, map_func = self._get_grid_mapping(points)
         return multi_opt_sf, tf, grid2value_mapping, map_func, points
