@@ -956,8 +956,7 @@ class RGCrfArray:
         # Create multi-optical spatial filters
         multi_opt_sf = np.zeros((self.rgc_array_rf_size[0], self.rgc_array_rf_size[1], len(points)))
         num_sim_data = len(self.sf_param_table)
-        pid_list = None if pid is None else list(pids)
-        pid = np.random.randint(0, num_sim_data)
+        pid_list = None if pids is None else list(pids)
         
         for i, point in enumerate(points):
             if pid_list is None:
