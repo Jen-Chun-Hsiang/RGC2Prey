@@ -14,9 +14,11 @@ from models.rgc2behavior import CNN_LSTM_ObjectLocation
 from utils.utils import plot_two_path_comparison, plot_coordinate_and_save
 from utils.data_handling import CheckpointLoader
 from utils.tools import MovieGenerator
+from utils.file_name import make_file_name
 from utils.initialization import process_seed, initialize_logging, worker_init_fn
 
 def parse_args():
+    
     parser = argparse.ArgumentParser(description="Script for Model Training to get 3D RF in simulation")
     parser.add_argument('--experiment_names', type=str, nargs='+', required=True, help="List of experiment names")
     parser.add_argument('--noise_levels', type=float, nargs='+', default=None, help="List of noise levels as numbers")
@@ -86,10 +88,9 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
         coord_mat_file = None
 
     if noise_level is not None:
-        file_name = f'{experiment_name}_{test_ob_folder}_{test_bg_folder}_noise{noise_level}_cricket_location_prediction'
         is_add_noise = True
-    else:
-        file_name = f'{experiment_name}_{test_ob_folder}_{test_bg_folder}_cricket_location_prediction'
+    
+    file_name = make_file_name(experiment_name, test_ob_folder, test_bg_folder, noise_level=0.1, fix_disparity_degree=2.5)
     initialize_logging(log_save_folder=log_save_folder, experiment_name=file_name)
 
     logging.info( f"{file_name} processing...-1 noise:{noise_level} type:{type(noise_level)}")
