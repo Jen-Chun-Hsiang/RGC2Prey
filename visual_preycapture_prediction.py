@@ -90,7 +90,7 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
     if noise_level is not None:
         is_add_noise = True
     
-    file_name = make_file_name(experiment_name, test_ob_folder, test_bg_folder, noise_level=0.1, fix_disparity_degree=2.5)
+    file_name = make_file_name(experiment_name, test_ob_folder, test_bg_folder, noise_level=noise_level, fix_disparity_degree=fix_disparity_degree)
     initialize_logging(log_save_folder=log_save_folder, experiment_name=file_name)
 
     logging.info( f"{file_name} processing...-1 noise:{noise_level} type:{type(noise_level)}")
