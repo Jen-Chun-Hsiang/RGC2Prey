@@ -20,6 +20,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description="Script for Model Training to get 3D RF in simulation")
     parser.add_argument('--experiment_names', type=str, nargs='+', required=True, help="List of experiment names")
     parser.add_argument('--noise_levels', type=float, nargs='+', default=None, help="List of noise levels as numbers")
+    parser.add_argument('--fix_disparity_degrees', type=float, nargs='+', default=None, help="List of fixed disparity degrees as numbers")
     parser.add_argument('--test_bg_folder', type=str, default=None, help="Background folder for testing")
     parser.add_argument('--test_ob_folder', type=str, default=None, help="Object folder for testing")
     parser.add_argument('--boundary_size', type=str, default=None, help="Boundary size as '(x_limit, y_limit)'.")
@@ -30,15 +31,34 @@ def parse_args():
 
 def main():
     args = parse_args()
-
-    # Iterate through experiment names and run them
+    noise_levels = args.noise_levels if args.noise_levels else [None]
     for experiment_name in args.experiment_names:
-        noise_levels = args.noise_levels if args.noise_levels else [None]
-        for noise_level in noise_levels:
-            run_experiment(experiment_name, noise_level, args.test_bg_folder, args.test_ob_folder, args.boundary_size, args.epoch_number)
+        if args.fix_disparity_degrees:
+                for disp in args.fix_disparity_degrees:
+                    for noise_level in noise_levels:
+                        run_experiment(
+                            experiment_name=experiment_name,
+                            noise_level=noise_level,
+                            fix_disparity_degree=disp,
+                            test_bg_folder=args.test_bg_folder,
+                            test_ob_folder=args.test_ob_folder,
+                            boundary_size=args.boundary_size,
+                            epoch_number=args.epoch_number
+                        )
+        else:
+            for noise_level in noise_levels:
+                run_experiment(
+                    experiment_name=experiment_name,
+                    noise_level=noise_level,
+                    # omit disparity argument or pass None
+                    test_bg_folder=args.test_bg_folder,
+                    test_ob_folder=args.test_ob_folder,
+                    boundary_size=args.boundary_size,
+                    epoch_number=args.epoch_number
+                )
 
 
-def run_experiment(experiment_name, noise_level=None, test_bg_folder=None, test_ob_folder=None, boundary_size=None, epoch_number=200):
+def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None, test_bg_folder=None, test_ob_folder=None, boundary_size=None, epoch_number=200):
     num_display = 3
     frame_width = 640
     frame_height = 480
@@ -198,7 +218,7 @@ def run_experiment(experiment_name, noise_level=None, test_bg_folder=None, test_
         coord_mat_file=coord_mat_file, correction_direction=args.coord_adj_dir, is_reverse_xy=args.is_reverse_xy, 
         start_scaling=args.start_scaling, end_scaling=args.end_scaling, dynamic_scaling=args.dynamic_scaling, is_binocular=args.is_binocular,
         interocular_dist=args.interocular_dist, bottom_contrast=args.bottom_contrast, top_contrast=args.top_contrast, 
-        mean_diff_offset=args.mean_diff_offset
+        mean_diff_offset=args.mean_diff_offset, fix_disparity=fix_disparity_degree
     )
 
     logging.info( f"{file_name} processing...3")
