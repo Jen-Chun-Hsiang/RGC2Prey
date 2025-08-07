@@ -859,7 +859,7 @@ class RGCrfArray:
                  grid_generate_method, tau=None, mask_radius=None, rgc_rand_seed=42, num_gauss_example=1, sf_mask_radius=35, 
                  sf_pixel_thr=99.7, sf_constraint_method=None, temporal_filter_len=50, grid_size_fac=0.5, is_pixelized_tf=False, 
                  set_s_scale=[], is_rf_median_subtract=True, is_rescale_diffgaussian=True, is_both_ON_OFF = False,
-                 grid_noise_level=0.3, is_reversed_tf = False, sf_id_list=None):
+                 grid_noise_level=0.3, is_reversed_tf = False, sf_id_list=None, syn_tf_sf=False):
         """
         Args:
             sf_param_table (DataFrame): Table of spatial frequency parameters.
@@ -902,20 +902,36 @@ class RGCrfArray:
                                                      noise_level=self.grid_noise_level)
         self.is_reversed_tf = is_reversed_tf
         self.sf_id_list = sf_id_list
+    self.syn_tf_sf = syn_tf_sf
         
         logging.info( f"   subprocessing...1.1")
 
     def get_results(self):
         points = self.grid_generator.generate_first_grid()
-        multi_opt_sf = self._create_multi_opt_sf(points, self.sf_id_list)
-        tf = self._create_temporal_filter()
+        if self.syn_tf_sf:
+            if len(self.sf_param_table) != len(self.tf_param_table):
+                raise ValueError("sf_param_table and tf_param_table must have equal length when syn_tf_sf is True.")
+            # Use same indices for both
+            idx_list = np.random.choice(len(self.sf_param_table), len(points))
+            multi_opt_sf = self._create_multi_opt_sf(points, self.sf_id_list, idx_list=idx_list)
+            tf = self._create_temporal_filter(idx_list=idx_list)
+        else:
+            multi_opt_sf = self._create_multi_opt_sf(points, self.sf_id_list)
+            tf = self._create_temporal_filter()
         grid2value_mapping, map_func = self._get_grid_mapping(points)
         return multi_opt_sf, tf, grid2value_mapping, map_func, points
     
     def get_additional_results(self, anti_alignment=1, sf_id_list_additional=None):
         points = self.grid_generator.generate_second_grid(anti_alignment=anti_alignment)
-        multi_opt_sf = self._create_multi_opt_sf(points, sf_id_list_additional)
-        tf = self._create_temporal_filter()
+        if self.syn_tf_sf:
+            if len(self.sf_param_table) != len(self.tf_param_table):
+                raise ValueError("sf_param_table and tf_param_table must have equal length when syn_tf_sf is True.")
+            idx_list = np.random.choice(len(self.sf_param_table), len(points))
+            multi_opt_sf = self._create_multi_opt_sf(points, sf_id_list_additional, idx_list=idx_list)
+            tf = self._create_temporal_filter(idx_list=idx_list)
+        else:
+            multi_opt_sf = self._create_multi_opt_sf(points, sf_id_list_additional)
+            tf = self._create_temporal_filter()
         grid2value_mapping, map_func = self._get_grid_mapping(points)
         return multi_opt_sf, tf, grid2value_mapping, map_func, points
 
@@ -952,14 +968,15 @@ class RGCrfArray:
 
         return grid2value_mapping, map_func
 
-    def _create_multi_opt_sf(self, points, pids=None):
+    def _create_multi_opt_sf(self, points, pids=None, idx_list=None):
         # Create multi-optical spatial filters
         multi_opt_sf = np.zeros((self.rgc_array_rf_size[0], self.rgc_array_rf_size[1], len(points)))
         num_sim_data = len(self.sf_param_table)
         pid_list = None if pids is None else list(pids)
-        
         for i, point in enumerate(points):
-            if pid_list is None:
+            if idx_list is not None:
+                pid_i = idx_list[i]
+            elif pid_list is None:
                 pid_i = np.random.randint(0, num_sim_data)
             else:
                 pid_i = np.random.choice(pid_list)
@@ -988,24 +1005,36 @@ class RGCrfArray:
                 opt_sf = np.where(opt_sf > threshold_value, 1, 0)
 
             multi_opt_sf[:, :, i] = opt_sf
-            
         return multi_opt_sf
 
-    def _create_temporal_filter(self):
-        
+    def _create_temporal_filter(self, idx_list=None):
         if self.is_pixelized_tf:
             tf = np.zeros(self.temporal_filter_len)
             tf[-1] = 1 
         else:
             num_sim_data = len(self.tf_param_table)
-            pid = np.random.randint(0, num_sim_data)
-            row = self.tf_param_table.iloc[pid]
-            tf_params = np.array([row['sigma1'], row['sigma2'], row['mean1'], row['mean2'], row['amp1'], row['amp2'], row['offset']])
-            tf = gaussian_temporalfilter(self.temporal_filter_len, tf_params)
-            tf = tf-tf[0]
-            tf = tf / np.sum(np.abs(tf))
-            if self.is_reversed_tf:
-                tf = -tf
+            if idx_list is not None:
+                # Return array of filters
+                tf_arr = []
+                for pid in idx_list:
+                    row = self.tf_param_table.iloc[pid]
+                    tf_params = np.array([row['sigma1'], row['sigma2'], row['mean1'], row['mean2'], row['amp1'], row['amp2'], row['offset']])
+                    tf = gaussian_temporalfilter(self.temporal_filter_len, tf_params)
+                    tf = tf-tf[0]
+                    tf = tf / np.sum(np.abs(tf))
+                    if self.is_reversed_tf:
+                        tf = -tf
+                    tf_arr.append(tf)
+                return np.stack(tf_arr, axis=-1)
+            else:
+                pid = np.random.randint(0, num_sim_data)
+                row = self.tf_param_table.iloc[pid]
+                tf_params = np.array([row['sigma1'], row['sigma2'], row['mean1'], row['mean2'], row['amp1'], row['amp2'], row['offset']])
+                tf = gaussian_temporalfilter(self.temporal_filter_len, tf_params)
+                tf = tf-tf[0]
+                tf = tf / np.sum(np.abs(tf))
+                if self.is_reversed_tf:
+                    tf = -tf
         return tf
     
 
