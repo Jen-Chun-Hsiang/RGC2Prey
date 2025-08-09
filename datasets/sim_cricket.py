@@ -902,7 +902,7 @@ class RGCrfArray:
                                                      noise_level=self.grid_noise_level)
         self.is_reversed_tf = is_reversed_tf
         self.sf_id_list = sf_id_list
-    self.syn_tf_sf = syn_tf_sf
+        self.syn_tf_sf = syn_tf_sf
         
         logging.info( f"   subprocessing...1.1")
 
