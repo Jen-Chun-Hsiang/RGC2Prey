@@ -222,7 +222,7 @@ def main():
             num_input_channel = 1
         multi_opt_sf_off, tf_off, grid2value_mapping_off, map_func_off, rgc_locs_off = None, None, None, None, None
 
-
+    raise ValueError(f"Check the sf_id_list: {args.sf_id_list} and sf_id_list_additional: {args.sf_id_list_additional} for the RGCs")   
     if is_show_rgc_grid:
         plot_coordinate_and_save(rgc_locs, rgc_locs_off, plot_save_folder, file_name=f'{args.experiment_name}_rgc_grids.png')
         
