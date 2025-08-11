@@ -915,9 +915,12 @@ class RGCrfArray:
             idx_list = np.random.choice(len(self.sf_param_table), len(points))
             multi_opt_sf = self._create_multi_opt_sf(points, self.sf_id_list, idx_list=idx_list)
             tf = self._create_temporal_filter(idx_list=idx_list)
+            
         else:
             multi_opt_sf = self._create_multi_opt_sf(points, self.sf_id_list)
             tf = self._create_temporal_filter()
+        
+        print(f"multi_opt_sf shape: {multi_opt_sf.shape}, tf shape: {tf.shape}")    
         grid2value_mapping, map_func = self._get_grid_mapping(points)
         return multi_opt_sf, tf, grid2value_mapping, map_func, points
     
@@ -932,6 +935,8 @@ class RGCrfArray:
         else:
             multi_opt_sf = self._create_multi_opt_sf(points, sf_id_list_additional)
             tf = self._create_temporal_filter()
+        
+        print(f"multi_opt_sf shape: {multi_opt_sf.shape}, tf shape: {tf.shape}")
         grid2value_mapping, map_func = self._get_grid_mapping(points)
         return multi_opt_sf, tf, grid2value_mapping, map_func, points
 
