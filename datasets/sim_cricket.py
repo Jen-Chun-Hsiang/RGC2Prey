@@ -415,7 +415,8 @@ class Cricket2RGCs(Dataset):
         return self.num_samples
 
     def _compute_rgc_time(self, movie, sf, tf, rect_thr):
-        # movie: [T, H, W], sf: [W, H, n], tf: [1, 1, T]
+        print(f"movie: {movie.shape}, sf: {sf.shape}, tf: {tf.shape}")
+        raise ValueError("Check sf tf size")
         sf_frame = torch.einsum('whn,thw->nt', sf, movie)
         sf_frame = sf_frame.unsqueeze(0)
         tf_rep = tf.repeat(sf_frame.shape[1], 1, 1)
@@ -920,7 +921,6 @@ class RGCrfArray:
             multi_opt_sf = self._create_multi_opt_sf(points, self.sf_id_list)
             tf = self._create_temporal_filter()
         
-        print(f"multi_opt_sf shape: {multi_opt_sf.shape}, tf shape: {tf.shape}")    
         grid2value_mapping, map_func = self._get_grid_mapping(points)
         return multi_opt_sf, tf, grid2value_mapping, map_func, points
     
@@ -936,7 +936,6 @@ class RGCrfArray:
             multi_opt_sf = self._create_multi_opt_sf(points, sf_id_list_additional)
             tf = self._create_temporal_filter()
         
-        print(f"multi_opt_sf shape: {multi_opt_sf.shape}, tf shape: {tf.shape}")
         grid2value_mapping, map_func = self._get_grid_mapping(points)
         return multi_opt_sf, tf, grid2value_mapping, map_func, points
 
