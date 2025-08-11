@@ -417,11 +417,19 @@ class Cricket2RGCs(Dataset):
         if tf.ndim == 1:
             # Single temporal filter for all RGCs - replicate
             tf_multi = torch.from_numpy(tf.copy()).float().unsqueeze(0).repeat(num_rgcs, 1)
-        elif tf.ndim == 2 and tf.shape[0] == num_rgcs:
-            # Multiple temporal filters, one per RGC
-            tf_multi = torch.from_numpy(tf.copy()).float()
+        elif tf.ndim == 2:
+            # Multiple temporal filters - handle both orientations
+            if tf.shape[0] == num_rgcs:
+                # Shape: [num_rgcs, time_points] - correct orientation
+                tf_multi = torch.from_numpy(tf.copy()).float()
+            elif tf.shape[1] == num_rgcs:
+                # Shape: [time_points, num_rgcs] - needs transpose
+                tf_multi = torch.from_numpy(tf.T.copy()).float()
+            else:
+                raise ValueError(f"tf shape {tf.shape} incompatible with {num_rgcs} RGCs. "
+                               f"Expected either ({num_rgcs}, time_points) or (time_points, {num_rgcs})")
         else:
-            raise ValueError(f"tf shape {tf.shape} incompatible with {num_rgcs} RGCs")
+            raise ValueError(f"tf must be 1D or 2D array, got {tf.ndim}D with shape {tf.shape}")
         
         self.channels = [
             {
@@ -440,10 +448,19 @@ class Cricket2RGCs(Dataset):
             # Handle OFF temporal filter
             if tf_off.ndim == 1:
                 tf_off_multi = torch.from_numpy(tf_off.copy()).float().unsqueeze(0).repeat(num_rgcs_off, 1)
-            elif tf_off.ndim == 2 and tf_off.shape[0] == num_rgcs_off:
-                tf_off_multi = torch.from_numpy(tf_off.copy()).float()
+            elif tf_off.ndim == 2:
+                # Multiple temporal filters - handle both orientations
+                if tf_off.shape[0] == num_rgcs_off:
+                    # Shape: [num_rgcs, time_points] - correct orientation
+                    tf_off_multi = torch.from_numpy(tf_off.copy()).float()
+                elif tf_off.shape[1] == num_rgcs_off:
+                    # Shape: [time_points, num_rgcs] - needs transpose
+                    tf_off_multi = torch.from_numpy(tf_off.T.copy()).float()
+                else:
+                    raise ValueError(f"tf_off shape {tf_off.shape} incompatible with {num_rgcs_off} RGCs. "
+                                   f"Expected either ({num_rgcs_off}, time_points) or (time_points, {num_rgcs_off})")
             else:
-                raise ValueError(f"tf_off shape {tf_off.shape} incompatible with {num_rgcs_off} RGCs")
+                raise ValueError(f"tf_off must be 1D or 2D array, got {tf_off.ndim}D with shape {tf_off.shape}")
             
             # Sign handling for OFF pathway
             if not (is_two_grids or is_reversed_OFF_sign):
