@@ -318,9 +318,6 @@ def main():
                                 is_rectified=args.is_rectified, is_direct_image=args.is_direct_image, is_reversed_OFF_sign=args.is_reversed_OFF_sign,
                                 is_two_grids=args.is_two_grids, rectified_thr_ON=args.rectified_thr_ON, rectified_thr_OFF=args.rectified_thr_OFF)
     
-    
-
-    
     logging.info( f"{args.experiment_name} processing...6")
     # Visualize one data points
     for i in range(1):

@@ -512,11 +512,6 @@ class Cricket2RGCs(Dataset):
         if self.is_rectified:
             rgc_time = torch.clamp_min(rgc_time, rect_thr)
         return rgc_time
-        if self.add_noise:
-            rgc_time += torch.randn_like(rgc_time) * self.rgc_noise_std
-        if self.is_rectified:
-            rgc_time = torch.clamp_min(rgc_time, rect_thr)
-        return rgc_time
 
     def _process_direct_image(self, syn_movie):
         """
