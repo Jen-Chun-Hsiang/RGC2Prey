@@ -16,6 +16,33 @@ from utils.tools import gaussian_smooth_1d
 from utils.trajectory import disparity_from_scaling_factor, convert_deg_to_pix, adjust_trajectories, plot_trajectories
 
 
+def create_multiple_temporal_filters(base_tf, num_rgcs, variation_std=0.0):
+    """
+    Create multiple temporal filters for RGC cells.
+    
+    Args:
+        base_tf: numpy array [T] - base temporal filter
+        num_rgcs: int - number of RGC cells
+        variation_std: float - standard deviation for filter variation (0 = identical filters)
+    
+    Returns:
+        tf_multi: numpy array [num_rgcs, T] - temporal filters for each RGC
+    """
+    tf_length = len(base_tf)
+    tf_multi = np.tile(base_tf, (num_rgcs, 1))
+    
+    if variation_std > 0:
+        # Add Gaussian noise to create filter variations
+        noise = np.random.normal(0, variation_std, (num_rgcs, tf_length))
+        tf_multi += noise
+        
+        # Optionally normalize to maintain similar response magnitudes
+        for i in range(num_rgcs):
+            tf_multi[i] = tf_multi[i] / np.sum(np.abs(tf_multi[i])) * np.sum(np.abs(base_tf))
+    
+    return tf_multi
+
+
 def jitter_position(position, jitter_range):
     """
     Apply jitter to a given position within a defined range.
@@ -383,10 +410,23 @@ class Cricket2RGCs(Dataset):
 
         # Build channel configurations
         # Always include ON channel
+        sf_tensor = torch.from_numpy(multi_opt_sf).float()
+        num_rgcs = sf_tensor.shape[2]  # Get number of RGC cells
+        
+        # Handle temporal filter - if single tf, replicate for all RGCs
+        if tf.ndim == 1:
+            # Single temporal filter for all RGCs - replicate
+            tf_multi = torch.from_numpy(tf.copy()).float().unsqueeze(0).repeat(num_rgcs, 1)
+        elif tf.ndim == 2 and tf.shape[0] == num_rgcs:
+            # Multiple temporal filters, one per RGC
+            tf_multi = torch.from_numpy(tf.copy()).float()
+        else:
+            raise ValueError(f"tf shape {tf.shape} incompatible with {num_rgcs} RGCs")
+        
         self.channels = [
             {
-                'sf': torch.from_numpy(multi_opt_sf).float(),
-                'tf': torch.from_numpy(tf.copy()).float().view(1, 1, -1),
+                'sf': sf_tensor,
+                'tf': tf_multi.view(num_rgcs, 1, -1),  # [N, 1, T] for conv1d
                 'map_func': map_func,
                 'grid2value': grid2value_mapping,
                 'rect_thr': self.rectified_thr_ON, 
@@ -394,12 +434,24 @@ class Cricket2RGCs(Dataset):
         ]
         # Add OFF channel config if required
         if is_both_ON_OFF or is_two_grids:
-            off_tf = torch.from_numpy(tf_off.copy()).float().view(1, 1, -1)
+            sf_off_tensor = torch.from_numpy(multi_opt_sf_off).float()
+            num_rgcs_off = sf_off_tensor.shape[2]
+            
+            # Handle OFF temporal filter
+            if tf_off.ndim == 1:
+                tf_off_multi = torch.from_numpy(tf_off.copy()).float().unsqueeze(0).repeat(num_rgcs_off, 1)
+            elif tf_off.ndim == 2 and tf_off.shape[0] == num_rgcs_off:
+                tf_off_multi = torch.from_numpy(tf_off.copy()).float()
+            else:
+                raise ValueError(f"tf_off shape {tf_off.shape} incompatible with {num_rgcs_off} RGCs")
+            
             # Sign handling for OFF pathway
-            off_tf_signed = off_tf if (is_two_grids or is_reversed_OFF_sign) else -off_tf
+            if not (is_two_grids or is_reversed_OFF_sign):
+                tf_off_multi = -tf_off_multi
+                
             self.channels.append({
-                'sf': torch.from_numpy(multi_opt_sf_off).float(),
-                'tf': off_tf_signed,
+                'sf': sf_off_tensor,
+                'tf': tf_off_multi.view(num_rgcs_off, 1, -1),
                 'map_func': map_func_off,
                 'grid2value': grid2value_mapping_off,
                 'rect_thr': self.rectified_thr_OFF,
@@ -415,18 +467,34 @@ class Cricket2RGCs(Dataset):
         return self.num_samples
 
     def _compute_rgc_time(self, movie, sf, tf, rect_thr):
-        print(f"movie: {movie.shape}, sf: {sf.shape}, tf: {tf.shape}")
-        raise ValueError("Check sf tf size")
-        sf_frame = torch.einsum('whn,thw->nt', sf, movie)
-        sf_frame = sf_frame.unsqueeze(0)
-        tf_rep = tf.repeat(sf_frame.shape[1], 1, 1)
+        """
+        Compute RGC response using vectorized conv1d with multiple temporal filters.
+        
+        Args:
+            movie: [T, H, W] - input movie
+            sf: [W, H, N] - spatial filters for N RGC cells
+            tf: [N, 1, T_filter] - temporal filters for each RGC cell
+            rect_thr: rectification threshold
+        
+        Returns:
+            rgc_time: [N, T_out] - RGC responses over time
+        """
+        # Spatial filtering: apply all spatial filters to movie
+        sf_frame = torch.einsum('whn,thw->nt', sf, movie)  # [N, T]
+        
+        # Reshape for batched conv1d
+        sf_frame = sf_frame.unsqueeze(0)  # [1, N, T]
+        
+        # Apply temporal filtering using grouped conv1d
+        # Each RGC gets its own temporal filter
         rgc_time = F.conv1d(
             sf_frame,
-            tf_rep,
+            tf,  # [N, 1, T_filter] 
             stride=1,
             padding=0,
-            groups=sf_frame.shape[1]
-        ).squeeze()
+            groups=sf_frame.shape[1]  # N groups, one per RGC
+        ).squeeze(0)  # [N, T_out]
+        
         # Optional transforms
         if self.fr2spikes:
             rgc_time = torch.poisson(
@@ -444,14 +512,42 @@ class Cricket2RGCs(Dataset):
         if self.is_rectified:
             rgc_time = torch.clamp_min(rgc_time, rect_thr)
         return rgc_time
+        if self.add_noise:
+            rgc_time += torch.randn_like(rgc_time) * self.rgc_noise_std
+        if self.is_rectified:
+            rgc_time = torch.clamp_min(rgc_time, rect_thr)
+        return rgc_time
 
     def _process_direct_image(self, syn_movie):
+        """
+        Process synthetic movie directly using temporal filtering.
+        
+        Args:
+            syn_movie: [T, H, W] - input movie
+            
+        Returns:
+            Interpolated RGC responses: [T_out, grid_height, grid_width]
+        """
         # syn_movie: [T, H, W]
         T, H, W = syn_movie.shape
-        flat = syn_movie.permute(1, 2, 0).reshape(-1, T).unsqueeze(0)
-        tf_rep = self.channels[0]['tf'].repeat(flat.shape[1], 1, 1)
+        
+        # Flatten spatial dimensions and permute for conv1d
+        flat = syn_movie.permute(1, 2, 0).reshape(-1, T).unsqueeze(0)  # [1, H*W, T]
+        
+        # Get temporal filter - use first channel's first temporal filter for all pixels
+        # Note: this assumes all pixels use the same temporal filter
+        tf_single = self.channels[0]['tf'][0:1]  # [1, 1, T_filter]
+        
+        # Replicate temporal filter for all spatial locations
+        tf_rep = tf_single.repeat(flat.shape[1], 1, 1)  # [H*W, 1, T_filter]
+        
+        # Apply temporal filtering using grouped conv1d
         conv = F.conv1d(flat, tf_rep, stride=1, padding=0, groups=flat.shape[1]).squeeze()
+        
+        # Reshape back to spatial format
         reshaped = conv.view(H, W, -1).permute(2, 1, 0).unsqueeze(0)
+        
+        # Interpolate to target grid size
         return F.interpolate(
             reshaped,
             size=(self.grid_height, self.grid_width),
@@ -1103,5 +1199,53 @@ class CricketMovie(Dataset):
             return movie_sequence, torch.tensor(path, dtype=torch.float32), torch.tensor(path_bg, dtype=torch.float32)
 
 
+def test_multi_temporal_filters():
+    """
+    Test function to demonstrate the new multi-temporal filter functionality.
+    This shows how to use different temporal filters for different RGC cells.
+    """
+    print("Testing multi-temporal filter implementation...")
     
+    # Create dummy data
+    T, H, W = 20, 32, 32
+    num_rgcs = 5
+    
+    # Create dummy movie
+    movie = torch.randn(T, H, W)
+    
+    # Create dummy spatial filters [W, H, N]
+    sf = torch.randn(W, H, num_rgcs)
+    
+    # Test 1: Single temporal filter for all RGCs (backward compatibility)
+    tf_single = np.random.randn(10)  # Single temporal filter
+    tf_multi_single = create_multiple_temporal_filters(tf_single, num_rgcs, variation_std=0.0)
+    tf_tensor_single = torch.from_numpy(tf_multi_single).float().view(num_rgcs, 1, -1)
+    
+    print(f"Single TF replicated - Shape: {tf_tensor_single.shape}")
+    
+    # Test 2: Different temporal filters for each RGC
+    tf_multi_varied = create_multiple_temporal_filters(tf_single, num_rgcs, variation_std=0.1)
+    tf_tensor_varied = torch.from_numpy(tf_multi_varied).float().view(num_rgcs, 1, -1)
+    
+    print(f"Varied TFs - Shape: {tf_tensor_varied.shape}")
+    
+    # Test the convolution operation
+    sf_frame = torch.einsum('whn,thw->nt', sf, movie)  # [N, T]
+    sf_frame = sf_frame.unsqueeze(0)  # [1, N, T]
+    
+    # Apply temporal filtering
+    result_single = F.conv1d(sf_frame, tf_tensor_single, stride=1, padding=0, groups=num_rgcs)
+    result_varied = F.conv1d(sf_frame, tf_tensor_varied, stride=1, padding=0, groups=num_rgcs)
+    
+    print(f"Result single TF - Shape: {result_single.shape}")
+    print(f"Result varied TF - Shape: {result_varied.shape}")
+    
+    # Check that different filters produce different results
+    are_different = not torch.allclose(result_single, result_varied, atol=1e-6)
+    print(f"Single vs varied TF produce different results: {are_different}")
+    
+    print("Multi-temporal filter test completed successfully!")
 
+
+if __name__ == "__main__":
+    test_multi_temporal_filters()
