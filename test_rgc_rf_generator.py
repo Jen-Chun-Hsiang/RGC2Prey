@@ -91,6 +91,7 @@ if __name__ == "__main__":
             tf_params = np.array([row['sigma1'], row['sigma2'], row['mean1'], row['mean2'], row['amp1'], row['amp2'], row['offset']])
             tf = gaussian_temporalfilter(temporal_filter_len, tf_params)
             tf = tf-tf[0]
+            tf = tf / np.sum(np.abs(tf))  # Add L1 normalization for consistency
         
         
         plot_vector_and_save(tf, plot_save_folder, file_name=f'temporal_filter_{video_id}.png')
@@ -101,10 +102,12 @@ if __name__ == "__main__":
         pid = random.randint(0, num_sim_data - 1)
         row = sf_param_table.iloc[pid]
         if surround_fac is None:
-            surround_fac = row['s_scale']
+            surround_fac = row['s_scale']  # Use the surround-to-center ratio from data
         else:
-            surround_fac = row['c_scale']*surround_fac
-        print(f'surround_fac: {surround_fac}')
+            # surround_fac is already the intended ratio, don't multiply by c_scale
+            # This preserves the biological meaning of the surround ratio
+            surround_fac = surround_fac
+        print(f'surround_fac (ratio): {surround_fac}')
         # Loop over each row in grid_centers to generate multiple opt_sf
         min_values = np.min(points, axis=0)
         max_values = np.max(points, axis=0)
@@ -120,6 +123,7 @@ if __name__ == "__main__":
             # Generate opt_sf using gaussian_multi function
             opt_sf = gaussian_multi(sf_params, rgc_array_rf_size, num_gauss_example)
             opt_sf -= np.median(opt_sf)  # Center opt_sf around zero
+            opt_sf = opt_sf / np.sum(np.abs(opt_sf))  # Add L1 normalization for consistency
 
             if is_pixelized_rf:
                 if masking_method == 'circle':
