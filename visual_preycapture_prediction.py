@@ -197,7 +197,8 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
         grid_centers = None
         is_plot_centerFR = False
         # sf_param_table = pd.read_excel(rf_params_file, sheet_name='SF_params_OFF', usecols='A:L')
-        multi_opt_sf_off, tf_off, grid2value_mapping_off, map_func_off, rgc_locs_off = rgc_array.get_additional_results(anti_alignment=args.anti_alignment)
+        multi_opt_sf_off, tf_off, grid2value_mapping_off, map_func_off, rgc_locs_off = \
+            rgc_array.get_additional_results(anti_alignment=args.anti_alignment, sf_id_list_additional=args.sf_id_list_additional)
         if args.is_binocular:
             num_input_channel = 4
             
