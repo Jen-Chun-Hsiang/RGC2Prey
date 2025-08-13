@@ -1026,8 +1026,11 @@ class RGCrfArray:
             tf = self._create_temporal_filter(idx_list=idx_list)
             
         else:
-            multi_opt_sf = self._create_multi_opt_sf(points, self.sf_id_list)
-            tf = self._create_temporal_filter()
+            # Generate separate indices for spatial and temporal filters
+            sf_idx_list = np.random.choice(len(self.sf_param_table), len(points))
+            tf_idx_list = np.random.choice(len(self.tf_param_table), len(points))
+            multi_opt_sf = self._create_multi_opt_sf(points, self.sf_id_list, idx_list=sf_idx_list)
+            tf = self._create_temporal_filter(idx_list=tf_idx_list)
         
         grid2value_mapping, map_func = self._get_grid_mapping(points)
         return multi_opt_sf, tf, grid2value_mapping, map_func, points
@@ -1041,8 +1044,11 @@ class RGCrfArray:
             multi_opt_sf = self._create_multi_opt_sf(points, sf_id_list_additional, idx_list=idx_list)
             tf = self._create_temporal_filter(idx_list=idx_list)
         else:
-            multi_opt_sf = self._create_multi_opt_sf(points, sf_id_list_additional)
-            tf = self._create_temporal_filter()
+            # Generate separate indices for spatial and temporal filters
+            sf_idx_list = np.random.choice(len(self.sf_param_table), len(points))
+            tf_idx_list = np.random.choice(len(self.tf_param_table), len(points))
+            multi_opt_sf = self._create_multi_opt_sf(points, sf_id_list_additional, idx_list=sf_idx_list)
+            tf = self._create_temporal_filter(idx_list=tf_idx_list)
         
         grid2value_mapping, map_func = self._get_grid_mapping(points)
         return multi_opt_sf, tf, grid2value_mapping, map_func, points
