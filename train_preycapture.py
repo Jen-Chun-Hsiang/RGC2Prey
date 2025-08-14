@@ -193,6 +193,8 @@ def main():
     else:
         device = 'cpu'
 
+    logging.info( f"is_rescale_diffgaussian: {args.is_rescale_diffgaussian}")
+    logging.info( f'set_s_scale: {args.set_s_scale}')
 
     sf_param_table = pd.read_excel(rf_params_file, sheet_name=args.sf_sheet_name, usecols='A:L')
     tf_param_table = pd.read_excel(rf_params_file, sheet_name=args.tf_sheet_name, usecols='A:I')
