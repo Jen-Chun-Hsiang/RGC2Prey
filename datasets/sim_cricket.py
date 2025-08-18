@@ -968,7 +968,7 @@ class RGCrfArray:
                  grid_generate_method, tau=None, mask_radius=None, rgc_rand_seed=42, num_gauss_example=1, sf_mask_radius=35, 
                  sf_pixel_thr=99.7, sf_constraint_method=None, temporal_filter_len=50, grid_size_fac=0.5, is_pixelized_tf=False, 
                  set_s_scale=[], is_rf_median_subtract=True, is_rescale_diffgaussian=True, is_both_ON_OFF = False,
-                 grid_noise_level=0.3, is_reversed_tf = False, sf_id_list=None, syn_tf_sf=False):
+                 grid_noise_level=0.3, is_reversed_tf = False, sf_id_list=None, syn_tf_sf=False, sf_SI_table=None):
         """
         Args:
             sf_param_table (DataFrame): Table of spatial frequency parameters.
@@ -984,6 +984,7 @@ class RGCrfArray:
         """
         self.sf_param_table = sf_param_table
         self.tf_param_table = tf_param_table
+        self.sf_SI_table = sf_SI_table
         self.rgc_array_rf_size = rgc_array_rf_size
         self.sf_scalar = sf_scalar
         self.temporal_filter_len = temporal_filter_len
@@ -1090,6 +1091,8 @@ class RGCrfArray:
         # Create multi-optical spatial filters
         multi_opt_sf = np.zeros((self.rgc_array_rf_size[0], self.rgc_array_rf_size[1], len(points)))
         num_sim_data = len(self.sf_param_table)
+        if self.sf_SI_table is not None:
+            len_sf_SI = len(self.sf_SI_table)
         pid_list = None if pids is None else list(pids)
         for i, point in enumerate(points):
             if idx_list is not None:
@@ -1100,7 +1103,11 @@ class RGCrfArray:
                 pid_i = np.random.choice(pid_list)
 
             row = self.sf_param_table.iloc[pid_i]
-            s_scale = row['s_scale'] if not self.set_s_scale else self.set_s_scale[0]
+            if self.sf_SI_table is not None:
+                sid_i = np.random.randint(0, len_sf_SI)
+                s_scale = self.sf_SI_table.iloc[sid_i]
+            else:
+                s_scale = row['s_scale'] if not self.set_s_scale else self.set_s_scale[0]
             sf_params = np.array([
                 point[1], point[0], row['sigma_x'] * self.sf_scalar, row['sigma_y'] * self.sf_scalar,
                 row['theta'], row['bias'], row['c_scale'], row['s_sigma_x'] * self.sf_scalar,

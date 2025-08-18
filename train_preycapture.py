@@ -121,6 +121,7 @@ def parse_args():
     parser.add_argument("--sf_id_list_additional", type=int, nargs="+", default=None, help='select RF ids from sf_sheet_name --pid 2 7 12')
     parser.add_argument('--syn_tf_sf', action='store_true', help='Synchronize TF and SF parameters for each RGC')
     parser.add_argument('--is_rescale_diffgaussian', action='store_true', help='Rescale the diffgaussian RF to have zero min and max to 1')
+    parser.add_argument('--sf_SI_sheet_name', type=str, default=None, help="sheet name for surround inhibition")
 
     # Arguments for CNN_LSTM 
     parser.add_argument('--cnn_feature_dim', type=int, default=256, help="Number of CNN feature dimensions.")
@@ -198,6 +199,12 @@ def main():
 
     sf_param_table = pd.read_excel(rf_params_file, sheet_name=args.sf_sheet_name, usecols='A:L')
     tf_param_table = pd.read_excel(rf_params_file, sheet_name=args.tf_sheet_name, usecols='A:I')
+    sf_SI_match = {'SF_ON-N':0, 'SF_ON-T':1, 'SF_OFF-N':2, 'SF_OFF-T':3}
+    if args.sf_SI_sheet_name:
+        args.is_rescale_diffgaussian = True
+        sf_SI_table = pd.read_excel(rf_params_file, sheet_name=args.sf_SI_sheet_name, usecols='A:I')
+        sf_SI_table = sf_SI_table.iloc[:, sf_SI_match[args.sf_sheet_name]]
+        
     rgc_array = RGCrfArray(
         sf_param_table, tf_param_table, rgc_array_rf_size=args.rgc_array_rf_size, xlim=args.xlim, ylim=args.ylim,
         target_num_centers=args.target_num_centers, sf_scalar=args.sf_scalar, grid_generate_method=args.grid_generate_method, 
@@ -205,7 +212,8 @@ def main():
         sf_constraint_method=args.sf_constraint_method, temporal_filter_len=args.temporal_filter_len, grid_size_fac=args.grid_size_fac,
         sf_mask_radius=args.sf_mask_radius, is_pixelized_tf=args.is_pixelized_tf, set_s_scale=args.set_s_scale, 
         is_rf_median_subtract=args.is_rf_median_subtract, is_rescale_diffgaussian=args.is_rescale_diffgaussian, 
-        grid_noise_level=args.grid_noise_level, is_reversed_tf=args.is_reversed_tf, sf_id_list=args.sf_id_list, syn_tf_sf=args.syn_tf_sf
+        grid_noise_level=args.grid_noise_level, is_reversed_tf=args.is_reversed_tf, sf_id_list=args.sf_id_list, syn_tf_sf=args.syn_tf_sf,
+        sf_SI_table=sf_SI_table
     )
     logging.info( f"{args.experiment_name} processing...1")
     multi_opt_sf, tf, grid2value_mapping, map_func, rgc_locs = rgc_array.get_results()
