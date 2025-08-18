@@ -199,11 +199,10 @@ def main():
 
     sf_param_table = pd.read_excel(rf_params_file, sheet_name=args.sf_sheet_name, usecols='A:L')
     tf_param_table = pd.read_excel(rf_params_file, sheet_name=args.tf_sheet_name, usecols='A:I')
-    sf_SI_match = {'SF_ON-N':0, 'SF_ON-T':1, 'SF_OFF-N':2, 'SF_OFF-T':3}
     if args.sf_SI_sheet_name:
         args.is_rescale_diffgaussian = True
         sf_SI_table = pd.read_excel(rf_params_file, sheet_name=args.sf_SI_sheet_name, usecols='A:I')
-        sf_SI_table = sf_SI_table.iloc[:, sf_SI_match[args.sf_sheet_name]]
+        sf_SI_table = sf_SI_table[args.sf_sheet_name]
         
     rgc_array = RGCrfArray(
         sf_param_table, tf_param_table, rgc_array_rf_size=args.rgc_array_rf_size, xlim=args.xlim, ylim=args.ylim,
