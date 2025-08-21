@@ -38,16 +38,34 @@ class LNKRateModel:
         ypos = np.maximum(y_rate, 0)
         rx = np.mean(np.abs(x[x != 0])) if np.any(x != 0) else 1.0
         ry = np.mean(ypos[ypos > 0]) if np.any(ypos > 0) else 1.0
-        
+        # Follow MATLAB defaults closely:
+        # init.tau     = max(rand*0.5, 1e-6);
+        # init.alpha_d = max(rand*0.5, 1e-6);
+        # init.theta   = max(0, prctile(x, 20));
+        # init.sigma0  = 0.5*rand + 0.05*std(x);
+        # init.alpha   = 0.05*rand;
+        # init.beta    = -0.2*rand;
+        # init.b_out   = 1+rand;
+        # init.g_out   = max(ry/(rx+eps), 0.5);
+
+        tau_init = max(np.random.rand() * 0.5, 1e-6)
+        alpha_d_init = max(np.random.rand() * 0.5, 1e-6)
+        theta_init = max(0.0, np.percentile(x, 20))
+        sigma0_init = 0.5 * np.random.rand() + 0.05 * np.std(x)
+        alpha_init = 0.05 * np.random.rand()
+        beta_init = -0.2 * np.random.rand()
+        b_out_init = 1.0 + np.random.rand()
+        g_out_init = max(ry / (rx + np.finfo(float).eps), 0.5)
+
         return LNKParams(
-            tau=np.random.rand(),
-            alpha_d=np.random.rand(),
-            theta=max(0, np.percentile(x, 20)),
-            sigma0=0.1 + 0.05 * np.std(x),
-            alpha=0.01,
-            beta=-0.1,
-            b_out=1.0,
-            g_out=max(ry / (rx + np.finfo(float).eps), 0.5)
+            tau=tau_init,
+            alpha_d=alpha_d_init,
+            theta=theta_init,
+            sigma0=sigma0_init,
+            alpha=alpha_init,
+            beta=beta_init,
+            b_out=b_out_init,
+            g_out=g_out_init
         )
     
     def _pack_params(self, params: LNKParams) -> np.ndarray:
