@@ -1,5 +1,10 @@
 import numpy as np
 from scipy.optimize import minimize
+try:
+    from scipy.signal import lfilter
+except Exception:
+    # lfilter may not be available in minimal environments; fall back to python loop
+    lfilter = None
 from dataclasses import dataclass
 from typing import Optional, Tuple, Union, Dict, Any
 import warnings
@@ -170,13 +175,32 @@ class LNKRateModel:
         x = np.asarray(x).flatten()
         T = len(x)
         a = np.zeros(T)
-        
-        # Forward dynamics
-        for t in range(T - 1):
-            drive = max(0, x[t] - params.theta)
-            a[t + 1] = a[t] + dt * (params.alpha_d * drive - a[t]) / params.tau
-            if a[t + 1] < 0:
-                a[t + 1] = 0
+
+        # Forward dynamics: a_{t+1} = p * a_t + q * drive_t  where
+        # p = 1 - dt/tau, q = dt * alpha_d / tau, drive_t = max(0, x[t] - theta)
+        # This is a linear first-order filter and can be computed efficiently
+        # with scipy.signal.lfilter (O(T)) instead of an explicit Python loop.
+        drive = np.maximum(0.0, x - params.theta)
+        p = 1.0 - dt / params.tau
+        q = dt * params.alpha_d / params.tau
+
+        if lfilter is not None and T > 1:
+            # lfilter produces y[n] = q*drive[n] + p*y[n-1]
+            # Original code produces a[0]=0, a[1]=q*drive[0], so shift lfilter output by 1
+            y = lfilter([q], [1.0, -p], drive)
+            a[1:] = y[:-1]
+
+            print('apply lfilter')
+        else:
+            # Fallback: original loop (keeps exact original behavior)
+            for t in range(T - 1):
+                dv = float(drive[t])
+                a[t + 1] = a[t] + dt * (params.alpha_d * dv - a[t]) / params.tau
+                if a[t + 1] < 0:
+                    a[t + 1] = 0.0
+
+        # Clip small negative numerical noise
+        a = np.maximum(a, 0.0)
         
         # Output computation
         den = params.sigma0 + params.alpha * a
@@ -206,11 +230,24 @@ class LNKRateModel:
         T = len(x)
         a = np.zeros(T)
 
-        for t in range(T - 1):
-            drive = max(0, x[t] - params.theta)
-            a[t + 1] = a[t] + dt * (params.alpha_d * drive - a[t]) / params.tau
-            if a[t + 1] < 0:
-                a[t + 1] = 0
+        # Vectorized dynamics as in forward_pass
+        drive = np.maximum(0.0, x - params.theta)
+        p = 1.0 - dt / params.tau
+        q = dt * params.alpha_d / params.tau
+
+        if lfilter is not None and T > 1:
+            y = lfilter([q], [1.0, -p], drive)
+            a[1:] = y[:-1]
+
+            print('apply lfilter')
+        else:
+            for t in range(T - 1):
+                dv = float(drive[t])
+                a[t + 1] = a[t] + dt * (params.alpha_d * dv - a[t]) / params.tau
+                if a[t + 1] < 0:
+                    a[t + 1] = 0.0
+
+        a = np.maximum(a, 0.0)
 
         den = params.sigma0 + params.alpha * a
         den = np.maximum(den, 1e-9)
