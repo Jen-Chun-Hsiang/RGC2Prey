@@ -1,8 +1,3 @@
-# --- CORRELATION PRINTING ---
-sim_exp_corr = np.corrcoef(sim, exp)[0, 1]
-ratehat_exp_corr = np.corrcoef(rate_hat, exp)[0, 1]
-print(f"Correlation between sim and exp: {sim_exp_corr:.4f}")
-print(f"Correlation between rate_hat and exp: {ratehat_exp_corr:.4f}")
 import numpy as np
 import scipy.io as sio
 import matplotlib.pyplot as plt
@@ -42,6 +37,12 @@ params = LNKParams(
 
 # --- INFERENCE ---
 rate_hat, _ = predict_lnk_rate(sim, params, dt)
+
+# --- CORRELATION PRINTING ---
+sim_exp_corr = np.corrcoef(sim, exp)[0, 1]
+ratehat_exp_corr = np.corrcoef(rate_hat, exp)[0, 1]
+print(f"Correlation between sim and exp: {sim_exp_corr:.4f}")
+print(f"Correlation between rate_hat and exp: {ratehat_exp_corr:.4f}")
 
 # --- COMPARISON ---
 plt.figure(figsize=(10, 4))
