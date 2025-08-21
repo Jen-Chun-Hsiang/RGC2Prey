@@ -258,6 +258,130 @@ class LNKRateModel:
             raise ValueError("output_nl must be 'softplus' or 'linear'")
 
         return rate, a
+
+    def forward_pass_batch(self, x: np.ndarray, params: LNKParams, dt: float,
+                           output_nl: str = 'softplus') -> Tuple[np.ndarray, np.ndarray]:
+        """
+        Batched forward pass that accepts a 2D input array of shape (N, T).
+
+        If a 1D array is passed it falls back to the regular `forward_pass`.
+
+        Returns:
+            rate: (N, T) predicted firing rates
+            a: (N, T) kinetic state trajectories
+        """
+        x = np.asarray(x)
+        if x.ndim == 1:
+            return self.forward_pass(x, params, dt, output_nl)
+        if x.ndim != 2:
+            raise ValueError('x must be 1D (T,) or 2D (N, T)')
+
+        N, T = x.shape
+        a = np.zeros_like(x, dtype=float)
+
+        # drive is (N, T)
+        drive = np.maximum(0.0, x - params.theta)
+        p = 1.0 - dt / params.tau
+        q = dt * params.alpha_d / params.tau
+
+        if lfilter is not None and T > 1:
+            # lfilter supports an axis argument, compute per-row filtering along axis=1
+            # y has same shape (N, T); shift so a[:,1:] = y[:,:-1] to mimic single-trace behavior
+            y = lfilter([q], [1.0, -p], drive, axis=1)
+            a[:, 1:] = y[:, :-1]
+        else:
+            # Fallback: loop across sequences (keeps exact original behavior)
+            for i in range(N):
+                for t in range(T - 1):
+                    dv = float(drive[i, t])
+                    a[i, t + 1] = a[i, t] + dt * (params.alpha_d * dv - a[i, t]) / params.tau
+                    if a[i, t + 1] < 0:
+                        a[i, t + 1] = 0.0
+
+        a = np.maximum(a, 0.0)
+
+        den = params.sigma0 + params.alpha * a
+        den = np.maximum(den, 1e-9)
+        add = params.beta * a
+        ytilde = x / den + add + params.b_out
+
+        if output_nl.lower() == 'softplus':
+            rate = self.softplus(params.g_out * ytilde)
+        elif output_nl.lower() == 'linear':
+            rate = np.maximum(params.g_out * ytilde, 0)
+        else:
+            raise ValueError("output_nl must be 'softplus' or 'linear'")
+
+        return rate, a
+
+    def forward_pass_xs_batch(self, x: np.ndarray, x_s: np.ndarray, params: LNKParams, dt: float,
+                              output_nl: str = 'softplus') -> Tuple[np.ndarray, np.ndarray]:
+        """
+        Batched forward pass for two-input model. Accepts x and x_s with shape (N, T).
+
+        If 1D arrays are passed it falls back to `forward_pass_xs`.
+        Returns (rate, a) where each has shape (N, T) for 2D inputs.
+        """
+        x = np.asarray(x)
+        x_s = np.asarray(x_s)
+        if x.ndim == 1 and x_s.ndim == 1:
+            return self.forward_pass_xs(x, x_s, params, dt, output_nl)
+        if x.ndim != 2 or x_s.ndim != 2:
+            raise ValueError('x and x_s must be 1D (T,) or 2D (N, T) and have matching shapes')
+        if x.shape != x_s.shape:
+            raise ValueError('x and x_s must have the same shape')
+
+        N, T = x.shape
+        a = np.zeros_like(x, dtype=float)
+
+        drive = np.maximum(0.0, x - params.theta)
+        p = 1.0 - dt / params.tau
+        q = dt * params.alpha_d / params.tau
+
+        if lfilter is not None and T > 1:
+            y = lfilter([q], [1.0, -p], drive, axis=1)
+            a[:, 1:] = y[:, :-1]
+        else:
+            for i in range(N):
+                for t in range(T - 1):
+                    dv = float(drive[i, t])
+                    a[i, t + 1] = a[i, t] + dt * (params.alpha_d * dv - a[i, t]) / params.tau
+                    if a[i, t + 1] < 0:
+                        a[i, t + 1] = 0.0
+
+        a = np.maximum(a, 0.0)
+
+        den = params.sigma0 + params.alpha * a
+        den = np.maximum(den, 1e-9)
+        add = params.beta * a
+        ytilde = x / den + params.w_xs * x_s / den + add + params.b_out
+
+        if output_nl.lower() == 'softplus':
+            rate = self.softplus(params.g_out * ytilde)
+        elif output_nl.lower() == 'linear':
+            rate = np.maximum(params.g_out * ytilde, 0)
+        else:
+            raise ValueError("output_nl must be 'softplus' or 'linear'")
+
+        return rate, a
+
+    def predict_two_batch(self, x: np.ndarray, x_s: np.ndarray, dt: float, params: Optional[LNKParams] = None,
+                          output_nl: str = 'softplus') -> Tuple[np.ndarray, np.ndarray]:
+        """Batch prediction wrapper for two-input model. Accepts (N, T) or (T,) inputs."""
+        if params is None:
+            if self.fitted_params is None:
+                raise ValueError('No fitted parameters available. Call fit_two() first or provide params.')
+            params = self.fitted_params
+        return self.forward_pass_xs_batch(x, x_s, params, dt, output_nl)
+
+    def predict_batch(self, x: np.ndarray, dt: float, params: Optional[LNKParams] = None,
+                      output_nl: str = 'softplus') -> Tuple[np.ndarray, np.ndarray]:
+        """Batch prediction wrapper. Accepts x shaped (N, T) or (T,) and returns (rate, a)."""
+        if params is None:
+            if self.fitted_params is None:
+                raise ValueError("No fitted parameters available. Call fit() first or provide params.")
+            params = self.fitted_params
+        return self.forward_pass_batch(x, params, dt, output_nl)
     
     def _objective(self, p: np.ndarray, x: np.ndarray, y_rate: np.ndarray, 
                   dt: float, weights: np.ndarray, robust: str, delta: float, 
@@ -512,6 +636,17 @@ def predict_lnk_rate(x: np.ndarray, params: LNKParams, dt: float,
     return model.forward_pass(x, params, dt, output_nl)
 
 
+def predict_lnk_rate_batch(x: np.ndarray, params: LNKParams, dt: float,
+                           output_nl: str = 'softplus') -> Tuple[np.ndarray, np.ndarray]:
+    """Convenience wrapper to predict for a batch of sequences shaped (N, T).
+
+    Returns (rate_hat, a_traj) where each is shape (N, T).
+    If x is 1D this will return shape (T,) arrays as before.
+    """
+    model = LNKRateModel()
+    return model.predict_batch(x, dt, params, output_nl)
+
+
 def fit_lnk_rate_two(x: np.ndarray, x_s: np.ndarray, y_rate: np.ndarray, dt: float, **kwargs) -> Tuple[LNKParams, np.ndarray, np.ndarray, float]:
     """
     Convenience wrapper matching MATLAB fitLNK_rate_two signature.
@@ -524,6 +659,13 @@ def predict_lnk_rate_two(x: np.ndarray, x_s: np.ndarray, params: LNKParams, dt: 
     """Convenience wrapper for two-input fast prediction."""
     model = LNKRateModel()
     return model.predict_two(x, x_s, dt, params, output_nl) if False else model.forward_pass_xs(x, x_s, params, dt, output_nl)
+
+
+def predict_lnk_rate_two_batch(x: np.ndarray, x_s: np.ndarray, params: LNKParams, dt: float,
+                               output_nl: str = 'softplus') -> Tuple[np.ndarray, np.ndarray]:
+    """Convenience wrapper for batch two-input prediction. Accepts (N, T) or (T,) inputs."""
+    model = LNKRateModel()
+    return model.predict_two_batch(x, x_s, dt, params, output_nl) if False else model.forward_pass_xs_batch(x, x_s, params, dt, output_nl)
 
 # Example usage
 """
