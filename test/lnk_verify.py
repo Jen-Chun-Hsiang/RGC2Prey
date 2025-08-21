@@ -48,7 +48,7 @@ params = LNKParams(
 num_runs = 100
 start_time = time.time()
 for _ in range(num_runs):
-	rate_hat, _ = predict_lnk_rate(sim, params, dt)
+	rate_hat, _ = predict_lnk_rate(sim*1e6, params, dt)
 end_time = time.time()
 avg_time = (end_time - start_time) / num_runs
 print(f"Average time per predict_lnk_rate run over {num_runs} runs: {avg_time:.6f} seconds")
