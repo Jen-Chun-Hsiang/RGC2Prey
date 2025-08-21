@@ -189,8 +189,6 @@ class LNKRateModel:
             # Original code produces a[0]=0, a[1]=q*drive[0], so shift lfilter output by 1
             y = lfilter([q], [1.0, -p], drive)
             a[1:] = y[:-1]
-
-            print('apply lfilter')
         else:
             # Fallback: original loop (keeps exact original behavior)
             for t in range(T - 1):
@@ -238,8 +236,6 @@ class LNKRateModel:
         if lfilter is not None and T > 1:
             y = lfilter([q], [1.0, -p], drive)
             a[1:] = y[:-1]
-
-            print('apply lfilter')
         else:
             for t in range(T - 1):
                 dv = float(drive[t])
