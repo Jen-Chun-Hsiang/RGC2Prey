@@ -1,3 +1,8 @@
+# --- CORRELATION PRINTING ---
+sim_exp_corr = np.corrcoef(sim, exp)[0, 1]
+ratehat_exp_corr = np.corrcoef(rate_hat, exp)[0, 1]
+print(f"Correlation between sim and exp: {sim_exp_corr:.4f}")
+print(f"Correlation between rate_hat and exp: {ratehat_exp_corr:.4f}")
 import numpy as np
 import scipy.io as sio
 import matplotlib.pyplot as plt
@@ -5,6 +10,8 @@ from utils.dynamic_fitting import predict_lnk_rate, LNKParams
 
 # --- CONFIGURATION ---
 mat_file_path = '/storage1/fs1/KerschensteinerD/Active/Emily/PreyCaptureRGC/Results/temp_082125_e100724.mat'  # Update with your .mat file path
+fig_save_file_path = '/storage1/fs1/KerschensteinerD/Active/Emily/PreyCaptureRGC/Results/temp_082125_e100724.png'  # Update with your .png file path
+
 dt = 0.001  # Time step in seconds (update as needed)
 
 # --- LOAD DATA ---
@@ -43,6 +50,6 @@ plt.plot(rate_hat, label='Simulated (LNK Model)', alpha=0.7)
 plt.legend()
 plt.xlabel('Time')
 plt.ylabel('Rate')
-plt.title('LNK Model Verification')
+plt.title(f'LNK Model Verification\nSim-Exp Corr: {sim_exp_corr:.4f}, RateHat-Exp Corr: {ratehat_exp_corr:.4f}')
 plt.tight_layout()
-plt.show()
+plt.savefig(fig_save_file_path)
