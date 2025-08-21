@@ -9,7 +9,7 @@ from utils.dynamic_fitting import predict_lnk_rate, predict_lnk_rate_two, LNKPar
 
 # --- CONFIGURATION ---
 mat_file_path = '/storage1/fs1/KerschensteinerD/Active/Emily/PreyCaptureRGC/Results/temp_082125_e100724.mat'  # Update with your .mat file path
-fig_save_file_path = '/storage1/fs1/KerschensteinerD/Active/Emily/PreyCaptureRGC/Results/temp_082125_e100724.png'  # Update with your .png file path
+fig_save_file_path = '/storage1/fs1/KerschensteinerD/Active/Emily/PreyCaptureRGC/Results/temp_082125_e100724_02.png'  # Update with your .png file path
 
 dt = 0.001  # Time step in seconds (update as needed)
 
