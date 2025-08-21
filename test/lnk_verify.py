@@ -1,7 +1,7 @@
 import numpy as np
 import scipy.io as sio
 import matplotlib.pyplot as plt
-from utils.dynamic_fitting import predict_lnk_rate, LNKParams
+from ..utils.dynamic_fitting import predict_lnk_rate, LNKParams
 
 # --- CONFIGURATION ---
 mat_file_path = '/storage1/fs1/KerschensteinerD/Active/Emily/PreyCaptureRGC/Results/temp_082125_e100724.mat'  # Update with your .mat file path
@@ -13,6 +13,8 @@ dt = 0.001  # Time step in seconds (update as needed)
 mat_data = sio.loadmat(mat_file_path)
 exp = mat_data['exp'].squeeze()  # Experimental data (1D array)
 sim = mat_data['sim'].squeeze()  # Simulated data (1D array)
+r_hat = mat_data['r_hat'].squeeze()  # Fitted rate trajectory (1D array)
+r_hat_s = mat_data['r_hat_s'].squeeze()  # Fitted rate trajectory (1D array)
 
 
 # --- LOAD FITTED PARAMS FROM MAT FILE ---
@@ -41,8 +43,12 @@ rate_hat, _ = predict_lnk_rate(sim, params, dt)
 # --- CORRELATION PRINTING ---
 sim_exp_corr = np.corrcoef(sim, exp)[0, 1]
 ratehat_exp_corr = np.corrcoef(rate_hat, exp)[0, 1]
+ratehat_r_hat_corr = np.corrcoef(rate_hat, r_hat)[0, 1]
+r_hat_s_exp_corr = np.corrcoef(exp, r_hat_s)[0, 1]
 print(f"Correlation between sim and exp: {sim_exp_corr:.4f}")
 print(f"Correlation between rate_hat and exp: {ratehat_exp_corr:.4f}")
+print(f"Correlation between rate_hat and r_hat: {ratehat_r_hat_corr:.4f}")
+print(f"Correlation between r_hat_s and exp: {r_hat_s_exp_corr:.4f}")
 
 # --- COMPARISON ---
 plt.figure(figsize=(10, 4))
