@@ -3,6 +3,7 @@ import scipy.io as sio
 import matplotlib.pyplot as plt
 import sys
 import os
+import time
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from utils.dynamic_fitting import predict_lnk_rate, LNKParams
 
@@ -41,7 +42,16 @@ params = LNKParams(
 )
 
 # --- INFERENCE ---
-rate_hat, _ = predict_lnk_rate(sim, params, dt)
+
+# --- TIMING predict_lnk_rate ---
+
+num_runs = 100
+start_time = time.time()
+for _ in range(num_runs):
+	rate_hat, _ = predict_lnk_rate(sim, params, dt)
+end_time = time.time()
+avg_time = (end_time - start_time) / num_runs
+print(f"Average time per predict_lnk_rate run over {num_runs} runs: {avg_time:.6f} seconds")
 
 # --- CORRELATION PRINTING ---
 sim_exp_corr = np.corrcoef(sim, exp)[0, 1]
