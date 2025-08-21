@@ -50,15 +50,15 @@ else:
     prm_s_struct = prm_s
 	
 params_s = LNKParams(
-	tau=float(prm_struct['tau'].squeeze()),
-	alpha_d=float(prm_struct['alpha_d'].squeeze()),
-	sigma0=float(prm_struct['sigma0'].squeeze()),
-	alpha=float(prm_struct['alpha'].squeeze()),
-	beta=float(prm_struct['beta'].squeeze()),
-	b_out=float(prm_struct['b_out'].squeeze()),
-	g_out=float(prm_struct['g_out'].squeeze()),
-	theta=float(prm_struct['theta'].squeeze()),
-	w_xs=float(prm_struct['w_xs'].squeeze())
+	tau=float(prm_s_struct['tau'].squeeze()),
+	alpha_d=float(prm_s_struct['alpha_d'].squeeze()),
+	sigma0=float(prm_s_struct['sigma0'].squeeze()),
+	alpha=float(prm_s_struct['alpha'].squeeze()),
+	beta=float(prm_s_struct['beta'].squeeze()),
+	b_out=float(prm_s_struct['b_out'].squeeze()),
+	g_out=float(prm_s_struct['g_out'].squeeze()),
+	theta=float(prm_s_struct['theta'].squeeze()),
+	w_xs=float(prm_s_struct['w_xs'].squeeze())
 )
 
 # --- INFERENCE ---
