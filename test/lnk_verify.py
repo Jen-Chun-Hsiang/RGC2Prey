@@ -1,6 +1,9 @@
 import numpy as np
 import scipy.io as sio
 import matplotlib.pyplot as plt
+import sys
+import os
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from ..utils.dynamic_fitting import predict_lnk_rate, LNKParams
 
 # --- CONFIGURATION ---
