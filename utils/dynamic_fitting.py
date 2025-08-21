@@ -15,6 +15,7 @@ class LNKParams:
     b_out: float
     g_out: float
     theta: float
+    w_xs: float = 0.0
 
 class LNKRateModel:
     """
@@ -80,6 +81,63 @@ class LNKRateModel:
             np.log(max(params.g_out, 1e-9)),
             np.log(max(params.theta, 0) + 1)  # softplus inverse approx
         ])
+
+    # --- two-input (x_s) helpers ---
+    def _default_init_xs(self, x: np.ndarray, x_s: np.ndarray, y_rate: np.ndarray, dt: float) -> LNKParams:
+        ypos = np.maximum(y_rate, 0)
+        rx = np.mean(np.abs(x[x != 0])) if np.any(x != 0) else 1.0
+        rxs = np.mean(np.abs(x_s[x_s != 0])) if np.any(x_s != 0) else 1.0
+        ry = np.mean(ypos[ypos > 0]) if np.any(ypos > 0) else 1.0
+
+        tau_init = max(np.random.rand() * 0.5, 1e-6)
+        alpha_d_init = max(np.random.rand() * 0.5, 1e-6)
+        theta_init = max(0.0, np.percentile(x, 20))
+        sigma0_init = 0.5 * np.random.rand() + 0.05 * np.std(x)
+        alpha_init = 0.05 * np.random.rand()
+        beta_init = -0.2 * np.random.rand()
+        b_out_init = 1.0 + np.random.rand()
+        g_out_init = max(ry / (rx + rxs + np.finfo(float).eps), 0.5)
+        w_xs_init = -0.1 * np.random.rand()
+
+        return LNKParams(
+            tau=tau_init,
+            alpha_d=alpha_d_init,
+            theta=theta_init,
+            sigma0=sigma0_init,
+            alpha=alpha_init,
+            beta=beta_init,
+            b_out=b_out_init,
+            g_out=g_out_init,
+            w_xs=w_xs_init
+        )
+
+    def _pack_params_xs(self, params: LNKParams) -> np.ndarray:
+        """Pack parameters including w_xs into optimization vector."""
+        return np.array([
+            np.log(max(params.tau, 1e-6)),
+            np.log(max(params.alpha_d, 1e-6)),
+            np.log(max(params.sigma0, 1e-9)),
+            np.log(max(params.alpha, 1e-9)),
+            params.beta,
+            params.b_out,
+            np.log(max(params.g_out, 1e-9)),
+            np.log(max(params.theta, 0) + 1),  # softplus inverse approx
+            params.w_xs
+        ])
+
+    def _unpack_params_xs(self, p: np.ndarray) -> LNKParams:
+        """Unpack optimization vector including w_xs into parameters."""
+        return LNKParams(
+            tau=np.exp(p[0]),
+            alpha_d=np.exp(p[1]),
+            sigma0=np.exp(p[2]),
+            alpha=np.exp(p[3]),
+            beta=p[4],
+            b_out=p[5],
+            g_out=np.exp(p[6]),
+            theta=self.softplus(p[7]),
+            w_xs=p[8]
+        )
     
     def _unpack_params(self, p: np.ndarray) -> LNKParams:
         """Unpack optimization vector into parameters."""
@@ -134,6 +192,39 @@ class LNKRateModel:
             raise ValueError("output_nl must be 'softplus' or 'linear'")
         
         return rate, a
+
+    def forward_pass_xs(self, x: np.ndarray, x_s: np.ndarray, params: LNKParams, dt: float,
+                        output_nl: str = 'softplus') -> Tuple[np.ndarray, np.ndarray]:
+        """
+        Forward pass that includes secondary input x_s with weight w_xs.
+        ytilde = x/den + w_xs * x_s / den + beta * a + b_out
+        """
+        x = np.asarray(x).flatten()
+        x_s = np.asarray(x_s).flatten()
+        if x.shape != x_s.shape:
+            raise ValueError('x and x_s must have the same shape')
+        T = len(x)
+        a = np.zeros(T)
+
+        for t in range(T - 1):
+            drive = max(0, x[t] - params.theta)
+            a[t + 1] = a[t] + dt * (params.alpha_d * drive - a[t]) / params.tau
+            if a[t + 1] < 0:
+                a[t + 1] = 0
+
+        den = params.sigma0 + params.alpha * a
+        den = np.maximum(den, 1e-9)
+        add = params.beta * a
+        ytilde = x / den + params.w_xs * x_s / den + add + params.b_out
+
+        if output_nl.lower() == 'softplus':
+            rate = self.softplus(params.g_out * ytilde)
+        elif output_nl.lower() == 'linear':
+            rate = np.maximum(params.g_out * ytilde, 0)
+        else:
+            raise ValueError("output_nl must be 'softplus' or 'linear'")
+
+        return rate, a
     
     def _objective(self, p: np.ndarray, x: np.ndarray, y_rate: np.ndarray, 
                   dt: float, weights: np.ndarray, robust: str, delta: float, 
@@ -164,6 +255,91 @@ class LNKRateModel:
         except Exception as e:
             # Return large loss if computation fails
             return 1e10
+
+    def _objective_xs(self, p: np.ndarray, x: np.ndarray, x_s: np.ndarray, y_rate: np.ndarray,
+                      dt: float, weights: np.ndarray, robust: str, delta: float,
+                      output_nl: str, ridge: float) -> float:
+        try:
+            params = self._unpack_params_xs(p)
+            rate_pred, _ = self.forward_pass_xs(x, x_s, params, dt, output_nl)
+
+            residuals = rate_pred - y_rate
+
+            if robust.lower() == 'none':
+                loss = np.mean(weights * (residuals ** 2))
+            elif robust.lower() == 'huber':
+                abs_res = np.abs(residuals)
+                huber = np.where(abs_res <= delta,
+                               0.5 * residuals ** 2,
+                               delta * (abs_res - 0.5 * delta))
+                loss = np.mean(weights * huber)
+            else:
+                raise ValueError("robust must be 'none' or 'huber'")
+
+            loss += ridge * np.sum(p ** 2)
+            return loss
+        except Exception:
+            return 1e10
+
+    def fit_two(self, x: np.ndarray, x_s: np.ndarray, y_rate: np.ndarray, dt: float,
+                init_params: Optional[Dict[str, Any]] = None,
+                max_iter: int = 400,
+                weights: Optional[np.ndarray] = None,
+                robust: str = 'none',
+                delta: float = 1.0,
+                output_nl: str = 'softplus',
+                ridge: float = 0.0) -> Tuple[LNKParams, np.ndarray, np.ndarray, float]:
+        """Fit model including secondary input x_s with weight w_xs."""
+        x = np.asarray(x).flatten()
+        x_s = np.asarray(x_s).flatten()
+        y_rate = np.asarray(y_rate).flatten()
+        T = len(x)
+        if len(y_rate) != T or len(x_s) != T:
+            raise ValueError('x, x_s and y_rate must have the same length')
+
+        if weights is None:
+            weights = np.ones(T)
+        else:
+            weights = np.asarray(weights).flatten()
+            if len(weights) != T:
+                raise ValueError('weights must have same length')
+
+        init = self._default_init_xs(x, x_s, y_rate, dt)
+        if init_params is not None:
+            for key, value in init_params.items():
+                if hasattr(init, key):
+                    setattr(init, key, value)
+
+        p0 = self._pack_params_xs(init)
+
+        lb = np.array([np.log(1e-3), np.log(1e-6), np.log(1e-6), np.log(1e-6),
+                       -10, -10, np.log(1e-6), np.log(1), -2.0])
+        ub = np.array([np.log(10), np.log(10), np.log(10), np.log(10),
+                       10, 10, np.log(100), np.log(max(np.max(x), 0) + 1), 0.0])
+
+        bounds = list(zip(lb, ub))
+
+        objective = lambda p: self._objective_xs(p, x, x_s, y_rate, dt, weights,
+                                                robust, delta, output_nl, ridge)
+
+        result = minimize(objective, p0, method='L-BFGS-B', bounds=bounds,
+                          options={'maxiter': max_iter, 'disp': False})
+
+        if not result.success:
+            warnings.warn(f"Optimization did not converge: {result.message}")
+
+        self.fitted_params = self._unpack_params_xs(result.x)
+        rate_hat, a_traj = self.forward_pass_xs(x, x_s, self.fitted_params, dt, output_nl)
+
+        return self.fitted_params, rate_hat, a_traj, result.fun
+
+    def predict_two(self, x: np.ndarray, x_s: np.ndarray, dt: float, params: Optional[LNKParams] = None,
+                    output_nl: str = 'softplus') -> Tuple[np.ndarray, np.ndarray]:
+        if params is None:
+            if self.fitted_params is None:
+                raise ValueError('No fitted parameters available. Call fit_two() first or provide params.')
+            params = self.fitted_params
+        return self.forward_pass_xs(x, x_s, params, dt, output_nl)
     
     def fit(self, x: np.ndarray, y_rate: np.ndarray, dt: float,
             init_params: Optional[Dict[str, Any]] = None,
@@ -301,6 +477,20 @@ def predict_lnk_rate(x: np.ndarray, params: LNKParams, dt: float,
     """
     model = LNKRateModel()
     return model.forward_pass(x, params, dt, output_nl)
+
+
+def fit_lnk_rate_two(x: np.ndarray, x_s: np.ndarray, y_rate: np.ndarray, dt: float, **kwargs) -> Tuple[LNKParams, np.ndarray, np.ndarray, float]:
+    """
+    Convenience wrapper matching MATLAB fitLNK_rate_two signature.
+    """
+    model = LNKRateModel()
+    return model.fit_two(x, x_s, y_rate, dt, **kwargs)
+
+
+def predict_lnk_rate_two(x: np.ndarray, x_s: np.ndarray, params: LNKParams, dt: float, output_nl: str = 'softplus') -> Tuple[np.ndarray, np.ndarray]:
+    """Convenience wrapper for two-input fast prediction."""
+    model = LNKRateModel()
+    return model.predict_two(x, x_s, dt, params, output_nl) if False else model.forward_pass_xs(x, x_s, params, dt, output_nl)
 
 # Example usage
 """
