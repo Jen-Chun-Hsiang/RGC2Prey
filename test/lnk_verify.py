@@ -92,7 +92,7 @@ print(f"Correlation between r_hat_s and exp: {r_hat_s_exp_corr:.4f}")
 # --- COMPARISON ---
 plt.figure(figsize=(10, 4))
 plt.plot(exp, label='Experimental')
-plt.plot(rate_hat, label='Simulated (LNK Model)', alpha=0.7)
+plt.plot(rate_hat_s, label='Simulated (LNK Model)', alpha=0.7)
 plt.legend()
 plt.xlabel('Time')
 plt.ylabel('Rate')
