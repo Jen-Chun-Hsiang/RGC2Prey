@@ -12,6 +12,14 @@ import torch.optim as optim
 from scipy.io import savemat
 
 from datasets.sim_cricket import RGCrfArray, SynMovieGenerator, Cricket2RGCs
+from datasets.lnk_utils import (
+    load_lnk_parameters, 
+    load_separate_filters, 
+    build_channel_config, 
+    create_cricket2rgcs_config,
+    validate_lnk_config,
+    get_lnk_config_summary
+)
 from utils.utils import plot_tensor_and_save, plot_vector_and_save, plot_two_path_comparison, plot_coordinate_and_save
 from models.rgc2behavior import CNN_LSTM_ObjectLocation
 from utils.data_handling import save_checkpoint, none_or_float
@@ -20,281 +28,6 @@ from utils.utils import causal_moving_average
 from utils.data_handling import CheckpointLoader
 from utils.initialization import process_seed, initialize_logging, worker_init_fn
 from utils.helper import estimate_rgc_signal_distribution, save_sf_data_to_mat
-
-def load_lnk_parameters(rf_params_file, args, num_rgcs):
-    """
-    Load LNK parameters from Excel sheet and process them for each RGC cell.
-    
-    Args:
-        rf_params_file: Path to Excel file containing parameters
-        args: Command line arguments
-        num_rgcs: Number of RGC cells
-        
-    Returns:
-        lnk_params_dict: Dictionary with LNK parameters for center and surround channels
-    """
-    if not args.use_lnk_model:
-        return None
-        
-    # Load LNK parameter table
-    try:
-        lnk_param_table = pd.read_excel(rf_params_file, sheet_name=args.lnk_sheet_name)
-        logging.info(f"Loaded LNK parameters from sheet: {args.lnk_sheet_name}")
-    except Exception as e:
-        logging.warning(f"Could not load LNK parameters: {e}. Using default LN model.")
-        return None
-    
-    # Extract parameters - convert to per-cell arrays or scalars
-    def get_param(param_name, default_value, num_cells=num_rgcs):
-        if param_name in lnk_param_table.columns:
-            param_values = lnk_param_table[param_name].values
-            if len(param_values) == 1:
-                # Single value - broadcast to all cells
-                return float(param_values[0])
-            elif len(param_values) == num_cells:
-                # Per-cell values
-                return param_values.astype(float)
-            else:
-                logging.warning(f"LNK parameter {param_name} length mismatch. Using default.")
-                return default_value
-        else:
-            logging.warning(f"LNK parameter {param_name} not found. Using default: {default_value}")
-            return default_value
-    
-    # Default LNK parameters (matching MATLAB fitLNK_rate_scw)
-    lnk_params = {
-        'tau': get_param('tau', 0.1),           # Time constant
-        'alpha_d': get_param('alpha_d', 1.0),   # Drive strength
-        'theta': get_param('theta', 0.0),       # Threshold
-        'sigma0': get_param('sigma0', 1.0),     # Baseline denominator
-        'alpha': get_param('alpha', 0.1),       # Adaptation coupling to denominator
-        'beta': get_param('beta', 0.0),         # Additive adaptation
-        'b_out': get_param('b_out', 0.0),       # Output bias
-        'g_out': get_param('g_out', 1.0),       # Output gain
-        'w_xs': get_param('w_xs', -0.1),        # Center-surround weight
-        'dt': get_param('dt', 0.01)             # Time step (can use sampling rate)
-    }
-    
-    logging.info(f"LNK parameters loaded for {num_rgcs} cells with adaptation mode: {args.lnk_adapt_mode}")
-    
-    return {
-        'lnk_params': lnk_params,
-        'adapt_mode': args.lnk_adapt_mode
-    }
-
-def load_separate_filters(rf_params_file, args, rgc_array):
-    """
-    Load separate center and surround filters if specified for LNK model.
-    
-    Args:
-        rf_params_file: Path to Excel file
-        args: Command line arguments
-        rgc_array: RGCrfArray instance
-        
-    Returns:
-        Dictionary with separate filter results or None
-    """
-    if not args.use_separate_surround:
-        return None
-        
-    separate_filters = {}
-    
-    # Load center filters if specified
-    if args.sf_center_sheet_name or args.tf_center_sheet_name:
-        sf_center_table = None
-        tf_center_table = None
-        
-        if args.sf_center_sheet_name:
-            sf_center_table = pd.read_excel(rf_params_file, sheet_name=args.sf_center_sheet_name, usecols='A:L')
-            logging.info(f"Loaded center spatial filters from: {args.sf_center_sheet_name}")
-            
-        if args.tf_center_sheet_name:
-            tf_center_table = pd.read_excel(rf_params_file, sheet_name=args.tf_center_sheet_name, usecols='A:I')
-            logging.info(f"Loaded center temporal filters from: {args.tf_center_sheet_name}")
-        
-        # Use existing tables as fallback
-        if sf_center_table is None:
-            sf_center_table = rgc_array.sf_param_table
-        if tf_center_table is None:
-            tf_center_table = rgc_array.tf_param_table
-            
-        # Generate center filters
-        temp_array = RGCrfArray(
-            sf_center_table, tf_center_table, 
-            rgc_array_rf_size=rgc_array.rgc_array_rf_size,
-            xlim=rgc_array.xlim, ylim=rgc_array.ylim,
-            target_num_centers=rgc_array.target_num_centers,
-            sf_scalar=rgc_array.sf_scalar,
-            grid_generate_method=rgc_array.grid_generate_method,
-            tau=rgc_array.tau, mask_radius=rgc_array.mask_radius,
-            rgc_rand_seed=rgc_array.rgc_rand_seed,
-            num_gauss_example=rgc_array.num_gauss_example,
-            sf_constraint_method=rgc_array.sf_constraint_method,
-            temporal_filter_len=rgc_array.temporal_filter_len,
-            grid_size_fac=rgc_array.grid_size_fac,
-            sf_mask_radius=rgc_array.sf_mask_radius,
-            is_pixelized_tf=rgc_array.is_pixelized_tf,
-            set_s_scale=rgc_array.set_s_scale,
-            is_rf_median_subtract=rgc_array.is_rf_median_subtract,
-            is_rescale_diffgaussian=rgc_array.is_rescale_diffgaussian,
-            grid_noise_level=rgc_array.grid_noise_level,
-            is_reversed_tf=rgc_array.is_reversed_tf,
-            sf_id_list=rgc_array.sf_id_list,
-            syn_tf_sf=rgc_array.syn_tf_sf
-        )
-        sf_center, tf_center, _, _, _ = temp_array.get_results()
-        separate_filters['sf_center'] = sf_center
-        separate_filters['tf_center'] = tf_center
-    
-    # Load surround filters if specified
-    if args.sf_surround_sheet_name or args.tf_surround_sheet_name:
-        sf_surround_table = None
-        tf_surround_table = None
-        
-        if args.sf_surround_sheet_name:
-            sf_surround_table = pd.read_excel(rf_params_file, sheet_name=args.sf_surround_sheet_name, usecols='A:L')
-            logging.info(f"Loaded surround spatial filters from: {args.sf_surround_sheet_name}")
-            
-        if args.tf_surround_sheet_name:
-            tf_surround_table = pd.read_excel(rf_params_file, sheet_name=args.tf_surround_sheet_name, usecols='A:I')
-            logging.info(f"Loaded surround temporal filters from: {args.tf_surround_sheet_name}")
-        
-        if sf_surround_table is not None and tf_surround_table is not None:
-            # Generate surround filters
-            temp_array = RGCrfArray(
-                sf_surround_table, tf_surround_table,
-                rgc_array_rf_size=rgc_array.rgc_array_rf_size,
-                xlim=rgc_array.xlim, ylim=rgc_array.ylim,
-                target_num_centers=rgc_array.target_num_centers,
-                sf_scalar=rgc_array.sf_scalar,
-                grid_generate_method=rgc_array.grid_generate_method,
-                tau=rgc_array.tau, mask_radius=rgc_array.mask_radius,
-                rgc_rand_seed=rgc_array.rgc_rand_seed,
-                num_gauss_example=rgc_array.num_gauss_example,
-                sf_constraint_method=rgc_array.sf_constraint_method,
-                temporal_filter_len=rgc_array.temporal_filter_len,
-                grid_size_fac=rgc_array.grid_size_fac,
-                sf_mask_radius=rgc_array.sf_mask_radius,
-                is_pixelized_tf=rgc_array.is_pixelized_tf,
-                set_s_scale=rgc_array.set_s_scale,
-                is_rf_median_subtract=rgc_array.is_rf_median_subtract,
-                is_rescale_diffgaussian=rgc_array.is_rescale_diffgaussian,
-                grid_noise_level=rgc_array.grid_noise_level,
-                is_reversed_tf=rgc_array.is_reversed_tf,
-                sf_id_list=rgc_array.sf_id_list,
-                syn_tf_sf=rgc_array.syn_tf_sf
-            )
-            sf_surround, tf_surround, _, _, _ = temp_array.get_results()
-            separate_filters['sf_surround'] = sf_surround
-            separate_filters['tf_surround'] = tf_surround
-    
-    return separate_filters if separate_filters else None
-
-def build_channel_config(multi_opt_sf, tf, grid2value_mapping, map_func, rect_thr, 
-                        lnk_config=None, separate_filters=None):
-    """
-    Build channel configuration dictionary for Cricket2RGCs dataset.
-    
-    Args:
-        multi_opt_sf: Spatial filters
-        tf: Temporal filters  
-        grid2value_mapping: Grid to value mapping
-        map_func: Mapping function
-        rect_thr: Rectification threshold
-        lnk_config: LNK configuration dict (lnk_params, adapt_mode)
-        separate_filters: Dict with separate center/surround filters
-    
-    Returns:
-        Dictionary with channel configuration
-    """
-    # Base channel configuration
-    channel_config = {
-        'sf': multi_opt_sf,
-        'tf': tf,
-        'map_func': map_func,
-        'grid2value': grid2value_mapping,
-        'rect_thr': rect_thr
-    }
-    
-    # Add LNK configuration if provided
-    if lnk_config is not None:
-        channel_config.update(lnk_config)
-        logging.info(f"Added LNK configuration with {len(lnk_config['lnk_params'])} parameters")
-    
-    # Add separate filters if provided
-    if separate_filters is not None:
-        channel_config.update(separate_filters)
-        logging.info(f"Added separate center/surround filters")
-    
-    return channel_config
-
-def create_cricket2rgcs_config(args, multi_opt_sf, tf, map_func, grid2value_mapping, 
-                              multi_opt_sf_off, tf_off, map_func_off, grid2value_mapping_off,
-                              target_width, target_height, movie_generator,
-                              lnk_config=None, separate_filters=None,
-                              lnk_config_off=None, separate_filters_off=None,
-                              is_syn_mov_shown=False):
-    """
-    Create configuration dictionary for Cricket2RGCs dataset with LNK support.
-    
-    Returns:
-        Dictionary with complete Cricket2RGCs configuration
-    """
-    # Build channel configurations
-    channel_on_config = build_channel_config(
-        multi_opt_sf, tf, grid2value_mapping, map_func, args.rectified_thr_ON,
-        lnk_config=lnk_config, separate_filters=separate_filters
-    )
-    
-    channel_off_config = None
-    if multi_opt_sf_off is not None:
-        channel_off_config = build_channel_config(
-            multi_opt_sf_off, tf_off, grid2value_mapping_off, map_func_off, args.rectified_thr_OFF,
-            lnk_config=lnk_config_off, separate_filters=separate_filters_off
-        )
-    
-    # Base configuration
-    config = {
-        'num_samples': args.num_samples,
-        'multi_opt_sf': multi_opt_sf,
-        'tf': tf,
-        'map_func': map_func,
-        'grid2value_mapping': grid2value_mapping,
-        'multi_opt_sf_off': multi_opt_sf_off,
-        'tf_off': tf_off,
-        'map_func_off': map_func_off,
-        'grid2value_mapping_off': grid2value_mapping_off,
-        'target_width': target_width,
-        'target_height': target_height,
-        'movie_generator': movie_generator,
-        'grid_size_fac': args.grid_size_fac,
-        'is_norm_coords': args.is_norm_coords,
-        'is_syn_mov_shown': is_syn_mov_shown,
-        'fr2spikes': args.fr2spikes,
-        'is_both_ON_OFF': args.is_both_ON_OFF,
-        'quantize_scale': args.quantize_scale,
-        'add_noise': args.add_noise,
-        'rgc_noise_std': args.rgc_noise_std,
-        'smooth_data': args.smooth_data,
-        'is_rectified': args.is_rectified,
-        'is_direct_image': args.is_direct_image,
-        'is_reversed_OFF_sign': args.is_reversed_OFF_sign,
-        'is_two_grids': args.is_two_grids,
-        'rectified_thr_ON': args.rectified_thr_ON,
-        'rectified_thr_OFF': args.rectified_thr_OFF
-    }
-    
-    # Add LNK configurations to dataset arguments
-    if lnk_config is not None:
-        config['lnk_config_on'] = channel_on_config
-        if channel_off_config is not None:
-            config['lnk_config_off'] = channel_off_config
-            
-        logging.info(f"Created Cricket2RGCs config with LNK model enabled")
-    else:
-        logging.info(f"Created Cricket2RGCs config with standard LN model")
-    
-    return config
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Script for Model Training to get 3D RF in simulation")
@@ -408,6 +141,9 @@ def parse_args():
     parser.add_argument('--sf_surround_sheet_name', type=str, default=None, help='Sheet name for surround spatial filters')
     parser.add_argument('--tf_center_sheet_name', type=str, default=None, help='Sheet name for center temporal filters (if separate)')
     parser.add_argument('--tf_surround_sheet_name', type=str, default=None, help='Sheet name for surround temporal filters')
+    parser.add_argument('--surround_sigma_ratio', type=float, default=4.0, help='Ratio to scale center sigma for surround generation (default 4.0, matching MATLAB)')
+    parser.add_argument('--surround_generation', type=str, default='auto', choices=['auto', 'sheet', 'both'],
+                        help='Surround generation mode: auto (from center), sheet (from Excel), or both (auto if no sheet)')
 
     # Arguments for CNN_LSTM 
     parser.add_argument('--cnn_feature_dim', type=int, default=256, help="Number of CNN feature dimensions.")
@@ -514,10 +250,34 @@ def main():
 
     # Load LNK parameters if LNK model is enabled
     num_rgcs = multi_opt_sf.shape[2]  # Number of RGC cells
-    lnk_config = load_lnk_parameters(rf_params_file, args, num_rgcs)
+    lnk_config = load_lnk_parameters(
+        rf_params_file=rf_params_file,
+        lnk_sheet_name=args.lnk_sheet_name,
+        num_rgcs=num_rgcs,
+        lnk_adapt_mode=args.lnk_adapt_mode,
+        use_lnk_model=args.use_lnk_model
+    )
     
     # Load separate center/surround filters if specified
-    separate_filters = load_separate_filters(rf_params_file, args, rgc_array)
+    separate_filters = load_separate_filters(
+        rf_params_file=rf_params_file,
+        rgc_array=rgc_array,
+        use_separate_surround=args.use_separate_surround,
+        sf_center_sheet_name=args.sf_center_sheet_name,
+        sf_surround_sheet_name=args.sf_surround_sheet_name,
+        tf_center_sheet_name=args.tf_center_sheet_name,
+        tf_surround_sheet_name=args.tf_surround_sheet_name,
+        surround_sigma_ratio=args.surround_sigma_ratio,
+        surround_generation=args.surround_generation
+    )
+    
+    # Validate LNK configuration if provided
+    if lnk_config is not None and not validate_lnk_config(lnk_config, num_rgcs):
+        logging.warning("LNK configuration validation failed, falling back to LN model")
+        lnk_config = None
+    
+    # Log LNK configuration summary
+    logging.info(f"Model configuration: {get_lnk_config_summary(lnk_config)}")
     
     logging.info( f"{args.experiment_name} processing...2")
 
@@ -532,8 +292,24 @@ def main():
         separate_filters_off = None
         if args.use_lnk_model:
             num_rgcs_off = multi_opt_sf_off.shape[2]
-            lnk_config_off = load_lnk_parameters(rf_params_file, args, num_rgcs_off)
-            separate_filters_off = load_separate_filters(rf_params_file, args, rgc_array)
+            lnk_config_off = load_lnk_parameters(
+                rf_params_file=rf_params_file,
+                lnk_sheet_name=args.lnk_sheet_name,
+                num_rgcs=num_rgcs_off,
+                lnk_adapt_mode=args.lnk_adapt_mode,
+                use_lnk_model=args.use_lnk_model
+            )
+            separate_filters_off = load_separate_filters(
+                rf_params_file=rf_params_file,
+                rgc_array=rgc_array,
+                use_separate_surround=args.use_separate_surround,
+                sf_center_sheet_name=args.sf_center_sheet_name,
+                sf_surround_sheet_name=args.sf_surround_sheet_name,
+                tf_center_sheet_name=args.tf_center_sheet_name,
+                tf_surround_sheet_name=args.tf_surround_sheet_name,
+                surround_sigma_ratio=args.surround_sigma_ratio,
+                surround_generation=args.surround_generation
+            )
         
         if args.is_binocular: 
             num_input_channel = 4
@@ -598,12 +374,37 @@ def main():
     if is_rgc_distribution:
         # Create Cricket2RGCs config with LNK support
         cfg = create_cricket2rgcs_config(
-            args, multi_opt_sf, tf, map_func, grid2value_mapping,
-            multi_opt_sf_off, tf_off, map_func_off, grid2value_mapping_off,
-            target_width, target_height, movie_generator,
-            lnk_config=lnk_config, separate_filters=separate_filters,
-            lnk_config_off=lnk_config_off, separate_filters_off=separate_filters_off,
-            is_syn_mov_shown=True
+            num_samples=args.num_samples,
+            multi_opt_sf=multi_opt_sf,
+            tf=tf,
+            map_func=map_func,
+            grid2value_mapping=grid2value_mapping,
+            target_width=target_width,
+            target_height=target_height,
+            movie_generator=movie_generator,
+            grid_size_fac=args.grid_size_fac,
+            is_norm_coords=args.is_norm_coords,
+            is_syn_mov_shown=True,
+            fr2spikes=args.fr2spikes,
+            is_both_ON_OFF=args.is_both_ON_OFF,
+            quantize_scale=args.quantize_scale,
+            add_noise=args.add_noise,
+            rgc_noise_std=args.rgc_noise_std,
+            smooth_data=args.smooth_data,
+            is_rectified=args.is_rectified,
+            is_direct_image=args.is_direct_image,
+            is_reversed_OFF_sign=args.is_reversed_OFF_sign,
+            is_two_grids=args.is_two_grids,
+            rectified_thr_ON=args.rectified_thr_ON,
+            rectified_thr_OFF=args.rectified_thr_OFF,
+            multi_opt_sf_off=multi_opt_sf_off,
+            tf_off=tf_off,
+            map_func_off=map_func_off,
+            grid2value_mapping_off=grid2value_mapping_off,
+            lnk_config=lnk_config,
+            separate_filters=separate_filters,
+            lnk_config_off=lnk_config_off,
+            separate_filters_off=separate_filters_off
         )
         
         train_dataset = Cricket2RGCs(**cfg)
@@ -635,12 +436,37 @@ def main():
 
     # Create training dataset with LNK support  
     train_config = create_cricket2rgcs_config(
-        args, multi_opt_sf, tf, map_func, grid2value_mapping,
-        multi_opt_sf_off, tf_off, map_func_off, grid2value_mapping_off,
-        target_width, target_height, movie_generator,
-        lnk_config=lnk_config, separate_filters=separate_filters,
-        lnk_config_off=lnk_config_off, separate_filters_off=separate_filters_off,
-        is_syn_mov_shown=True
+        num_samples=args.num_samples,
+        multi_opt_sf=multi_opt_sf,
+        tf=tf,
+        map_func=map_func,
+        grid2value_mapping=grid2value_mapping,
+        target_width=target_width,
+        target_height=target_height,
+        movie_generator=movie_generator,
+        grid_size_fac=args.grid_size_fac,
+        is_norm_coords=args.is_norm_coords,
+        is_syn_mov_shown=True,
+        fr2spikes=args.fr2spikes,
+        is_both_ON_OFF=args.is_both_ON_OFF,
+        quantize_scale=args.quantize_scale,
+        add_noise=args.add_noise,
+        rgc_noise_std=args.rgc_noise_std,
+        smooth_data=args.smooth_data,
+        is_rectified=args.is_rectified,
+        is_direct_image=args.is_direct_image,
+        is_reversed_OFF_sign=args.is_reversed_OFF_sign,
+        is_two_grids=args.is_two_grids,
+        rectified_thr_ON=args.rectified_thr_ON,
+        rectified_thr_OFF=args.rectified_thr_OFF,
+        multi_opt_sf_off=multi_opt_sf_off,
+        tf_off=tf_off,
+        map_func_off=map_func_off,
+        grid2value_mapping_off=grid2value_mapping_off,
+        lnk_config=lnk_config,
+        separate_filters=separate_filters,
+        lnk_config_off=lnk_config_off,
+        separate_filters_off=separate_filters_off
     )
     
     train_dataset = Cricket2RGCs(**train_config)
@@ -686,12 +512,37 @@ def main():
     
     # Create final training dataset (no movie visualization)
     final_train_config = create_cricket2rgcs_config(
-        args, multi_opt_sf, tf, map_func, grid2value_mapping,
-        multi_opt_sf_off, tf_off, map_func_off, grid2value_mapping_off,
-        target_width, target_height, movie_generator,
-        lnk_config=lnk_config, separate_filters=separate_filters,
-        lnk_config_off=lnk_config_off, separate_filters_off=separate_filters_off,
-        is_syn_mov_shown=False
+        num_samples=args.num_samples,
+        multi_opt_sf=multi_opt_sf,
+        tf=tf,
+        map_func=map_func,
+        grid2value_mapping=grid2value_mapping,
+        target_width=target_width,
+        target_height=target_height,
+        movie_generator=movie_generator,
+        grid_size_fac=args.grid_size_fac,
+        is_norm_coords=args.is_norm_coords,
+        is_syn_mov_shown=False,
+        fr2spikes=args.fr2spikes,
+        is_both_ON_OFF=args.is_both_ON_OFF,
+        quantize_scale=args.quantize_scale,
+        add_noise=args.add_noise,
+        rgc_noise_std=args.rgc_noise_std,
+        smooth_data=args.smooth_data,
+        is_rectified=args.is_rectified,
+        is_direct_image=args.is_direct_image,
+        is_reversed_OFF_sign=args.is_reversed_OFF_sign,
+        is_two_grids=args.is_two_grids,
+        rectified_thr_ON=args.rectified_thr_ON,
+        rectified_thr_OFF=args.rectified_thr_OFF,
+        multi_opt_sf_off=multi_opt_sf_off,
+        tf_off=tf_off,
+        map_func_off=map_func_off,
+        grid2value_mapping_off=grid2value_mapping_off,
+        lnk_config=lnk_config,
+        separate_filters=separate_filters,
+        lnk_config_off=lnk_config_off,
+        separate_filters_off=separate_filters_off
     )
     
     train_dataset = Cricket2RGCs(**final_train_config)
