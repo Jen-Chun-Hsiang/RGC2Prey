@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Test script to verify clean separation between LN and LNK model parameter handling.
+Test script to verify the clean separation between LN and LNK models.
 
 This script tests:
 1. LN model uses s_scale for surround control
@@ -10,6 +10,25 @@ This script tests:
 
 This script is completely self-contained and creates its own test data.
 """
+
+import sys
+import os
+import tempfile
+import pandas as pd
+import numpy as np
+import logging
+
+# Add the project root to the path (following lnk_verify.py pattern)
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+try:
+    from datasets.sim_cricket import RGCrfArray
+    from datasets.lnk_utils import load_lnk_parameters, validate_lnk_config
+    print("✅ Successfully imported all required modules")
+except ImportError as e:
+    print(f"❌ Import error: {e}")
+    print("Make sure you're running from the project root directory")
+    sys.exit(1)
 
 import sys
 import os
