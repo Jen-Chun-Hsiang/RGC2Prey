@@ -773,7 +773,7 @@ class Cricket2RGCs(Dataset):
             # 4) ON/OFF only => 2 outputs
             elif self.is_both_ON_OFF:
                 for ch in self.channels:
-                    rgc_time = _compute_for_channel(mv, ch)
+                    rgc_time = _compute_for_channel(movies[0], ch)
                     grid_values_list.append(
                         ch['map_func'](
                             rgc_time,
@@ -786,7 +786,7 @@ class Cricket2RGCs(Dataset):
             # 5) Default single pathway => 1 output
             else:
                 ch = self.channels[0]
-                rgc_time = _compute_for_channel(mv, ch)
+                rgc_time = _compute_for_channel(movies[0], ch)
                 grid_values_list.append(
                     ch['map_func'](
                         rgc_time,
