@@ -13,7 +13,6 @@ from scipy.io import savemat
 
 from datasets.sim_cricket import RGCrfArray, SynMovieGenerator, Cricket2RGCs
 from datasets.lnk_utils import (
-    load_lnk_parameters, 
     load_separate_filters, 
     build_channel_config, 
     create_cricket2rgcs_config,
@@ -28,6 +27,109 @@ from utils.utils import causal_moving_average
 from utils.data_handling import CheckpointLoader
 from utils.initialization import process_seed, initialize_logging, worker_init_fn
 from utils.helper import estimate_rgc_signal_distribution, save_sf_data_to_mat
+from typing import Dict, Optional, Union, Any
+
+def load_unified_parameters(rf_params_file: str,
+                           sf_sheet_name: str,
+                           tf_sheet_name: str,
+                           num_rgcs: int,
+                           optional_sheets: Dict[str, str] = None) -> Dict[str, pd.DataFrame]:
+    """
+    Load all parameter tables in a unified way.
+    
+    Args:
+        rf_params_file: Path to Excel file
+        sf_sheet_name: Name of spatial filter sheet (required)
+        tf_sheet_name: Name of temporal filter sheet (required)
+        num_rgcs: Number of RGC cells
+        optional_sheets: Dict of optional sheet names like {'lnk': 'LNK_params', 'si': 'SF_SI_params'}
+        
+    Returns:
+        Dictionary with all loaded parameter tables
+    """
+    params = {}
+    
+    # Load required sheets
+    try:
+        params['sf'] = pd.read_excel(rf_params_file, sheet_name=sf_sheet_name, usecols='A:L')
+        params['tf'] = pd.read_excel(rf_params_file, sheet_name=tf_sheet_name, usecols='A:I')
+        logging.info(f"Loaded required SF and TF parameter tables")
+    except Exception as e:
+        raise FileNotFoundError(f"Required parameter sheets not found: {e}")
+    
+    # Load optional sheets if specified
+    if optional_sheets:
+        for key, sheet_name in optional_sheets.items():
+            if sheet_name:
+                try:
+                    if key == 'lnk':
+                        params[key] = pd.read_excel(rf_params_file, sheet_name=sheet_name)
+                    elif key == 'si':
+                        params[key] = pd.read_excel(rf_params_file, sheet_name=sheet_name, usecols='A:I')
+                        # Filter SI table by sf_sheet_name if it has that column
+                        if sf_sheet_name in params[key].columns:
+                            params[key] = params[key][sf_sheet_name]
+                    else:
+                        params[key] = pd.read_excel(rf_params_file, sheet_name=sheet_name)
+                    logging.info(f"Loaded optional {key} parameters from sheet: {sheet_name}")
+                except Exception as e:
+                    logging.warning(f"Could not load optional {key} sheet '{sheet_name}': {e}")
+                    params[key] = None
+    
+    return params
+
+def process_parameter_table(param_table: pd.DataFrame,
+                           num_rgcs: int,
+                           param_type: str = 'generic') -> Optional[Dict[str, Any]]:
+    """
+    Process any parameter table into a standardized format.
+    
+    Args:
+        param_table: Parameter table DataFrame
+        num_rgcs: Number of RGC cells
+        param_type: Type of parameters ('lnk', 'si', or 'generic')
+        
+    Returns:
+        Processed parameters dictionary or None if table is None
+    """
+    if param_table is None:
+        return None
+        
+    if param_type == 'lnk':
+        # Process LNK-specific parameters
+        def get_param(param_name: str, default_value: Union[float, np.ndarray]) -> Union[float, np.ndarray]:
+            if param_name in param_table.columns:
+                param_values = param_table[param_name].values
+                if np.any(pd.isna(param_values)):
+                    return default_value
+                if len(param_values) == 1:
+                    return float(param_values[0])
+                elif len(param_values) == num_rgcs:
+                    return param_values.astype(float)
+                else:
+                    return default_value
+            return default_value
+        
+        return {
+            'tau': get_param('tau', 0.1),
+            'alpha_d': get_param('alpha_d', 1.0),
+            'theta': get_param('theta', 0.0),
+            'sigma0': get_param('sigma0', 1.0),
+            'alpha': get_param('alpha', 0.1),
+            'beta': get_param('beta', 0.0),
+            'b_out': get_param('b_out', 0.0),
+            'g_out': get_param('g_out', 1.0),
+            'w_xs': get_param('w_xs', -0.1),
+            'dt': get_param('dt', 0.01)
+        }
+    
+    elif param_type == 'si':
+        # Return SI table as-is for use in RGCrfArray
+        return param_table
+    
+    else:
+        # Generic processing - return as-is
+        return param_table
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Script for Model Training to get 3D RF in simulation")
@@ -228,15 +330,28 @@ def main():
     else:
         logging.info( f"Using standard LN model")
 
-    sf_param_table = pd.read_excel(rf_params_file, sheet_name=args.sf_sheet_name, usecols='A:L')
-    tf_param_table = pd.read_excel(rf_params_file, sheet_name=args.tf_sheet_name, usecols='A:I')
+    # Load all parameter tables in a unified way
+    optional_sheets = {}
+    if args.use_lnk_model:
+        optional_sheets['lnk'] = args.lnk_sheet_name
     if args.sf_SI_sheet_name:
+        optional_sheets['si'] = args.sf_SI_sheet_name
         args.is_rescale_diffgaussian = True
-        sf_SI_table = pd.read_excel(rf_params_file, sheet_name=args.sf_SI_sheet_name, usecols='A:I')
-        sf_SI_table = sf_SI_table[args.sf_sheet_name]
+    
+    # Load all tables uniformly
+    param_tables = load_unified_parameters(
+        rf_params_file=rf_params_file,
+        sf_sheet_name=args.sf_sheet_name,
+        tf_sheet_name=args.tf_sheet_name,
+        num_rgcs=args.target_num_centers,  # Expected number of RGCs
+        optional_sheets=optional_sheets
+    )
+    
+    # Process optional parameters
+    sf_SI_table = process_parameter_table(param_tables.get('si'), args.target_num_centers, 'si')
         
     rgc_array = RGCrfArray(
-        sf_param_table, tf_param_table, rgc_array_rf_size=args.rgc_array_rf_size, xlim=args.xlim, ylim=args.ylim,
+        param_tables['sf'], param_tables['tf'], rgc_array_rf_size=args.rgc_array_rf_size, xlim=args.xlim, ylim=args.ylim,
         target_num_centers=args.target_num_centers, sf_scalar=args.sf_scalar, grid_generate_method=args.grid_generate_method, 
         tau=args.tau, mask_radius=args.mask_radius, rgc_rand_seed=args.rgc_rand_seed, num_gauss_example=args.num_gauss_example, 
         sf_constraint_method=args.sf_constraint_method, temporal_filter_len=args.temporal_filter_len, grid_size_fac=args.grid_size_fac,
@@ -248,15 +363,18 @@ def main():
     logging.info( f"{args.experiment_name} processing...1")
     multi_opt_sf, tf, grid2value_mapping, map_func, rgc_locs = rgc_array.get_results()
 
-    # Load LNK parameters if LNK model is enabled
+    # Process LNK configuration if LNK model is enabled
     num_rgcs = multi_opt_sf.shape[2]  # Number of RGC cells
-    lnk_config = load_lnk_parameters(
-        rf_params_file=rf_params_file,
-        lnk_sheet_name=args.lnk_sheet_name,
-        num_rgcs=num_rgcs,
-        lnk_adapt_mode=args.lnk_adapt_mode,
-        use_lnk_model=args.use_lnk_model
-    )
+    lnk_config = None
+    if args.use_lnk_model and param_tables.get('lnk') is not None:
+        lnk_params = process_parameter_table(param_tables['lnk'], num_rgcs, 'lnk')
+        lnk_config = {
+            'lnk_params': lnk_params,
+            'adapt_mode': args.lnk_adapt_mode
+        }
+        logging.info(f"LNK configuration processed for {num_rgcs} cells")
+    elif args.use_lnk_model:
+        logging.warning("LNK model requested but no LNK parameters found - using default LN model")
     
     # Load separate center/surround filters if specified
     separate_filters = load_separate_filters(
@@ -292,13 +410,13 @@ def main():
         separate_filters_off = None
         if args.use_lnk_model:
             num_rgcs_off = multi_opt_sf_off.shape[2]
-            lnk_config_off = load_lnk_parameters(
-                rf_params_file=rf_params_file,
-                lnk_sheet_name=args.lnk_sheet_name,
-                num_rgcs=num_rgcs_off,
-                lnk_adapt_mode=args.lnk_adapt_mode,
-                use_lnk_model=args.use_lnk_model
-            )
+            # Use the same LNK parameters loaded earlier for OFF channel
+            if param_tables.get('lnk') is not None:
+                lnk_params_off = process_parameter_table(param_tables['lnk'], num_rgcs_off, 'lnk')
+                lnk_config_off = {
+                    'lnk_params': lnk_params_off,
+                    'adapt_mode': args.lnk_adapt_mode
+                }
             separate_filters_off = load_separate_filters(
                 rf_params_file=rf_params_file,
                 rgc_array=rgc_array,
