@@ -16,6 +16,101 @@ from typing import Dict, Optional, Union, Any, Tuple
 from datasets.sim_cricket import RGCrfArray
 
 
+def load_unified_parameters(rf_params_file: str,
+                           sf_sheet_name: str,
+                           tf_sheet_name: str,
+                           num_rgcs: int,
+                           optional_sheets: Dict[str, str] = None) -> Dict[str, pd.DataFrame]:
+    """
+    Load all parameter tables in a unified way.
+    
+    Args:
+        rf_params_file: Path to Excel file
+        sf_sheet_name: Name of spatial filter sheet (required)
+        tf_sheet_name: Name of temporal filter sheet (required)
+        num_rgcs: Number of RGC cells
+        optional_sheets: Dict of optional sheet names like {'lnk': 'LNK_params'}
+        
+    Returns:
+        Dictionary with all loaded parameter tables
+    """
+    params = {}
+    
+    # Load required sheets
+    try:
+        params['sf'] = pd.read_excel(rf_params_file, sheet_name=sf_sheet_name, usecols='A:L')
+        params['tf'] = pd.read_excel(rf_params_file, sheet_name=tf_sheet_name, usecols='A:I')
+        logging.info(f"Loaded required SF and TF parameter tables")
+    except Exception as e:
+        raise FileNotFoundError(f"Required parameter sheets not found: {e}")
+    
+    # Load optional sheets if specified
+    if optional_sheets:
+        for key, sheet_name in optional_sheets.items():
+            if sheet_name:
+                try:
+                    if key == 'lnk':
+                        params[key] = pd.read_excel(rf_params_file, sheet_name=sheet_name)
+                    else:
+                        params[key] = pd.read_excel(rf_params_file, sheet_name=sheet_name)
+                    logging.info(f"Loaded optional {key} parameters from sheet: {sheet_name}")
+                except Exception as e:
+                    logging.warning(f"Could not load optional {key} sheet '{sheet_name}': {e}")
+                    params[key] = None
+    
+    return params
+
+
+def process_parameter_table(param_table: pd.DataFrame,
+                           num_rgcs: int,
+                           param_type: str = 'generic') -> Optional[Dict[str, Any]]:
+    """
+    Process any parameter table into a standardized format.
+    
+    Args:
+        param_table: Parameter table DataFrame
+        num_rgcs: Number of RGC cells
+        param_type: Type of parameters ('lnk' or 'generic')
+        
+    Returns:
+        Processed parameters dictionary or None if table is None
+    """
+    if param_table is None:
+        return None
+        
+    if param_type == 'lnk':
+        # Process LNK-specific parameters
+        def get_param(param_name: str, default_value: Union[float, np.ndarray]) -> Union[float, np.ndarray]:
+            if param_name in param_table.columns:
+                param_values = param_table[param_name].values
+                if np.any(pd.isna(param_values)):
+                    return default_value
+                if len(param_values) == 1:
+                    return float(param_values[0])
+                elif len(param_values) == num_rgcs:
+                    return param_values.astype(float)
+                else:
+                    return default_value
+            return default_value
+        
+        return {
+            'tau': get_param('tau', 0.1),
+            'alpha_d': get_param('alpha_d', 1.0),
+            'theta': get_param('theta', 0.0),
+            'sigma0': get_param('sigma0', 1.0),
+            'alpha': get_param('alpha', 0.1),
+            'beta': get_param('beta', 0.0),
+            'b_out': get_param('b_out', 0.0),
+            'g_out': get_param('g_out', 1.0),
+            'w_xs': get_param('w_xs', -0.1),
+            'dt': get_param('dt', 0.01)
+        }
+    
+    else:
+        # Generic processing - return as-is
+        return param_table
+
+
 def generate_surround_from_center(sf_center: np.ndarray, 
                                  surround_sigma_ratio: float = 4.0,
                                  rgc_array: Optional[RGCrfArray] = None) -> np.ndarray:
