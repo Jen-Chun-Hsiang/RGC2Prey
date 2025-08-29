@@ -55,37 +55,39 @@ def create_minimal_test_data():
     
     # Create minimal spatial filter parameters
     sf_data = {
-        'sigma_x': [10.0, 12.0, 8.0, 15.0, 9.0],
-        'sigma_y': [10.0, 12.0, 8.0, 15.0, 9.0], 
-        'theta': [0.0, 0.5, -0.5, 0.2, -0.2],
-        'bias': [0.0, 0.1, -0.1, 0.05, -0.05],
-        'c_scale': [1.0, 1.2, 0.8, 1.1, 0.9],
-        's_sigma_x': [20.0, 24.0, 16.0, 30.0, 18.0],
-        's_sigma_y': [20.0, 24.0, 16.0, 30.0, 18.0],
-        's_scale': [-0.2, -0.3, -0.1, -0.25, -0.15]  # This will be overridden in LNK
+        'sigma_x': [10.0, 12.0, 8.0],
+        'sigma_y': [10.0, 12.0, 8.0], 
+        'theta': [0.0, 0.5, -0.5],
+        'bias': [0.0, 0.1, -0.1],
+        'c_scale': [1.0, 1.2, 0.8],
+        's_sigma_x': [20.0, 24.0, 16.0],
+        's_sigma_y': [20.0, 24.0, 16.0],
+        's_scale': [-0.2, -0.3, -0.1]  # This will be overridden in LNK
     }
     
-    # Create minimal temporal filter parameters
+    # Create minimal temporal filter parameters (with correct column names)
     tf_data = {
-        'tau': [0.05, 0.08, 0.03, 0.06, 0.04],
-        'weight': [1.0, 1.1, 0.9, 1.05, 0.95],
-        'delay': [0.01, 0.015, 0.005, 0.012, 0.008],
-        'alpha': [1.0, 1.0, 1.0, 1.0, 1.0],
-        'beta': [0.0, 0.0, 0.0, 0.0, 0.0]
+        'sigma1': [0.05, 0.08, 0.03],
+        'sigma2': [0.1, 0.12, 0.08],
+        'mean1': [0.01, 0.015, 0.005],
+        'mean2': [0.02, 0.025, 0.015],
+        'amp1': [1.0, 1.1, 0.9],
+        'amp2': [0.5, 0.6, 0.4],
+        'offset': [0.0, 0.1, -0.1]
     }
     
     # Create LNK parameters
     lnk_data = {
-        'tau': [0.1, 0.12, 0.08, 0.11, 0.09],
-        'alpha_d': [1.0, 1.1, 0.9, 1.05, 0.95],
-        'theta': [0.0, 0.05, -0.05, 0.02, -0.02],
-        'sigma0': [1.0, 1.1, 0.9, 1.05, 0.95],
-        'alpha': [0.1, 0.12, 0.08, 0.11, 0.09],
-        'beta': [0.0, -0.05, 0.05, -0.02, 0.02],
-        'b_out': [0.0, 0.1, -0.1, 0.05, -0.05],
-        'g_out': [1.0, 1.1, 0.9, 1.05, 0.95],
-        'w_xs': [-0.2, -0.25, -0.15, -0.22, -0.18],  # This replaces s_scale in LNK
-        'dt': [0.01, 0.01, 0.01, 0.01, 0.01]
+        'tau': [0.1, 0.12, 0.08],
+        'alpha_d': [1.0, 1.1, 0.9],
+        'theta': [0.0, 0.05, -0.05],
+        'sigma0': [1.0, 1.1, 0.9],
+        'alpha': [0.1, 0.12, 0.08],
+        'beta': [0.0, -0.05, 0.05],
+        'b_out': [0.0, 0.1, -0.1],
+        'g_out': [1.0, 1.1, 0.9],
+        'w_xs': [-0.2, -0.25, -0.15],  # This replaces s_scale in LNK
+        'dt': [0.01, 0.01, 0.01]
     }
     
     return pd.DataFrame(sf_data), pd.DataFrame(tf_data), pd.DataFrame(lnk_data)
@@ -107,10 +109,10 @@ def test_ln_model_with_s_scale():
         # Create RGCrfArray for LN model (use_lnk_override=False)
         rgc_array = RGCrfArray(
             sf_table, tf_table,
-            rgc_array_rf_size=(64, 64),  # Smaller for faster testing
-            xlim=(-30, 30),
-            ylim=(-30, 30),
-            target_num_centers=5,  # Fewer centers for faster testing
+            rgc_array_rf_size=(32, 32),  # Even smaller for faster testing
+            xlim=(-15, 15),
+            ylim=(-15, 15),
+            target_num_centers=3,  # Minimum number for testing
             sf_scalar=1.0,
             grid_generate_method='circle',
             use_lnk_override=False  # LN model
@@ -160,7 +162,7 @@ def test_lnk_model_with_w_xs():
                 lnk_config = load_lnk_parameters(
                     rf_params_file=tmp_file.name,
                     lnk_sheet_name='LNK_params',
-                    num_rgcs=5,
+                    num_rgcs=3,  # Match the target_num_centers
                     lnk_adapt_mode='divisive',
                     use_lnk_model=True
                 )
@@ -170,16 +172,16 @@ def test_lnk_model_with_w_xs():
                 print(f"  - w_xs parameter: {lnk_config['lnk_params']['w_xs']}")
                 
                 # Validate LNK configuration
-                is_valid = validate_lnk_config(lnk_config, 5)
+                is_valid = validate_lnk_config(lnk_config, 3)
                 print(f"  - Configuration valid: {is_valid}")
                 
                 # Create RGCrfArray for LNK model (use_lnk_override=True)
                 rgc_array = RGCrfArray(
                     sf_table, tf_table,
-                    rgc_array_rf_size=(64, 64),
-                    xlim=(-30, 30),
-                    ylim=(-30, 30),
-                    target_num_centers=5,
+                    rgc_array_rf_size=(32, 32),
+                    xlim=(-15, 15),
+                    ylim=(-15, 15),
+                    target_num_centers=3,
                     sf_scalar=1.0,
                     grid_generate_method='circle',
                     use_lnk_override=True  # LNK model - s_scale should be set to 0
