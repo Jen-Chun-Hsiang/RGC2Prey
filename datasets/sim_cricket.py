@@ -1110,7 +1110,7 @@ class RGCrfArray:
                  grid_generate_method, tau=None, mask_radius=None, rgc_rand_seed=42, num_gauss_example=1, sf_mask_radius=35, 
                  sf_pixel_thr=99.7, sf_constraint_method=None, temporal_filter_len=50, grid_size_fac=0.5, is_pixelized_tf=False, 
                  set_s_scale=[], is_rf_median_subtract=True, is_rescale_diffgaussian=True, is_both_ON_OFF = False,
-                 grid_noise_level=0.3, is_reversed_tf = False, sf_id_list=None, syn_tf_sf=False, sf_SI_table=None):
+                 grid_noise_level=0.3, is_reversed_tf = False, sf_id_list=None, syn_tf_sf=False, sf_SI_table=None, use_lnk_override=False):
         """
         Args:
             sf_param_table (DataFrame): Table of spatial frequency parameters.
@@ -1127,6 +1127,7 @@ class RGCrfArray:
         self.sf_param_table = sf_param_table
         self.tf_param_table = tf_param_table
         self.sf_SI_table = sf_SI_table
+        self.use_lnk_override = use_lnk_override  # Flag to override s_scale when using LNK model
         self.rgc_array_rf_size = rgc_array_rf_size
         self.sf_scalar = sf_scalar
         self.temporal_filter_len = temporal_filter_len
@@ -1245,16 +1246,26 @@ class RGCrfArray:
                 pid_i = np.random.choice(pid_list)
 
             row = self.sf_param_table.iloc[pid_i]
-            if self.sf_SI_table is not None:
+            
+            # Handle s_scale based on model type
+            if self.use_lnk_override:
+                # When using LNK model, set s_scale to 0 (surround handled by w_xs in LNK dynamics)
+                s_scale = 0.0
+                if i == 0:  # Log only once to avoid spam
+                    logging.debug("LNK model: s_scale set to 0 (surround interaction handled by w_xs parameter)")
+            elif self.sf_SI_table is not None:
+                # LN model with SI table for s_scale diversity
                 sid_i = np.random.randint(0, len_sf_SI)
                 s_scale = self.sf_SI_table.iloc[sid_i]
             else:
+                # LN model with default s_scale from SF sheet or command line
                 s_scale = row['s_scale'] if not self.set_s_scale else self.set_s_scale[0]
+                
             sf_params = np.array([
                 point[1], point[0], row['sigma_x'] * self.sf_scalar, row['sigma_y'] * self.sf_scalar,
                 row['theta'], row['bias'], row['c_scale'], row['s_sigma_x'] * self.sf_scalar,
                 row['s_sigma_y'] * self.sf_scalar, s_scale
-            ])  # s_scale with be scaled according to c_scale
+            ])  # s_scale will be scaled according to c_scale
             opt_sf = gaussian_multi(sf_params, self.rgc_array_rf_size, self.num_gauss_example, self.is_rescale_diffgaussian)
             if self.is_rf_median_subtract:
                 opt_sf -= np.median(opt_sf)  

@@ -219,7 +219,7 @@ def parse_args():
     parser.add_argument('--temporal_filter_len', type=int, default=50, help="Number of time points for a temporal filter")
     parser.add_argument('--is_pixelized_tf', action='store_true', help="Flag for pixelized receptive field.")
     parser.add_argument('--grid_size_fac', type=float, default=1, help='Resize the grid size that transformed from RGC outputs')
-    parser.add_argument('--set_s_scale', type=float, nargs='*', default=[], help='Set scale fo surround weight of RF')
+    parser.add_argument('--set_s_scale', type=float, nargs='*', default=[], help='Set scale for surround weight of RF (LN model only; ignored in LNK model)')
     parser.add_argument('--is_rf_median_subtract', action='store_true', help="Flag for substract median of rf")
     parser.add_argument('--is_both_ON_OFF', action='store_true', help="Flag for including OFF cell")
     parser.add_argument('--tf_sheet_name', type=str, default='TF_params', help='Excel sheet name for the temporal filter')
@@ -231,11 +231,11 @@ def parse_args():
     parser.add_argument("--sf_id_list_additional", type=int, nargs="+", default=None, help='select RF ids from sf_sheet_name --pid 2 7 12')
     parser.add_argument('--syn_tf_sf', action='store_true', help='Synchronize TF and SF parameters for each RGC')
     parser.add_argument('--is_rescale_diffgaussian', action='store_true', help='Rescale the diffgaussian RF to have zero min and max to 1')
-    parser.add_argument('--sf_SI_sheet_name', type=str, default=None, help="sheet name for surround inhibition")
+    parser.add_argument('--sf_SI_sheet_name', type=str, default=None, help="Sheet name for surround inhibition (LN model only; ignored in LNK model where w_xs handles surround)")
     
     # Arguments for LNK model
-    parser.add_argument('--use_lnk_model', action='store_true', help='Use LNK model instead of LN model for RGC responses')
-    parser.add_argument('--lnk_sheet_name', type=str, default='LNK_params', help='Excel sheet name for LNK parameters')
+    parser.add_argument('--use_lnk_model', action='store_true', help='Use LNK model instead of LN model for RGC responses. In LNK: w_xs controls surround interaction, s_scale is ignored.')
+    parser.add_argument('--lnk_sheet_name', type=str, default='LNK_params', help='Excel sheet name for LNK parameters (includes w_xs for center-surround interaction)')
     parser.add_argument('--lnk_adapt_mode', type=str, default='divisive', choices=['divisive', 'subtractive'], 
                         help='LNK adaptation mode: divisive or subtractive')
     parser.add_argument('--use_separate_surround', action='store_true', help='Use separate center/surround filters for LNK')
@@ -332,11 +332,22 @@ def main():
 
     # Load all parameter tables in a unified way
     optional_sheets = {}
+    sf_SI_table = None
+    
     if args.use_lnk_model:
+        # LNK model path: load LNK parameters, w_xs handles center-surround interaction
         optional_sheets['lnk'] = args.lnk_sheet_name
-    if args.sf_SI_sheet_name:
-        optional_sheets['si'] = args.sf_SI_sheet_name
-        args.is_rescale_diffgaussian = True
+        if args.sf_SI_sheet_name:
+            logging.warning("sf_SI_sheet_name ignored when using LNK model (w_xs parameter handles surround interaction)")
+        logging.info("LNK model: surround interaction controlled by w_xs parameter")
+    else:
+        # LN model path: optionally load SI table for s_scale diversity  
+        if args.sf_SI_sheet_name:
+            optional_sheets['si'] = args.sf_SI_sheet_name
+            args.is_rescale_diffgaussian = True
+            logging.info("LN model: using SI table for surround strength diversity")
+        else:
+            logging.info("LN model: using set_s_scale or default s_scale from SF sheet")
     
     # Load all tables uniformly
     param_tables = load_unified_parameters(
@@ -347,8 +358,9 @@ def main():
         optional_sheets=optional_sheets
     )
     
-    # Process optional parameters
-    sf_SI_table = process_parameter_table(param_tables.get('si'), args.target_num_centers, 'si')
+    # Process SI table only for LN model
+    if not args.use_lnk_model and 'si' in param_tables:
+        sf_SI_table = process_parameter_table(param_tables.get('si'), args.target_num_centers, 'si')
         
     rgc_array = RGCrfArray(
         param_tables['sf'], param_tables['tf'], rgc_array_rf_size=args.rgc_array_rf_size, xlim=args.xlim, ylim=args.ylim,
@@ -358,7 +370,7 @@ def main():
         sf_mask_radius=args.sf_mask_radius, is_pixelized_tf=args.is_pixelized_tf, set_s_scale=args.set_s_scale, 
         is_rf_median_subtract=args.is_rf_median_subtract, is_rescale_diffgaussian=args.is_rescale_diffgaussian, 
         grid_noise_level=args.grid_noise_level, is_reversed_tf=args.is_reversed_tf, sf_id_list=args.sf_id_list, syn_tf_sf=args.syn_tf_sf,
-        sf_SI_table=sf_SI_table
+        sf_SI_table=sf_SI_table, use_lnk_override=args.use_lnk_model
     )
     logging.info( f"{args.experiment_name} processing...1")
     multi_opt_sf, tf, grid2value_mapping, map_func, rgc_locs = rgc_array.get_results()
@@ -370,9 +382,11 @@ def main():
         lnk_params = process_parameter_table(param_tables['lnk'], num_rgcs, 'lnk')
         lnk_config = {
             'lnk_params': lnk_params,
-            'adapt_mode': args.lnk_adapt_mode
+            'adapt_mode': args.lnk_adapt_mode,
+            'override_s_scale': True  # Signal that s_scale should be ignored in favor of w_xs
         }
         logging.info(f"LNK configuration processed for {num_rgcs} cells")
+        logging.info(f"LNK w_xs parameter (surround weight): {lnk_params.get('w_xs', -0.1)}")
     elif args.use_lnk_model:
         logging.warning("LNK model requested but no LNK parameters found - using default LN model")
     
@@ -415,7 +429,8 @@ def main():
                 lnk_params_off = process_parameter_table(param_tables['lnk'], num_rgcs_off, 'lnk')
                 lnk_config_off = {
                     'lnk_params': lnk_params_off,
-                    'adapt_mode': args.lnk_adapt_mode
+                    'adapt_mode': args.lnk_adapt_mode,
+                    'override_s_scale': True  # Signal that s_scale should be ignored for OFF channel too
                 }
             separate_filters_off = load_separate_filters(
                 rf_params_file=rf_params_file,
