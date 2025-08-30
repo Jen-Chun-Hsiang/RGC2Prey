@@ -373,9 +373,10 @@ class Cricket2RGCs(Dataset):
         is_two_grids=False,
         rectified_thr_ON=0.0,
         rectified_thr_OFF=0.0,
-        # LNK configuration parameters
-        lnk_config_on=None,
-        lnk_config_off=None
+        # Simple LNK parameters
+        use_lnk=False,
+        lnk_params=None,
+        surround_sigma_ratio=4.0
     ):
         # Core attributes
         self.num_samples = num_samples
@@ -434,6 +435,24 @@ class Cricket2RGCs(Dataset):
         else:
             raise ValueError(f"tf must be 1D or 2D array, got {tf.ndim}D with shape {tf.shape}")
         
+        # Store LNK parameters for simple implementation
+        self.use_lnk = use_lnk
+        self.lnk_params = lnk_params
+        self.surround_sigma_ratio = surround_sigma_ratio
+        
+        # Generate surround filters if using LNK
+        self.surround_sf = None
+        self.surround_tf = None
+        if use_lnk and lnk_params is not None:
+            from datasets.simple_lnk import generate_surround_filters
+            center_sf_np = multi_opt_sf  # Already numpy array
+            center_tf_np = tf_multi.cpu().numpy() if tf_multi.ndim > 1 else tf
+            surround_sf_np, surround_tf_np = generate_surround_filters(
+                center_sf_np, center_tf_np, surround_sigma_ratio
+            )
+            self.surround_sf = torch.from_numpy(surround_sf_np).float()
+            self.surround_tf = torch.from_numpy(surround_tf_np)
+        
         self.channels = [
             {
                 'sf': sf_tensor,
@@ -443,10 +462,6 @@ class Cricket2RGCs(Dataset):
                 'rect_thr': self.rectified_thr_ON, 
             }
         ]
-        
-        # Add LNK configuration to ON channel if provided
-        if lnk_config_on is not None:
-            self.channels[0].update(lnk_config_on)
         
         # Add OFF channel config if required
         if is_both_ON_OFF or is_two_grids:
@@ -482,10 +497,6 @@ class Cricket2RGCs(Dataset):
                 'rect_thr': self.rectified_thr_OFF,
             }
             
-            # Add LNK configuration to OFF channel if provided
-            if lnk_config_off is not None:
-                off_channel.update(lnk_config_off)
-            
             self.channels.append(off_channel)
 
         # Optional grid-coordinates for weighted output
@@ -520,129 +531,40 @@ class Cricket2RGCs(Dataset):
                             sf_surround=None, tf_surround=None,
                             lnk_params=None):
         """
-        Compute RGC response. If lnk_params is provided, run LNK matching MATLAB fitLNK_rate_scw;
-        otherwise run original LN model.
-        
-        MATLAB LNK Model (per cell):
-            a_{t+1} = a_t + dt * (alpha_d * F(x_t) - a_t) / tau,  with F(x) = max(0, x - theta)
-            den_t   = sigma0 + alpha * a_t
-            ỹ_t     = x_t / den_t + w_xs * x_s_t / den_t + beta * a_t + b_out
-            r_t     = softplus( g_out * ỹ_t )
-        
-        This implementation is vectorized across N cells.
+        Compute RGC response using either LN or simplified LNK model.
         
         Args:
             movie: [T, H, W]
-            sf: [W, H, N] - spatial filters for N RGC cells (center if LNK)
-            tf: [N, 1, T_filter] - temporal filters for each RGC cell (center if LNK)
+            sf: [W, H, N] - spatial filters 
+            tf: [N, 1, T_filter] - temporal filters
             rect_thr: float - rectification threshold
-            sf_surround: [W, H, N] or None - surround spatial filters
-            tf_surround: [N, 1, T_filter] or None - surround temporal filters
-            lnk_params: dict or None with keys matching MATLAB:
-                - tau, alpha_d, theta, sigma0, alpha, beta, b_out, g_out, w_xs
-                - dt (sampling period, defaults to 1/sampling_rate)
-                - Each param can be scalar (same for all cells) or array of length N
+            sf_surround: unused (kept for compatibility)
+            tf_surround: unused (kept for compatibility) 
+            lnk_params: unused (kept for compatibility)
         Returns:
             rgc_time: [N, T_out] - RGC responses over time
         """
         
-        # Original LN path (backward compatible)
-        if lnk_params is None:
-            sf_frame = torch.einsum('whn,thw->nt', sf, movie)  # [N, T]
-            sf_frame = sf_frame.unsqueeze(0)                   # [1, N, T]
-            rgc_time = F.conv1d(sf_frame, tf, stride=1, padding=0, groups=sf_frame.shape[1]).squeeze(0)  # [N, T_out]
-
-            if self.fr2spikes:
-                rgc_time = torch.poisson(torch.clamp_min(rgc_time * self.quantize_scale, 0)) / self.quantize_scale
-            if self.smooth_data:
-                rgc_time = gaussian_smooth_1d(
-                    rgc_time,
-                    kernel_size=self.smooth_kernel_size,
-                    sampleing_rate=self.sampleing_rate,
-                    sigma=self.smooth_sigma,
-                )
-            if self.add_noise:
-                rgc_time += torch.randn_like(rgc_time) * self.rgc_noise_std
-            if self.is_rectified:
-                rgc_time = torch.clamp_min(rgc_time, rect_thr)
-            return rgc_time
-
-        # ============ LNK path - matching MATLAB fitLNK_rate_scw ============
-        device = movie.device
-        dtype = movie.dtype
-
-        # --- Step 1: Center spatial-temporal processing: x_t ---
-        x_c = torch.einsum('whn,thw->nt', sf, movie)  # [N, T]
-        x_c = x_c.unsqueeze(0)  # [1, N, T]
-        x = F.conv1d(x_c, tf, stride=1, padding=0, groups=x_c.shape[1]).squeeze(0)  # [N, T_out]
-
-        # --- Step 2: Surround spatial-temporal processing: x_s_t ---
-        if sf_surround is not None and tf_surround is not None:
-            x_s_raw = torch.einsum('whn,thw->nt', sf_surround, movie).unsqueeze(0)  # [1,N,T]
-            x_s = F.conv1d(x_s_raw, tf_surround, stride=1, padding=0, 
-                            groups=x_s_raw.shape[1]).squeeze(0)  # [N, T_out]
-            # Align time lengths
-            T_out = min(x.shape[1], x_s.shape[1])
-            x = x[:, :T_out]
-            x_s = x_s[:, :T_out]
-        else:
-            x_s = torch.zeros_like(x)
-            T_out = x.shape[1]
-
-        N = x.shape[0]
-
-        # --- Step 3: Broadcast parameters to [N] (matching MATLAB variable names) ---
-        tau     = self._broadcast_param(lnk_params.get('tau', 0.1), N, device, dtype)
-        alpha_d = self._broadcast_param(lnk_params.get('alpha_d', 1.0), N, device, dtype)
-        theta   = self._broadcast_param(lnk_params.get('theta', 0.0), N, device, dtype)
-        sigma0  = self._broadcast_param(lnk_params.get('sigma0', 1.0), N, device, dtype)
-        alpha   = self._broadcast_param(lnk_params.get('alpha', 0.1), N, device, dtype)
-        beta    = self._broadcast_param(lnk_params.get('beta', 0.0), N, device, dtype)
-        b_out   = self._broadcast_param(lnk_params.get('b_out', 0.0), N, device, dtype)
-        g_out   = self._broadcast_param(lnk_params.get('g_out', 1.0), N, device, dtype)
-        w_xs    = self._broadcast_param(lnk_params.get('w_xs', 0.0), N, device, dtype)
+        # Check if using simple LNK model
+        if self.use_lnk and self.lnk_params is not None:
+            from datasets.simple_lnk import compute_lnk_response
+            return compute_lnk_response(
+                movie=movie,
+                center_sf=sf,
+                center_tf=tf,
+                surround_sf=self.surround_sf,
+                surround_tf=self.surround_tf.view(tf.shape[0], 1, -1),  # Match tf shape
+                lnk_params=self.lnk_params,
+                device=movie.device,
+                dtype=movie.dtype
+            )
         
-        dt = float(lnk_params.get('dt', 1.0 / max(1, self.sampleing_rate)))
+        # Original LN model (backward compatible)
+        sf_frame = torch.einsum('whn,thw->nt', sf, movie)  # [N, T]
+        sf_frame = sf_frame.unsqueeze(0)                   # [1, N, T]
+        rgc_time = F.conv1d(sf_frame, tf, stride=1, padding=0, groups=sf_frame.shape[1]).squeeze(0)  # [N, T_out]
 
-        # --- Step 4: Kinetic state update (vectorized across cells) ---
-        # a_{t+1} = a_t + dt * (alpha_d * F(x_t) - a_t) / tau
-        # where F(x) = max(0, x - theta)
-        a = torch.zeros((N, T_out), device=device, dtype=dtype)
-        
-        # Vectorized computation across all N cells
-        for t in range(T_out):
-            if t == 0:
-                a_prev = torch.zeros(N, device=device, dtype=dtype)
-            else:
-                a_prev = a[:, t-1]
-            
-            # F(x_t) = max(0, x_t - theta) for all cells
-            drive = torch.relu(x[:, t] - theta)
-            
-            # da/dt = (alpha_d * drive - a) / tau for all cells
-            da_dt = (alpha_d * drive - a_prev) / tau
-            
-            # Forward Euler: a_{t+1} = a_t + dt * da/dt
-            a_t = a_prev + dt * da_dt
-            
-            # Clamp to non-negative (matching MATLAB: if a(t+1) < 0, a(t+1) = 0)
-            a[:, t] = torch.clamp_min(a_t, 0.0)
-
-        # --- Step 5: Divisive normalization: den_t = sigma0 + alpha * a_t ---
-        den = sigma0[:, None] + alpha[:, None] * a  # [N, T_out]
-        den = torch.clamp_min(den, 1e-9)  # Avoid division by zero (matching MATLAB)
-
-        # --- Step 6: Pre-output combination (MATLAB equation) ---
-        # ỹ_t = x_t / den_t + w_xs * x_s_t / den_t + beta * a_t + b_out
-        y_tilde = (x / den + 
-                    w_xs[:, None] * x_s / den + 
-                    beta[:, None] * a + 
-                    b_out[:, None])
-
-        # --- Step 7: Output nonlinearity: r_t = softplus(g_out * ỹ_t) ---
-        rgc_time = F.softplus(g_out[:, None] * y_tilde, beta=1.0, threshold=20.0)
-
-        # --- Step 8: Optional post-processing (preserve your pipeline) ---
+        # Post-processing
         if self.fr2spikes:
             rgc_time = torch.poisson(torch.clamp_min(rgc_time * self.quantize_scale, 0)) / self.quantize_scale
         if self.smooth_data:
@@ -654,10 +576,9 @@ class Cricket2RGCs(Dataset):
             )
         if self.add_noise:
             rgc_time += torch.randn_like(rgc_time) * self.rgc_noise_std
-        # Note: softplus is always >=0, so rectification is mainly for consistency
-        if self.is_rectified and rect_thr > 0:
+        if self.is_rectified:
             rgc_time = torch.clamp_min(rgc_time, rect_thr)
-
+            
         return rgc_time
 
     def _process_direct_image(self, syn_movie):
@@ -710,15 +631,12 @@ class Cricket2RGCs(Dataset):
             syn_movie = syn_movie[:, 0, :, :] 
 
         def _compute_for_channel(mv, ch):
-            """Helper to compute RGC response with LNK support"""
+            """Helper to compute RGC response - simplified"""
             return self._compute_rgc_time(
                 mv,
-                ch.get('sf_center', ch['sf']),  # Use sf_center if available, else sf
-                ch.get('tf_center', ch['tf']),  # Use tf_center if available, else tf
-                ch['rect_thr'],
-                sf_surround=ch.get('sf_surround', None),
-                tf_surround=ch.get('tf_surround', None),
-                lnk_params=ch.get('lnk_params', None)
+                ch['sf'],
+                ch['tf'], 
+                ch['rect_thr']
             )
 
         grid_values_list = []

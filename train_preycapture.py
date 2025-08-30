@@ -12,15 +12,6 @@ import torch.optim as optim
 from scipy.io import savemat
 
 from datasets.sim_cricket import RGCrfArray, SynMovieGenerator, Cricket2RGCs
-from datasets.lnk_utils import (
-    load_unified_parameters,
-    process_parameter_table,
-    load_separate_filters, 
-    build_channel_config, 
-    create_cricket2rgcs_config,
-    validate_lnk_config,
-    get_lnk_config_summary
-)
 from utils.utils import plot_tensor_and_save, plot_vector_and_save, plot_two_path_comparison, plot_coordinate_and_save
 from models.rgc2behavior import CNN_LSTM_ObjectLocation
 from utils.data_handling import save_checkpoint, none_or_float
@@ -232,24 +223,19 @@ def main():
     else:
         logging.info( f"Using standard LN model")
 
-    # Load all parameter tables in a unified way
-    optional_sheets = {}
+        # Simple parameter loading for RGCs
+    sf_param_table = pd.read_excel(rf_params_file, sheet_name=args.sf_sheet_name, usecols='A:L')
+    tf_param_table = pd.read_excel(rf_params_file, sheet_name=args.tf_sheet_name)
     
-    if args.use_lnk_model:
-        # LNK model path: load LNK parameters, w_xs handles center-surround interaction
-        optional_sheets['lnk'] = args.lnk_sheet_name
-        logging.info("LNK model: surround interaction controlled by w_xs parameter")
-    else:
-        # LN model path: surround strength controlled by s_scale from SF sheet or --set_s_scale
-        logging.info("LN model: surround interaction controlled by s_scale parameter from SF sheet or --set_s_scale")
-    
-    # Load all tables uniformly
-    param_tables = load_unified_parameters(
-        rf_params_file=rf_params_file,
-        sf_sheet_name=args.sf_sheet_name,
-        tf_sheet_name=args.tf_sheet_name,
-        num_rgcs=args.target_num_centers,  # Expected number of RGCs
-        optional_sheets=optional_sheets
+    rgc_array = RGCrfArray(
+        sf_param_table, tf_param_table, rgc_array_rf_size=args.rgc_array_rf_size, xlim=args.xlim, ylim=args.ylim,
+        target_num_centers=args.target_num_centers, sf_scalar=args.sf_scalar, grid_generate_method=args.grid_generate_method, 
+        tau=args.tau, mask_radius=args.mask_radius, rgc_rand_seed=args.rgc_rand_seed, num_gauss_example=args.num_gauss_example, 
+        sf_constraint_method=args.sf_constraint_method, temporal_filter_len=args.temporal_filter_len, grid_size_fac=args.grid_size_fac,
+        sf_mask_radius=args.sf_mask_radius, is_pixelized_tf=args.is_pixelized_tf, set_s_scale=args.set_s_scale, 
+        is_rf_median_subtract=args.is_rf_median_subtract, is_rescale_diffgaussian=args.is_rescale_diffgaussian, 
+        grid_noise_level=args.grid_noise_level, is_reversed_tf=args.is_reversed_tf, sf_id_list=args.sf_id_list, syn_tf_sf=args.syn_tf_sf,
+        use_lnk_override=args.use_lnk_model
     )
     
     # Enhanced parameter synchronization
@@ -275,55 +261,28 @@ def main():
             syn_params = [p for p in syn_params if p != 'lnk']
     
     rgc_array = RGCrfArray(
-        param_tables['sf'], param_tables['tf'], rgc_array_rf_size=args.rgc_array_rf_size, xlim=args.xlim, ylim=args.ylim,
+        sf_param_table, tf_param_table, rgc_array_rf_size=args.rgc_array_rf_size, xlim=args.xlim, ylim=args.ylim,
         target_num_centers=args.target_num_centers, sf_scalar=args.sf_scalar, grid_generate_method=args.grid_generate_method, 
         tau=args.tau, mask_radius=args.mask_radius, rgc_rand_seed=args.rgc_rand_seed, num_gauss_example=args.num_gauss_example, 
         sf_constraint_method=args.sf_constraint_method, temporal_filter_len=args.temporal_filter_len, grid_size_fac=args.grid_size_fac,
         sf_mask_radius=args.sf_mask_radius, is_pixelized_tf=args.is_pixelized_tf, set_s_scale=args.set_s_scale, 
         is_rf_median_subtract=args.is_rf_median_subtract, is_rescale_diffgaussian=args.is_rescale_diffgaussian, 
         grid_noise_level=args.grid_noise_level, is_reversed_tf=args.is_reversed_tf, sf_id_list=args.sf_id_list, syn_tf_sf=args.syn_tf_sf,
-        use_lnk_override=args.use_lnk_model,
-        # New parameters
-        syn_params=syn_params,
-        lnk_param_table=lnk_param_table
+        use_lnk_override=args.use_lnk_model
     )
     logging.info( f"{args.experiment_name} processing...1")
     multi_opt_sf, tf, grid2value_mapping, map_func, rgc_locs = rgc_array.get_results()
 
-    # Process LNK configuration if LNK model is enabled
+    # Simple LNK parameter loading
     num_rgcs = multi_opt_sf.shape[2]  # Number of RGC cells
-    lnk_config = None
-    if args.use_lnk_model and param_tables.get('lnk') is not None:
-        lnk_params = process_parameter_table(param_tables['lnk'], num_rgcs, 'lnk')
-        lnk_config = {
-            'lnk_params': lnk_params,
-            'adapt_mode': args.lnk_adapt_mode,
-            'override_s_scale': True  # Signal that s_scale should be ignored in favor of w_xs
-        }
-        logging.info(f"LNK configuration processed for {num_rgcs} cells")
-    elif args.use_lnk_model:
-        logging.warning("LNK model requested but no LNK parameters found - using default LN model")
-    
-    # Load separate center/surround filters if specified
-    separate_filters = load_separate_filters(
-        rf_params_file=rf_params_file,
-        rgc_array=rgc_array,
-        use_separate_surround=args.use_separate_surround,
-        sf_center_sheet_name=args.sf_center_sheet_name,
-        sf_surround_sheet_name=args.sf_surround_sheet_name,
-        tf_center_sheet_name=args.tf_center_sheet_name,
-        tf_surround_sheet_name=args.tf_surround_sheet_name,
-        surround_sigma_ratio=args.surround_sigma_ratio,
-        surround_generation=args.surround_generation
-    )
-    
-    # Validate LNK configuration if provided
-    if lnk_config is not None and not validate_lnk_config(lnk_config, num_rgcs):
-        logging.warning("LNK configuration validation failed, falling back to LN model")
-        lnk_config = None
-    
-    # Log LNK configuration summary
-    logging.info(f"Model configuration: {get_lnk_config_summary(lnk_config)}")
+    lnk_params = None
+    if args.use_lnk_model:
+        from datasets.simple_lnk import load_lnk_parameters
+        lnk_params = load_lnk_parameters(rf_params_file, args.lnk_sheet_name, num_rgcs)
+        if lnk_params is not None:
+            logging.info(f"Loaded LNK parameters for {num_rgcs} cells")
+        else:
+            logging.warning("Failed to load LNK parameters, using LN model")
     
     logging.info( f"{args.experiment_name} processing...2")
 
@@ -333,40 +292,20 @@ def main():
         multi_opt_sf_off, tf_off, grid2value_mapping_off, map_func_off, rgc_locs_off = \
             rgc_array.get_additional_results(anti_alignment=args.anti_alignment, sf_id_list_additional=args.sf_id_list_additional)  
         
-        # Load LNK parameters for OFF channel if LNK is enabled
-        lnk_config_off = None
-        separate_filters_off = None
-        if args.use_lnk_model:
-            num_rgcs_off = multi_opt_sf_off.shape[2]
-            # Use the same LNK parameters loaded earlier for OFF channel
-            if param_tables.get('lnk') is not None:
-                lnk_params_off = process_parameter_table(param_tables['lnk'], num_rgcs_off, 'lnk')
-                lnk_config_off = {
-                    'lnk_params': lnk_params_off,
-                    'adapt_mode': args.lnk_adapt_mode,
-                    'override_s_scale': True  # Signal that s_scale should be ignored for OFF channel too
-                }
-            separate_filters_off = load_separate_filters(
-                rf_params_file=rf_params_file,
-                rgc_array=rgc_array,
-                use_separate_surround=args.use_separate_surround,
-                sf_center_sheet_name=args.sf_center_sheet_name,
-                sf_surround_sheet_name=args.sf_surround_sheet_name,
-                tf_center_sheet_name=args.tf_center_sheet_name,
-                tf_surround_sheet_name=args.tf_surround_sheet_name,
-                surround_sigma_ratio=args.surround_sigma_ratio,
-                surround_generation=args.surround_generation
-            )
+    if args.is_both_ON_OFF or args.is_two_grids:
+        multi_opt_sf_off, tf_off, grid2value_mapping_off, map_func_off, rgc_locs_off = \
+            rgc_array.get_additional_results(anti_alignment=args.anti_alignment, sf_id_list_additional=args.sf_id_list_additional)  
         
         if args.is_binocular: 
             num_input_channel = 4
+        else:
+            num_input_channel = 2
     else:
         if args.is_binocular:
             num_input_channel = 2
         else:
             num_input_channel = 1
         multi_opt_sf_off, tf_off, grid2value_mapping_off, map_func_off, rgc_locs_off = None, None, None, None, None
-        lnk_config_off, separate_filters_off = None, None
 
     if is_show_rgc_grid:
         plot_coordinate_and_save(rgc_locs, rgc_locs_off, plot_save_folder, file_name=f'{args.experiment_name}_rgc_grids.png')
@@ -419,8 +358,8 @@ def main():
     target_width = ylim[1]-ylim[0]
 
     if is_rgc_distribution:
-        # Create Cricket2RGCs config with LNK support
-        cfg = create_cricket2rgcs_config(
+        # Create simple Cricket2RGCs dataset for distribution analysis
+        train_dataset = Cricket2RGCs(
             num_samples=args.num_samples,
             multi_opt_sf=multi_opt_sf,
             tf=tf,
@@ -448,13 +387,11 @@ def main():
             tf_off=tf_off,
             map_func_off=map_func_off,
             grid2value_mapping_off=grid2value_mapping_off,
-            lnk_config=lnk_config,
-            separate_filters=separate_filters,
-            lnk_config_off=lnk_config_off,
-            separate_filters_off=separate_filters_off
+            # Simple LNK parameters
+            use_lnk=args.use_lnk_model,
+            lnk_params=lnk_params,
+            surround_sigma_ratio=args.surround_sigma_ratio
         )
-        
-        train_dataset = Cricket2RGCs(**cfg)
         mu, sigma, mean_r, mean_width, (hist, edges), pct_nan, pct_nan_width, data, corr = estimate_rgc_signal_distribution(
             train_dataset,
             N=1000,
@@ -481,8 +418,8 @@ def main():
     
         raise ValueError(f"check data range...")
 
-    # Create training dataset with LNK support  
-    train_config = create_cricket2rgcs_config(
+    # Create training dataset with simplified LNK support  
+    train_dataset = Cricket2RGCs(
         num_samples=args.num_samples,
         multi_opt_sf=multi_opt_sf,
         tf=tf,
@@ -510,13 +447,11 @@ def main():
         tf_off=tf_off,
         map_func_off=map_func_off,
         grid2value_mapping_off=grid2value_mapping_off,
-        lnk_config=lnk_config,
-        separate_filters=separate_filters,
-        lnk_config_off=lnk_config_off,
-        separate_filters_off=separate_filters_off
+        # Simple LNK parameters
+        use_lnk=args.use_lnk_model,
+        lnk_params=lnk_params,
+        surround_sigma_ratio=args.surround_sigma_ratio
     )
-    
-    train_dataset = Cricket2RGCs(**train_config)
     
     logging.info( f"{args.experiment_name} processing...6")
     # Visualize one data points
@@ -558,7 +493,7 @@ def main():
         data_movie.generate_movie(sequence, syn_movie, path, path_bg, predicted_path, scaling_factors, video_id=1)
     
     # Create final training dataset (no movie visualization)
-    final_train_config = create_cricket2rgcs_config(
+    train_dataset = Cricket2RGCs(
         num_samples=args.num_samples,
         multi_opt_sf=multi_opt_sf,
         tf=tf,
@@ -586,13 +521,11 @@ def main():
         tf_off=tf_off,
         map_func_off=map_func_off,
         grid2value_mapping_off=grid2value_mapping_off,
-        lnk_config=lnk_config,
-        separate_filters=separate_filters,
-        lnk_config_off=lnk_config_off,
-        separate_filters_off=separate_filters_off
+        # Simple LNK parameters
+        use_lnk=args.use_lnk_model,
+        lnk_params=lnk_params,
+        surround_sigma_ratio=args.surround_sigma_ratio
     )
-    
-    train_dataset = Cricket2RGCs(**final_train_config)
 
     logging.info( f"{args.experiment_name} processing...8")
     if args.num_worker==0:
