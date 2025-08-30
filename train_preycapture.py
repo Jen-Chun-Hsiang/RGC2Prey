@@ -301,7 +301,6 @@ def main():
             'override_s_scale': True  # Signal that s_scale should be ignored in favor of w_xs
         }
         logging.info(f"LNK configuration processed for {num_rgcs} cells")
-        logging.info(f"LNK w_xs parameter (surround weight): {lnk_params.get('w_xs', -0.1)}")
     elif args.use_lnk_model:
         logging.warning("LNK model requested but no LNK parameters found - using default LN model")
     
