@@ -266,24 +266,28 @@ def load_lnk_parameters_with_sampling(rf_params_file: str,
         # Map provided indices to valid row indices
         idx_list = idx_list % len(valid_rows)
     
-    # Extract parameters for each cell
+    # Extract parameters for each cell using row-based access like tf/sf parameters
     lnk_params = {}
     param_names = ['tau', 'alpha_d', 'theta', 'sigma0', 'alpha', 'beta', 'b_out', 'g_out', 'w_xs', 'dt']
     defaults = [0.1, 1.0, 0.0, 1.0, 0.1, 0.0, 0.0, 1.0, -0.1, 0.01]
     
     for param_name, default_val in zip(param_names, defaults):
         if param_name in valid_rows.columns:
-            # Sample parameters based on indices
+            # Sample parameters based on indices using iloc like row['sigma1'] pattern
             param_values = valid_rows.iloc[idx_list][param_name].values
             lnk_params[param_name] = param_values.astype(float)
         else:
             # Use default if column doesn't exist
             lnk_params[param_name] = np.full(num_rgcs, default_val, dtype=float)
     
+    # Return parameters in a format that allows direct access like lnk_params['w_xs']
+    # This matches the pattern used for TF/SF parameters: row['sigma1'], row['w_xs'], etc.
     return {
         'lnk_params': lnk_params,
         'adapt_mode': lnk_adapt_mode,
-        'idx_list': idx_list  # Return indices for potential reuse
+        'idx_list': idx_list,  # Return indices for potential reuse
+        # Also add direct parameter access for compatibility
+        **lnk_params  # Flatten parameters to top level for direct access
     }
 
 
@@ -378,9 +382,12 @@ def load_lnk_parameters(rf_params_file: str,
     
     logging.info(f"LNK parameters loaded for {num_rgcs} cells with adaptation mode: {lnk_adapt_mode}")
     
+    # Return parameters in a format that allows both nested and direct access
     return {
         'lnk_params': lnk_params,
-        'adapt_mode': lnk_adapt_mode
+        'adapt_mode': lnk_adapt_mode,
+        # Also add direct parameter access for compatibility with row['param'] pattern
+        **lnk_params  # Flatten parameters to top level for direct access
     }
 
 
