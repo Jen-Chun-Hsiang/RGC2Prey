@@ -130,6 +130,9 @@ def parse_args():
     parser.add_argument("--sf_id_list", type=int, nargs="+", default=None, help='select RF ids from sf_sheet_name --pid 2 7 12')
     parser.add_argument("--sf_id_list_additional", type=int, nargs="+", default=None, help='select RF ids from sf_sheet_name --pid 2 7 12')
     parser.add_argument('--syn_tf_sf', action='store_true', help='Synchronize TF and SF parameters for each RGC')
+    parser.add_argument('--syn_params', type=str, nargs='+', 
+                       choices=['tf', 'sf', 'lnk'],
+                       help='Parameters to synchronize across cells. Example: --syn_params tf sf lnk')
     parser.add_argument('--is_rescale_diffgaussian', action='store_true', help='Rescale the diffgaussian RF to have zero min and max to 1')
     
     # Arguments for LNK model
@@ -249,6 +252,28 @@ def main():
         optional_sheets=optional_sheets
     )
     
+    # Enhanced parameter synchronization
+    syn_params = []
+    if args.syn_tf_sf:
+        syn_params = ['tf', 'sf']
+    
+    # Add new argument parsing for flexible synchronization
+    if hasattr(args, 'syn_params') and args.syn_params:
+        # Parse synchronization parameters from command line
+        # e.g., --syn_params tf sf lnk
+        syn_params = args.syn_params
+    
+    # Load LNK table if needed for synchronization
+    lnk_param_table = None
+    if 'lnk' in syn_params and args.use_lnk_model:
+        try:
+            lnk_param_table = pd.read_excel(rf_params_file, sheet_name=args.lnk_sheet_name)
+            logging.info(f"Loaded LNK parameter table for synchronization: {len(lnk_param_table)} rows")
+        except Exception as e:
+            logging.warning(f"Could not load LNK table for synchronization: {e}")
+            # Remove 'lnk' from syn_params if can't load the table
+            syn_params = [p for p in syn_params if p != 'lnk']
+    
     rgc_array = RGCrfArray(
         param_tables['sf'], param_tables['tf'], rgc_array_rf_size=args.rgc_array_rf_size, xlim=args.xlim, ylim=args.ylim,
         target_num_centers=args.target_num_centers, sf_scalar=args.sf_scalar, grid_generate_method=args.grid_generate_method, 
@@ -257,7 +282,10 @@ def main():
         sf_mask_radius=args.sf_mask_radius, is_pixelized_tf=args.is_pixelized_tf, set_s_scale=args.set_s_scale, 
         is_rf_median_subtract=args.is_rf_median_subtract, is_rescale_diffgaussian=args.is_rescale_diffgaussian, 
         grid_noise_level=args.grid_noise_level, is_reversed_tf=args.is_reversed_tf, sf_id_list=args.sf_id_list, syn_tf_sf=args.syn_tf_sf,
-        use_lnk_override=args.use_lnk_model
+        use_lnk_override=args.use_lnk_model,
+        # New parameters
+        syn_params=syn_params,
+        lnk_param_table=lnk_param_table
     )
     logging.info( f"{args.experiment_name} processing...1")
     multi_opt_sf, tf, grid2value_mapping, map_func, rgc_locs = rgc_array.get_results()

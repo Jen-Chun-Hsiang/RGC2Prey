@@ -63,14 +63,16 @@ def load_unified_parameters(rf_params_file: str,
 
 def process_parameter_table(param_table: pd.DataFrame,
                            num_rgcs: int,
-                           param_type: str = 'generic') -> Optional[Dict[str, Any]]:
+                           param_type: str = 'generic',
+                           idx_list: Optional[np.ndarray] = None) -> Optional[Dict[str, Any]]:
     """
-    Process any parameter table into a standardized format.
+    Process any parameter table into a standardized format with improved NaN handling.
     
     Args:
         param_table: Parameter table DataFrame
         num_rgcs: Number of RGC cells
         param_type: Type of parameters ('lnk' or 'generic')
+        idx_list: Optional pre-determined indices for sampling (for synchronization)
         
     Returns:
         Processed parameters dictionary or None if table is None
@@ -79,19 +81,32 @@ def process_parameter_table(param_table: pd.DataFrame,
         return None
         
     if param_type == 'lnk':
+        # Filter out rows with any NaN values
+        valid_rows = param_table.dropna()
+        if len(valid_rows) == 0:
+            logging.error("No valid (non-NaN) rows found in LNK parameters")
+            return None
+        
+        if len(valid_rows) < len(param_table):
+            logging.info(f"Filtered out {len(param_table) - len(valid_rows)} rows with NaN values from LNK parameters")
+        
+        # Generate or use provided indices
+        if idx_list is None:
+            # Random sampling from valid rows
+            idx_list = np.random.choice(len(valid_rows), num_rgcs, replace=True)
+        else:
+            # Map provided indices to valid row indices
+            idx_list = idx_list % len(valid_rows)
+        
         # Process LNK-specific parameters
-        def get_param(param_name: str, default_value: Union[float, np.ndarray]) -> Union[float, np.ndarray]:
-            if param_name in param_table.columns:
-                param_values = param_table[param_name].values
-                if np.any(pd.isna(param_values)):
-                    return default_value
-                if len(param_values) == 1:
-                    return float(param_values[0])
-                elif len(param_values) == num_rgcs:
-                    return param_values.astype(float)
-                else:
-                    return default_value
-            return default_value
+        def get_param(param_name: str, default_value: float) -> np.ndarray:
+            if param_name in valid_rows.columns:
+                # Sample parameters based on indices
+                param_values = valid_rows.iloc[idx_list][param_name].values
+                return param_values.astype(float)
+            else:
+                # Use default if column doesn't exist
+                return np.full(num_rgcs, default_value, dtype=float)
         
         return {
             'tau': get_param('tau', 0.1),
@@ -103,7 +118,8 @@ def process_parameter_table(param_table: pd.DataFrame,
             'b_out': get_param('b_out', 0.0),
             'g_out': get_param('g_out', 1.0),
             'w_xs': get_param('w_xs', -0.1),
-            'dt': get_param('dt', 0.01)
+            'dt': get_param('dt', 0.01),
+            'idx_list': idx_list  # Return indices for potential reuse
         }
     
     else:
@@ -197,6 +213,78 @@ def generate_surround_from_center(sf_center: np.ndarray,
             return generate_surround_from_center(sf_center, surround_sigma_ratio, None)
     
     return sf_surround
+
+
+def load_lnk_parameters_with_sampling(rf_params_file: str, 
+                                      lnk_sheet_name: str,
+                                      num_rgcs: int,
+                                      idx_list: Optional[np.ndarray] = None,
+                                      lnk_adapt_mode: str = 'divisive',
+                                      use_lnk_model: bool = True,
+                                      lnk_param_table: Optional[pd.DataFrame] = None) -> Optional[Dict[str, Any]]:
+    """
+    Enhanced LNK parameter loader that handles NaN rows and supports index-based sampling.
+    
+    Args:
+        rf_params_file: Path to Excel file (not needed if lnk_param_table provided)
+        lnk_sheet_name: Sheet name for LNK parameters (not needed if lnk_param_table provided)
+        num_rgcs: Number of RGC cells
+        idx_list: Optional pre-determined indices for sampling (for synchronization)
+        lnk_adapt_mode: Adaptation mode
+        use_lnk_model: Whether to use LNK model
+        lnk_param_table: Optional DataFrame if already loaded
+        
+    Returns:
+        Dictionary with LNK parameters or None
+    """
+    if not use_lnk_model:
+        return None
+        
+    # Load table if not provided
+    if lnk_param_table is None:
+        try:
+            lnk_param_table = pd.read_excel(rf_params_file, sheet_name=lnk_sheet_name)
+            logging.info(f"Loaded LNK parameters from sheet: {lnk_sheet_name}")
+        except Exception as e:
+            logging.warning(f"Could not load LNK parameters: {e}")
+            return None
+    
+    # Filter out rows with any NaN values
+    valid_rows = lnk_param_table.dropna()
+    if len(valid_rows) == 0:
+        logging.error("No valid (non-NaN) rows found in LNK parameters")
+        return None
+    
+    if len(valid_rows) < len(lnk_param_table):
+        logging.info(f"Filtered out {len(lnk_param_table) - len(valid_rows)} rows with NaN values")
+    
+    # Generate or use provided indices
+    if idx_list is None:
+        # Random sampling from valid rows
+        idx_list = np.random.choice(len(valid_rows), num_rgcs, replace=True)
+    else:
+        # Map provided indices to valid row indices
+        idx_list = idx_list % len(valid_rows)
+    
+    # Extract parameters for each cell
+    lnk_params = {}
+    param_names = ['tau', 'alpha_d', 'theta', 'sigma0', 'alpha', 'beta', 'b_out', 'g_out', 'w_xs', 'dt']
+    defaults = [0.1, 1.0, 0.0, 1.0, 0.1, 0.0, 0.0, 1.0, -0.1, 0.01]
+    
+    for param_name, default_val in zip(param_names, defaults):
+        if param_name in valid_rows.columns:
+            # Sample parameters based on indices
+            param_values = valid_rows.iloc[idx_list][param_name].values
+            lnk_params[param_name] = param_values.astype(float)
+        else:
+            # Use default if column doesn't exist
+            lnk_params[param_name] = np.full(num_rgcs, default_val, dtype=float)
+    
+    return {
+        'lnk_params': lnk_params,
+        'adapt_mode': lnk_adapt_mode,
+        'idx_list': idx_list  # Return indices for potential reuse
+    }
 
 
 def load_lnk_parameters(rf_params_file: str, 

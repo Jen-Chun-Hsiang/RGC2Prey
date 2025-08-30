@@ -1110,19 +1110,18 @@ class RGCrfArray:
                  grid_generate_method, tau=None, mask_radius=None, rgc_rand_seed=42, num_gauss_example=1, sf_mask_radius=35, 
                  sf_pixel_thr=99.7, sf_constraint_method=None, temporal_filter_len=50, grid_size_fac=0.5, is_pixelized_tf=False, 
                  set_s_scale=[], is_rf_median_subtract=True, is_rescale_diffgaussian=True, is_both_ON_OFF = False,
-                 grid_noise_level=0.3, is_reversed_tf = False, sf_id_list=None, syn_tf_sf=False, sf_SI_table=None, use_lnk_override=False):
+                 grid_noise_level=0.3, is_reversed_tf = False, sf_id_list=None, syn_tf_sf=False, sf_SI_table=None, 
+                 use_lnk_override=False,
+                 # New synchronization parameters
+                 syn_params=None,
+                 lnk_param_table=None):
         """
+        Enhanced constructor with flexible parameter synchronization.
+        
         Args:
-            sf_param_table (DataFrame): Table of spatial frequency parameters.
-            tf_param_table (DataFrame): Table of temporal filter parameters.
-            rgc_array_rf_size (tuple): Size of the receptive field (height, width).
-            xlim (tuple): x-axis limits for grid centers.
-            ylim (tuple): y-axis limits for grid centers.
-            target_num_centers (int): Number of target centers to generate.
-            sf_scalar (float): Scaling factor for spatial frequency parameters.
-            grid_generate_method (str): Method for grid generation ('closest' or 'decay').
-            tau (float, optional): Decay factor for the 'decay' method.
-            rand_seed (int): Random seed for reproducibility.
+            ...existing args...
+            syn_params: List of parameters to synchronize, e.g., ['tf', 'sf', 'lnk'] or ['tf', 'sf']
+            lnk_param_table: DataFrame with LNK parameters for synchronization
         """
         self.sf_param_table = sf_param_table
         self.tf_param_table = tf_param_table
@@ -1157,45 +1156,131 @@ class RGCrfArray:
         self.sf_id_list = sf_id_list
         self.syn_tf_sf = syn_tf_sf
         
+        # Handle new synchronization options
+        self.syn_params = syn_params if syn_params else []
+        self.lnk_param_table = lnk_param_table
+        
+        # Validate synchronization requirements
+        if self.syn_params:
+            self._validate_sync_params()
+        
+        # Backward compatibility
+        if syn_tf_sf and not self.syn_params:
+            self.syn_params = ['tf', 'sf']
+        
         logging.info( f"   subprocessing...1.1")
 
-    def get_results(self):
-        points = self.grid_generator.generate_first_grid()
-        if self.syn_tf_sf:
-            if len(self.sf_param_table) != len(self.tf_param_table):
-                raise ValueError("sf_param_table and tf_param_table must have equal length when syn_tf_sf is True.")
-            # Use same indices for both
-            idx_list = np.random.choice(len(self.sf_param_table), len(points))
-            multi_opt_sf = self._create_multi_opt_sf(points, self.sf_id_list, idx_list=idx_list)
-            tf = self._create_temporal_filter(idx_list=idx_list)
-            
+    def _validate_sync_params(self):
+        """Validate that all tables needed for synchronization have compatible lengths."""
+        table_lengths = {}
+        
+        if 'sf' in self.syn_params:
+            table_lengths['sf'] = len(self.sf_param_table)
+        if 'tf' in self.syn_params:
+            table_lengths['tf'] = len(self.tf_param_table)
+        if 'lnk' in self.syn_params and self.lnk_param_table is not None:
+            # Filter valid rows for LNK
+            valid_lnk = self.lnk_param_table.dropna()
+            table_lengths['lnk'] = len(valid_lnk)
+        
+        if len(set(table_lengths.values())) > 1:
+            logging.warning(f"Parameter tables have different lengths: {table_lengths}")
+            # Use minimum length for synchronization
+            self.sync_table_length = min(table_lengths.values())
+            logging.info(f"Using minimum length {self.sync_table_length} for synchronization")
         else:
-            # Generate separate indices for spatial and temporal filters
-            sf_idx_list = np.random.choice(len(self.sf_param_table), len(points))
-            tf_idx_list = np.random.choice(len(self.tf_param_table), len(points))
-            multi_opt_sf = self._create_multi_opt_sf(points, self.sf_id_list, idx_list=sf_idx_list)
-            tf = self._create_temporal_filter(idx_list=tf_idx_list)
+            self.sync_table_length = list(table_lengths.values())[0] if table_lengths else None
+
+    def get_results(self):
+        """Enhanced get_results with flexible synchronization."""
+        points = self.grid_generator.generate_first_grid()
+        
+        # Generate synchronized or independent indices
+        idx_dict = self._generate_indices(points)
+        
+        # Create filters and parameters using appropriate indices
+        multi_opt_sf = self._create_multi_opt_sf(points, self.sf_id_list, idx_list=idx_dict.get('sf'))
+        tf = self._create_temporal_filter(idx_list=idx_dict.get('tf'))
+        
+        # Optionally return LNK parameters if synchronized
+        lnk_params = None
+        if 'lnk' in idx_dict and self.lnk_param_table is not None:
+            from datasets.lnk_utils import load_lnk_parameters_with_sampling
+            lnk_config = load_lnk_parameters_with_sampling(
+                rf_params_file=None,  # Not needed since we pass table directly
+                lnk_sheet_name=None,
+                num_rgcs=len(points),
+                idx_list=idx_dict['lnk'],
+                lnk_param_table=self.lnk_param_table  # Pass table directly
+            )
+            lnk_params = lnk_config
         
         grid2value_mapping, map_func = self._get_grid_mapping(points)
-        return multi_opt_sf, tf, grid2value_mapping, map_func, points
+        
+        # Return with optional LNK parameters
+        if lnk_params:
+            return multi_opt_sf, tf, grid2value_mapping, map_func, points, lnk_params
+        else:
+            return multi_opt_sf, tf, grid2value_mapping, map_func, points
+    
+    def _generate_indices(self, points):
+        """Generate indices for parameter sampling with flexible synchronization."""
+        num_points = len(points)
+        idx_dict = {}
+        
+        if not self.syn_params:
+            # No synchronization - generate independent indices
+            if 'sf' not in idx_dict:
+                idx_dict['sf'] = np.random.choice(len(self.sf_param_table), num_points)
+            if 'tf' not in idx_dict:
+                idx_dict['tf'] = np.random.choice(len(self.tf_param_table), num_points)
+        else:
+            # Generate synchronized indices
+            if self.sync_table_length:
+                base_indices = np.random.choice(self.sync_table_length, num_points)
+                
+                for param in self.syn_params:
+                    idx_dict[param] = base_indices.copy()
+            
+            # Add non-synchronized parameters
+            if 'sf' not in self.syn_params:
+                idx_dict['sf'] = np.random.choice(len(self.sf_param_table), num_points)
+            if 'tf' not in self.syn_params:
+                idx_dict['tf'] = np.random.choice(len(self.tf_param_table), num_points)
+        
+        return idx_dict
     
     def get_additional_results(self, anti_alignment=1, sf_id_list_additional=None):
+        """Enhanced get_additional_results with flexible synchronization."""
         points = self.grid_generator.generate_second_grid(anti_alignment=anti_alignment)
-        if self.syn_tf_sf:
-            if len(self.sf_param_table) != len(self.tf_param_table):
-                raise ValueError("sf_param_table and tf_param_table must have equal length when syn_tf_sf is True.")
-            idx_list = np.random.choice(len(self.sf_param_table), len(points))
-            multi_opt_sf = self._create_multi_opt_sf(points, sf_id_list_additional, idx_list=idx_list)
-            tf = self._create_temporal_filter(idx_list=idx_list)
-        else:
-            # Generate separate indices for spatial and temporal filters
-            sf_idx_list = np.random.choice(len(self.sf_param_table), len(points))
-            tf_idx_list = np.random.choice(len(self.tf_param_table), len(points))
-            multi_opt_sf = self._create_multi_opt_sf(points, sf_id_list_additional, idx_list=sf_idx_list)
-            tf = self._create_temporal_filter(idx_list=tf_idx_list)
+        
+        # Generate synchronized or independent indices
+        idx_dict = self._generate_indices(points)
+        
+        # Create filters and parameters using appropriate indices
+        multi_opt_sf = self._create_multi_opt_sf(points, sf_id_list_additional, idx_list=idx_dict.get('sf'))
+        tf = self._create_temporal_filter(idx_list=idx_dict.get('tf'))
+        
+        # Optionally return LNK parameters if synchronized
+        lnk_params = None
+        if 'lnk' in idx_dict and self.lnk_param_table is not None:
+            from datasets.lnk_utils import load_lnk_parameters_with_sampling
+            lnk_config = load_lnk_parameters_with_sampling(
+                rf_params_file=None,  # Not needed since we pass table directly
+                lnk_sheet_name=None,
+                num_rgcs=len(points),
+                idx_list=idx_dict['lnk'],
+                lnk_param_table=self.lnk_param_table  # Pass table directly
+            )
+            lnk_params = lnk_config
         
         grid2value_mapping, map_func = self._get_grid_mapping(points)
-        return multi_opt_sf, tf, grid2value_mapping, map_func, points
+        
+        # Return with optional LNK parameters
+        if lnk_params:
+            return multi_opt_sf, tf, grid2value_mapping, map_func, points, lnk_params
+        else:
+            return multi_opt_sf, tf, grid2value_mapping, map_func, points
 
     def _get_grid_mapping(self, points):
         # Generate grid2value mapping and map function
