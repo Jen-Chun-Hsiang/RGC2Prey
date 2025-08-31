@@ -172,6 +172,18 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
         args.syn_tf_sf = False
     if not hasattr(args, 'is_rescale_diffgaussian'):
         args.is_rescale_diffgaussian = True
+    
+    # Add LNK model attributes
+    if not hasattr(args, 'use_lnk_model'):
+        args.use_lnk_model = False
+    if not hasattr(args, 'lnk_sheet_name'):
+        args.lnk_sheet_name = 'LNK_params'
+    if not hasattr(args, 'lnk_adapt_mode'):
+        args.lnk_adapt_mode = 'divisive'
+    if not hasattr(args, 'surround_sigma_ratio'):
+        args.surround_sigma_ratio = 4.0
+    if not hasattr(args, 'is_two_grids'):
+        args.is_two_grids = False
             
 
     process_seed(args.seed)
@@ -187,10 +199,22 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
         sf_constraint_method=args.sf_constraint_method, temporal_filter_len=args.temporal_filter_len, grid_size_fac=args.grid_size_fac,
         sf_mask_radius=args.sf_mask_radius, is_pixelized_tf=args.is_pixelized_tf, set_s_scale=args.set_s_scale, 
         is_rf_median_subtract=args.is_rf_median_subtract, is_rescale_diffgaussian=args.is_rescale_diffgaussian, 
-        grid_noise_level=args.grid_noise_level, is_reversed_tf=args.is_reversed_tf, syn_tf_sf=args.syn_tf_sf
+        grid_noise_level=args.grid_noise_level, is_reversed_tf=args.is_reversed_tf, syn_tf_sf=args.syn_tf_sf,
+        use_lnk_override=args.use_lnk_model
     )
     logging.info( f"{file_name} processing...1.5")
     multi_opt_sf, tf, grid2value_mapping, map_func, rgc_locs = rgc_array.get_results()
+
+    # Load LNK parameters if needed
+    num_rgcs = multi_opt_sf.shape[2]
+    lnk_params = None
+    if args.use_lnk_model:
+        from datasets.simple_lnk import load_lnk_parameters
+        lnk_params = load_lnk_parameters(rf_params_file, args.lnk_sheet_name, num_rgcs)
+        if lnk_params is not None:
+            logging.info(f"Loaded LNK parameters for {num_rgcs} cells")
+        else:
+            logging.warning("Failed to load LNK parameters, using LN model")
 
     if args.is_both_ON_OFF:
         num_input_channel = 2
@@ -258,7 +282,12 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
                                 is_both_ON_OFF=args.is_both_ON_OFF, quantize_scale=args.quantize_scale, 
                                 add_noise=is_add_noise, rgc_noise_std=noise_level, smooth_data=args.smooth_data, 
                                 is_rectified=args.is_rectified, is_direct_image=args.is_direct_image, is_reversed_OFF_sign=args.is_reversed_OFF_sign,
-                                rectified_thr_ON=args.rectified_thr_ON, rectified_thr_OFF=args.rectified_thr_OFF)
+                                rectified_thr_ON=args.rectified_thr_ON, rectified_thr_OFF=args.rectified_thr_OFF,
+                                is_two_grids=args.is_two_grids,
+                                # LNK parameters
+                                use_lnk=args.use_lnk_model,
+                                lnk_params=lnk_params,
+                                surround_sigma_ratio=args.surround_sigma_ratio)
 
     test_loader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=True, 
                              num_workers=args.num_worker, pin_memory=True, persistent_workers=False, worker_init_fn=worker_init_fn)
@@ -290,7 +319,12 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
                                 add_noise=is_add_noise, rgc_noise_std=noise_level, smooth_data=args.smooth_data, 
                                 is_rectified=args.is_rectified, is_direct_image=args.is_direct_image, grid_coords=grid_centers,
                                 is_reversed_OFF_sign=args.is_reversed_OFF_sign, rectified_thr_ON=args.rectified_thr_ON, 
-                                rectified_thr_OFF=args.rectified_thr_OFF)
+                                rectified_thr_OFF=args.rectified_thr_OFF,
+                                is_two_grids=args.is_two_grids,
+                                # LNK parameters
+                                use_lnk=args.use_lnk_model,
+                                lnk_params=lnk_params,
+                                surround_sigma_ratio=args.surround_sigma_ratio)
     test_loader = DataLoader(test_dataset, batch_size=1, shuffle=True, worker_init_fn=worker_init_fn)
 
     logging.info( f"{file_name} processing...7")
@@ -359,7 +393,12 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
                                 add_noise=is_add_noise, rgc_noise_std=noise_level, smooth_data=args.smooth_data, 
                                 is_rectified=args.is_rectified, is_direct_image=args.is_direct_image, grid_coords=grid_centers,
                                 is_reversed_OFF_sign=args.is_reversed_OFF_sign, rectified_thr_ON=args.rectified_thr_ON, 
-                                rectified_thr_OFF=args.rectified_thr_OFF)
+                                rectified_thr_OFF=args.rectified_thr_OFF,
+                                is_two_grids=args.is_two_grids,
+                                # LNK parameters
+                                use_lnk=args.use_lnk_model,
+                                lnk_params=lnk_params,
+                                surround_sigma_ratio=args.surround_sigma_ratio)
     test_loader = DataLoader(test_dataset, batch_size=1, shuffle=False, worker_init_fn=worker_init_fn)
 
     logging.info( f"{file_name} processing...10")
