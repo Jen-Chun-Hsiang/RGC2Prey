@@ -203,7 +203,12 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
         use_lnk_override=args.use_lnk_model
     )
     logging.info( f"{file_name} processing...1.5")
-    multi_opt_sf, tf, grid2value_mapping, map_func, rgc_locs = rgc_array.get_results()
+    result = rgc_array.get_results()
+    if len(result) == 7:  # LNK model with surround
+        multi_opt_sf, tf, grid2value_mapping, map_func, rgc_locs, _, surround_sf = result
+    else:
+        multi_opt_sf, tf, grid2value_mapping, map_func, rgc_locs = result
+        surround_sf = None
 
     # Load LNK parameters if needed
     num_rgcs = multi_opt_sf.shape[2]
@@ -221,8 +226,12 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
         grid_centers = None
         is_plot_centerFR = False
         # sf_param_table = pd.read_excel(rf_params_file, sheet_name='SF_params_OFF', usecols='A:L')
-        multi_opt_sf_off, tf_off, grid2value_mapping_off, map_func_off, rgc_locs_off = \
-            rgc_array.get_additional_results(anti_alignment=args.anti_alignment, sf_id_list_additional=args.sf_id_list_additional)
+        result_off = rgc_array.get_additional_results(anti_alignment=args.anti_alignment, sf_id_list_additional=args.sf_id_list_additional)
+        if len(result_off) == 7:  # LNK model with surround
+            multi_opt_sf_off, tf_off, grid2value_mapping_off, map_func_off, rgc_locs_off, _, surround_sf_off = result_off
+        else:
+            multi_opt_sf_off, tf_off, grid2value_mapping_off, map_func_off, rgc_locs_off = result_off
+            surround_sf_off = None
         if args.is_binocular:
             num_input_channel = 4
             
@@ -233,6 +242,7 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
             num_input_channel = 1
         grid_centers = rgc_locs
         multi_opt_sf_off, tf_off, grid2value_mapping_off, map_func_off, rgc_locs_off = None, None, None, None, None
+        surround_sf_off = None
 
     if is_show_rgc_grid:
         plot_coordinate_and_save(rgc_locs, rgc_locs_off, plot_save_folder, file_name=f'{args.experiment_name}_rgc_grids_test.png')
@@ -287,7 +297,8 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
                                 # LNK parameters
                                 use_lnk=args.use_lnk_model,
                                 lnk_params=lnk_params,
-                                surround_sigma_ratio=args.surround_sigma_ratio)
+                                surround_sigma_ratio=args.surround_sigma_ratio,
+                                surround_sf=surround_sf)
 
     test_loader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=True, 
                              num_workers=args.num_worker, pin_memory=True, persistent_workers=False, worker_init_fn=worker_init_fn)
@@ -324,7 +335,8 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
                                 # LNK parameters
                                 use_lnk=args.use_lnk_model,
                                 lnk_params=lnk_params,
-                                surround_sigma_ratio=args.surround_sigma_ratio)
+                                surround_sigma_ratio=args.surround_sigma_ratio,
+                                surround_sf=surround_sf)
     test_loader = DataLoader(test_dataset, batch_size=1, shuffle=True, worker_init_fn=worker_init_fn)
 
     logging.info( f"{file_name} processing...7")
@@ -398,7 +410,8 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
                                 # LNK parameters
                                 use_lnk=args.use_lnk_model,
                                 lnk_params=lnk_params,
-                                surround_sigma_ratio=args.surround_sigma_ratio)
+                                surround_sigma_ratio=args.surround_sigma_ratio,
+                                surround_sf=surround_sf)
     test_loader = DataLoader(test_dataset, batch_size=1, shuffle=False, worker_init_fn=worker_init_fn)
 
     logging.info( f"{file_name} processing...10")

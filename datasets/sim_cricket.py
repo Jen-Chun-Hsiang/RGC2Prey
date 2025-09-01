@@ -436,31 +436,19 @@ class Cricket2RGCs(Dataset):
         else:
             raise ValueError(f"tf must be 1D or 2D array, got {tf.ndim}D with shape {tf.shape}")
         
-        # Store LNK parameters for simple implementation
+        # Store LNK parameters
         self.use_lnk = use_lnk
         self.lnk_params = lnk_params
         self.surround_sigma_ratio = surround_sigma_ratio
-        
+
         # Handle surround filters for LNK model
-        self.surround_sf = None
-        self.surround_tf = None
-        
-        # Store surround SF if provided directly
-        if surround_sf is not None:
+        if surround_sf is not None and use_lnk:
             self.surround_sf = torch.from_numpy(surround_sf).float() if isinstance(surround_sf, np.ndarray) else surround_sf
-            # Use the same temporal filter for surround as center
-            self.surround_tf = tf_multi.view(num_rgcs, 1, -1) if tf_multi.ndim > 1 else torch.from_numpy(tf.copy()).float().unsqueeze(0).repeat(num_rgcs, 1).view(num_rgcs, 1, -1)
+            # Use same temporal filter as center
+            self.surround_tf = tf_multi.view(num_rgcs, 1, -1)
         else:
-            # Generate surround filters if using LNK (fallback to old method)
-            if use_lnk and lnk_params is not None:
-                from datasets.simple_lnk import generate_surround_filters
-                center_sf_np = multi_opt_sf  # Already numpy array
-                center_tf_np = tf_multi.cpu().numpy() if tf_multi.ndim > 1 else tf
-                surround_sf_np, surround_tf_np = generate_surround_filters(
-                    center_sf_np, center_tf_np, surround_sigma_ratio
-                )
-                self.surround_sf = torch.from_numpy(surround_sf_np).float()
-                self.surround_tf = torch.from_numpy(surround_tf_np).view(num_rgcs, 1, -1)
+            self.surround_sf = None
+            self.surround_tf = None
         
         self.channels = [
             {
@@ -1123,49 +1111,19 @@ class RGCrfArray:
     def get_results(self):
         """Enhanced get_results with flexible synchronization."""
         points = self.grid_generator.generate_first_grid()
-        
-        # Generate synchronized or independent indices
         idx_dict = self._generate_indices(points)
         
-        # Create filters and parameters using appropriate indices
+        # Create filters
         sf_result = self._create_multi_opt_sf(points, self.sf_id_list, idx_list=idx_dict.get('sf'))
-        
-        # Handle LNK model case where we get both center and surround
-        if self.use_lnk_override and isinstance(sf_result, tuple):
-            multi_opt_sf, multi_opt_sf_surround = sf_result
-            # Store surround for later use
-            self.multi_opt_sf_surround = multi_opt_sf_surround
-        else:
-            multi_opt_sf = sf_result
-            self.multi_opt_sf_surround = None
-            
         tf = self._create_temporal_filter(idx_list=idx_dict.get('tf'))
-        
-        # Optionally return LNK parameters if synchronized
-        lnk_params = None
-        if 'lnk' in idx_dict and self.lnk_param_table is not None:
-            from datasets.lnk_utils import load_lnk_parameters_with_sampling
-            lnk_config = load_lnk_parameters_with_sampling(
-                rf_params_file=None,  # Not needed since we pass table directly
-                lnk_sheet_name=None,
-                num_rgcs=len(points),
-                idx_list=idx_dict['lnk'],
-                lnk_param_table=self.lnk_param_table  # Pass table directly
-            )
-            lnk_params = lnk_config
-        
         grid2value_mapping, map_func = self._get_grid_mapping(points)
         
-        # Return with surround SF for LNK model
-        if self.use_lnk_override and self.multi_opt_sf_surround is not None:
-            if lnk_params:
-                return multi_opt_sf, tf, grid2value_mapping, map_func, points, lnk_params, self.multi_opt_sf_surround
-            else:
-                return multi_opt_sf, tf, grid2value_mapping, map_func, points, None, self.multi_opt_sf_surround
-        elif lnk_params:
-            return multi_opt_sf, tf, grid2value_mapping, map_func, points, lnk_params
-        else:
-            return multi_opt_sf, tf, grid2value_mapping, map_func, points
+        # Handle LNK model
+        if self.use_lnk_override and isinstance(sf_result, tuple):
+            multi_opt_sf, multi_opt_sf_surround = sf_result
+            return multi_opt_sf, tf, grid2value_mapping, map_func, points, None, multi_opt_sf_surround
+        
+        return sf_result, tf, grid2value_mapping, map_func, points
     
     def _generate_indices(self, points):
         """Generate indices for parameter sampling with flexible synchronization."""
@@ -1197,47 +1155,19 @@ class RGCrfArray:
     def get_additional_results(self, anti_alignment=1, sf_id_list_additional=None):
         """Enhanced get_additional_results with flexible synchronization."""
         points = self.grid_generator.generate_second_grid(anti_alignment=anti_alignment)
-        
-        # Generate synchronized or independent indices
         idx_dict = self._generate_indices(points)
         
-        # Create filters and parameters using appropriate indices
+        # Create filters
         sf_result = self._create_multi_opt_sf(points, sf_id_list_additional, idx_list=idx_dict.get('sf'))
-        
-        # Handle LNK model case where we get both center and surround
-        if self.use_lnk_override and isinstance(sf_result, tuple):
-            multi_opt_sf, multi_opt_sf_surround = sf_result
-        else:
-            multi_opt_sf = sf_result
-            multi_opt_sf_surround = None
-            
         tf = self._create_temporal_filter(idx_list=idx_dict.get('tf'))
-        
-        # Optionally return LNK parameters if synchronized
-        lnk_params = None
-        if 'lnk' in idx_dict and self.lnk_param_table is not None:
-            from datasets.lnk_utils import load_lnk_parameters_with_sampling
-            lnk_config = load_lnk_parameters_with_sampling(
-                rf_params_file=None,  # Not needed since we pass table directly
-                lnk_sheet_name=None,
-                num_rgcs=len(points),
-                idx_list=idx_dict['lnk'],
-                lnk_param_table=self.lnk_param_table  # Pass table directly
-            )
-            lnk_params = lnk_config
-        
         grid2value_mapping, map_func = self._get_grid_mapping(points)
         
-        # Return with surround SF for LNK model
-        if self.use_lnk_override and multi_opt_sf_surround is not None:
-            if lnk_params:
-                return multi_opt_sf, tf, grid2value_mapping, map_func, points, lnk_params, multi_opt_sf_surround
-            else:
-                return multi_opt_sf, tf, grid2value_mapping, map_func, points, None, multi_opt_sf_surround
-        elif lnk_params:
-            return multi_opt_sf, tf, grid2value_mapping, map_func, points, lnk_params
-        else:
-            return multi_opt_sf, tf, grid2value_mapping, map_func, points
+        # Handle LNK model
+        if self.use_lnk_override and isinstance(sf_result, tuple):
+            multi_opt_sf, multi_opt_sf_surround = sf_result
+            return multi_opt_sf, tf, grid2value_mapping, map_func, points, None, multi_opt_sf_surround
+        
+        return sf_result, tf, grid2value_mapping, map_func, points
 
     def _get_grid_mapping(self, points):
         # Generate grid2value mapping and map function
@@ -1273,120 +1203,101 @@ class RGCrfArray:
         return grid2value_mapping, map_func
 
     def _create_multi_opt_sf(self, points, pids=None, idx_list=None):
-        # Create multi-optical spatial filters
+        """Create multi-optical spatial filters"""
         multi_opt_sf = np.zeros((self.rgc_array_rf_size[0], self.rgc_array_rf_size[1], len(points)))
+        multi_opt_sf_surround = None
+        
+        if self.use_lnk_override:
+            multi_opt_sf_surround = np.zeros_like(multi_opt_sf)
+        
         num_sim_data = len(self.sf_param_table)
-        if self.sf_SI_table is not None:
-            len_sf_SI = len(self.sf_SI_table)
         pid_list = None if pids is None else list(pids)
         
-        # Initialize surround SF array if using LNK
-        if self.use_lnk_override:
-            multi_opt_sf_surround = np.zeros((self.rgc_array_rf_size[0], self.rgc_array_rf_size[1], len(points)))
-            surround_sigma_ratio = getattr(self, 'surround_sigma_ratio', 4.0)  # Default to 4.0
-        
         for i, point in enumerate(points):
+            # Select parameter index
             if idx_list is not None:
                 pid_i = idx_list[i]
             elif pid_list is None:
                 pid_i = np.random.randint(0, num_sim_data)
             else:
                 pid_i = np.random.choice(pid_list)
-
+                
             row = self.sf_param_table.iloc[pid_i]
             
             if self.use_lnk_override:
-                # LNK model: Build center and surround from same base parameters
-                # CENTER: Use only center parameters (sigma_x, sigma_y, theta)
-                sf_params_center = np.array([
+                # LNK model: simplified center and surround generation
+                base_params = np.array([
                     point[1], point[0],  # position
-                    row['sigma_x'] * self.sf_scalar,  # center sigma_x
-                    row['sigma_y'] * self.sf_scalar,  # center sigma_y
-                    row['theta'],  # orientation
-                    0,  # no bias for center-only
-                    1.0,  # c_scale = 1 for center
-                    0, 0, 0  # no surround component for center
+                    row['sigma_x'] * self.sf_scalar,
+                    row['sigma_y'] * self.sf_scalar,
+                    row['theta'],
+                    0, 1.0, 0, 0, 0  # bias=0, c_scale=1, no DOG surround
                 ])
                 
-                # SURROUND: Same parameters but with scaled sigmas
-                sf_params_surround = np.array([
-                    point[1], point[0],  # same position
-                    row['sigma_x'] * self.sf_scalar * surround_sigma_ratio,  # scaled sigma_x
-                    row['sigma_y'] * self.sf_scalar * surround_sigma_ratio,  # scaled sigma_y
-                    row['theta'],  # same orientation
-                    0,  # no bias
-                    1.0,  # c_scale = 1 for surround 
-                    0, 0, 0  # no DOG surround component
-                ])
-                
-                # Generate center SF
-                opt_sf_center = gaussian_multi(sf_params_center, self.rgc_array_rf_size, 
-                                              self.num_gauss_example, self.is_rescale_diffgaussian)
-                if self.is_rf_median_subtract:
-                    opt_sf_center -= np.median(opt_sf_center)
-                opt_sf_center = opt_sf_center / np.sum(np.abs(opt_sf_center))  # Normalize by absolute sum
-                
-                # Generate surround SF
-                opt_sf_surround = gaussian_multi(sf_params_surround, self.rgc_array_rf_size,
-                                                self.num_gauss_example, self.is_rescale_diffgaussian)
-                if self.is_rf_median_subtract:
-                    opt_sf_surround -= np.median(opt_sf_surround)
-                opt_sf_surround = opt_sf_surround / np.sum(np.abs(opt_sf_surround))  # Normalize by absolute sum
-                
-                # Apply spatial constraints if specified
-                if self.sf_constraint_method == 'circle':
-                    rows, cols = np.ogrid[-opt_sf_center.shape[0] // 2:opt_sf_center.shape[0] // 2, 
-                           -opt_sf_center.shape[1] // 2:opt_sf_center.shape[1] // 2]
-                    distance_from_center = np.sqrt((rows - point[0])**2 + (cols - point[1])**2)
-                    circular_mask = distance_from_center <= self.sf_mask_radius
-                    opt_sf_center = np.where(circular_mask, opt_sf_center, 0)
-                    # Use larger radius for surround
-                    circular_mask_surround = distance_from_center <= (self.sf_mask_radius * surround_sigma_ratio)
-                    opt_sf_surround = np.where(circular_mask_surround, opt_sf_surround, 0)
-                
+                # Generate and normalize center
+                opt_sf_center = self._generate_and_normalize_sf(base_params, point)
                 multi_opt_sf[:, :, i] = opt_sf_center
+                
+                # Generate surround with scaled sigmas
+                surround_params = base_params.copy()
+                surround_params[2] *= self.surround_sigma_ratio  # scale sigma_x
+                surround_params[3] *= self.surround_sigma_ratio  # scale sigma_y
+                opt_sf_surround = self._generate_and_normalize_sf(surround_params, point, 
+                                                                  radius_scale=self.surround_sigma_ratio)
                 multi_opt_sf_surround[:, :, i] = opt_sf_surround
                 
                 if i == 0:  # Log only once to avoid spam
                     logging.debug("LNK model: using separate center and surround SF generation")
                 
             else:
-                # Standard LN model (existing code)
-                if self.sf_SI_table is not None:
-                    # LN model with SI table for s_scale diversity
-                    sid_i = np.random.randint(0, len_sf_SI)
-                    s_scale = self.sf_SI_table.iloc[sid_i]
-                else:
-                    # LN model with default s_scale from SF sheet or command line
-                    s_scale = row['s_scale'] if not self.set_s_scale else self.set_s_scale[0]
-                    
+                # Standard LN model
+                s_scale = self._get_s_scale(row)
                 sf_params = np.array([
-                    point[1], point[0], row['sigma_x'] * self.sf_scalar, row['sigma_y'] * self.sf_scalar,
-                    row['theta'], row['bias'], row['c_scale'], row['s_sigma_x'] * self.sf_scalar,
-                    row['s_sigma_y'] * self.sf_scalar, s_scale
+                    point[1], point[0], 
+                    row['sigma_x'] * self.sf_scalar, row['sigma_y'] * self.sf_scalar,
+                    row['theta'], row['bias'], row['c_scale'], 
+                    row['s_sigma_x'] * self.sf_scalar, row['s_sigma_y'] * self.sf_scalar, 
+                    s_scale
                 ])
-                opt_sf = gaussian_multi(sf_params, self.rgc_array_rf_size, self.num_gauss_example, self.is_rescale_diffgaussian)
-                if self.is_rf_median_subtract:
-                    opt_sf -= np.median(opt_sf)  
-                opt_sf = opt_sf / np.sum(np.abs(opt_sf))
-
-                if self.sf_constraint_method == 'circle':
-                    rows, cols = np.ogrid[-opt_sf.shape[0] // 2:opt_sf.shape[0] // 2, 
-                           -opt_sf.shape[1] // 2:opt_sf.shape[1] // 2]
-                    distance_from_center = np.sqrt((rows - point[0])**2 + (cols - point[1])**2)
-                    circular_mask = distance_from_center <= self.sf_mask_radius
-                    opt_sf = np.where(circular_mask, opt_sf, 0)
-
-                if self.sf_constraint_method == 'threshold':
-                    threshold_value = np.percentile(opt_sf, self.sf_pixel_thr)
-                    opt_sf = np.where(opt_sf > threshold_value, 1, 0)
-
+                opt_sf = self._generate_and_normalize_sf(sf_params, point)
                 multi_opt_sf[:, :, i] = opt_sf
         
-        # Return both center and surround for LNK model
-        if self.use_lnk_override:
-            return multi_opt_sf, multi_opt_sf_surround
-        return multi_opt_sf
+        return (multi_opt_sf, multi_opt_sf_surround) if self.use_lnk_override else multi_opt_sf
+
+    def _generate_and_normalize_sf(self, sf_params, point, radius_scale=1.0):
+        """Helper method to generate and normalize spatial filter"""
+        opt_sf = gaussian_multi(sf_params, self.rgc_array_rf_size, 
+                               self.num_gauss_example, self.is_rescale_diffgaussian)
+        
+        if self.is_rf_median_subtract:
+            opt_sf -= np.median(opt_sf)
+        
+        # Normalize by absolute sum
+        opt_sf = opt_sf / np.sum(np.abs(opt_sf))
+        
+        # Apply spatial constraints if specified
+        if self.sf_constraint_method == 'circle':
+            opt_sf = self._apply_circular_mask(opt_sf, point, self.sf_mask_radius * radius_scale)
+        elif self.sf_constraint_method == 'threshold':
+            threshold_value = np.percentile(opt_sf, self.sf_pixel_thr)
+            opt_sf = np.where(opt_sf > threshold_value, 1, 0)
+        
+        return opt_sf
+
+    def _apply_circular_mask(self, opt_sf, point, radius):
+        """Apply circular mask to spatial filter"""
+        rows, cols = np.ogrid[-opt_sf.shape[0]//2:opt_sf.shape[0]//2, 
+                              -opt_sf.shape[1]//2:opt_sf.shape[1]//2]
+        distance_from_center = np.sqrt((rows - point[0])**2 + (cols - point[1])**2)
+        circular_mask = distance_from_center <= radius
+        return np.where(circular_mask, opt_sf, 0)
+
+    def _get_s_scale(self, row):
+        """Get s_scale value based on configuration"""
+        if self.sf_SI_table is not None:
+            sid_i = np.random.randint(0, len(self.sf_SI_table))
+            return self.sf_SI_table.iloc[sid_i]
+        return row['s_scale'] if not self.set_s_scale else self.set_s_scale[0]
 
     def _create_temporal_filter(self, idx_list=None):
         if self.is_pixelized_tf:
