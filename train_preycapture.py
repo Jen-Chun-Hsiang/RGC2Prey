@@ -227,16 +227,7 @@ def main():
     sf_param_table = pd.read_excel(rf_params_file, sheet_name=args.sf_sheet_name, usecols='A:L')
     tf_param_table = pd.read_excel(rf_params_file, sheet_name=args.tf_sheet_name)
     
-    rgc_array = RGCrfArray(
-        sf_param_table, tf_param_table, rgc_array_rf_size=args.rgc_array_rf_size, xlim=args.xlim, ylim=args.ylim,
-        target_num_centers=args.target_num_centers, sf_scalar=args.sf_scalar, grid_generate_method=args.grid_generate_method, 
-        tau=args.tau, mask_radius=args.mask_radius, rgc_rand_seed=args.rgc_rand_seed, num_gauss_example=args.num_gauss_example, 
-        sf_constraint_method=args.sf_constraint_method, temporal_filter_len=args.temporal_filter_len, grid_size_fac=args.grid_size_fac,
-        sf_mask_radius=args.sf_mask_radius, is_pixelized_tf=args.is_pixelized_tf, set_s_scale=args.set_s_scale, 
-        is_rf_median_subtract=args.is_rf_median_subtract, is_rescale_diffgaussian=args.is_rescale_diffgaussian, 
-        grid_noise_level=args.grid_noise_level, is_reversed_tf=args.is_reversed_tf, sf_id_list=args.sf_id_list, syn_tf_sf=args.syn_tf_sf,
-        use_lnk_override=args.use_lnk_model
-    )
+
     
     # Enhanced parameter synchronization
     syn_params = []
@@ -260,6 +251,7 @@ def main():
             # Remove 'lnk' from syn_params if can't load the table
             syn_params = [p for p in syn_params if p != 'lnk']
     
+    # Initialize RGC array with LNK support
     rgc_array = RGCrfArray(
         sf_param_table, tf_param_table, rgc_array_rf_size=args.rgc_array_rf_size, xlim=args.xlim, ylim=args.ylim,
         target_num_centers=args.target_num_centers, sf_scalar=args.sf_scalar, grid_generate_method=args.grid_generate_method, 
@@ -268,21 +260,33 @@ def main():
         sf_mask_radius=args.sf_mask_radius, is_pixelized_tf=args.is_pixelized_tf, set_s_scale=args.set_s_scale, 
         is_rf_median_subtract=args.is_rf_median_subtract, is_rescale_diffgaussian=args.is_rescale_diffgaussian, 
         grid_noise_level=args.grid_noise_level, is_reversed_tf=args.is_reversed_tf, sf_id_list=args.sf_id_list, syn_tf_sf=args.syn_tf_sf,
-        use_lnk_override=args.use_lnk_model
+        use_lnk_override=args.use_lnk_model  # Pass LNK flag to RGCrfArray
     )
+    
     logging.info( f"{args.experiment_name} processing...1")
+    
+    # Always get exactly 5 values from get_results()
     multi_opt_sf, tf, grid2value_mapping, map_func, rgc_locs = rgc_array.get_results()
-
-    # Simple LNK parameter loading
-    num_rgcs = multi_opt_sf.shape[2]  # Number of RGC cells
+    
+    # Handle LNK parameters separately based on model type
     lnk_params = None
     if args.use_lnk_model:
+        # LNK Model Path - Load additional parameters
         from datasets.simple_lnk import load_lnk_parameters
+        num_rgcs = multi_opt_sf.shape[2]  # Number of RGC cells
         lnk_params = load_lnk_parameters(rf_params_file, args.lnk_sheet_name, num_rgcs)
+        
         if lnk_params is not None:
-            logging.info(f"Loaded LNK parameters for {num_rgcs} cells")
+            logging.info(f"LNK Model Path: Loaded LNK parameters for {num_rgcs} cells")
+            logging.info(f"LNK adaptation mode: {args.lnk_adapt_mode}")
+            if args.use_separate_surround:
+                logging.info("Using separate center/surround filters for LNK")
         else:
-            logging.warning("Failed to load LNK parameters, using LN model")
+            logging.warning("Failed to load LNK parameters, falling back to LN model")
+            args.use_lnk_model = False  # Fall back to LN model
+    else:
+        # LN Model Path - Standard processing
+        logging.info("LN Model Path: Using standard LN model (no LNK parameters)")
     
     logging.info( f"{args.experiment_name} processing...2")
 
