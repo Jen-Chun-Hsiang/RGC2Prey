@@ -1109,7 +1109,10 @@ class RGCrfArray:
             self.sync_table_length = list(table_lengths.values())[0] if table_lengths else None
 
     def get_results(self):
-        """Enhanced get_results with flexible synchronization."""
+        """
+        Always returns exactly 5 values for consistent unpacking.
+        LNK parameters should be handled separately via the use_lnk_override flag.
+        """
         points = self.grid_generator.generate_first_grid()
         idx_dict = self._generate_indices(points)
         
@@ -1118,12 +1121,14 @@ class RGCrfArray:
         tf = self._create_temporal_filter(idx_list=idx_dict.get('tf'))
         grid2value_mapping, map_func = self._get_grid_mapping(points)
         
-        # Handle LNK model
-        if self.use_lnk_override and isinstance(sf_result, tuple):
-            multi_opt_sf, multi_opt_sf_surround = sf_result
-            return multi_opt_sf, tf, grid2value_mapping, map_func, points, None, multi_opt_sf_surround
+        # Always return exactly 5 values
+        if isinstance(sf_result, tuple):
+            # If LNK model returns tuple, use only the center spatial filters
+            multi_opt_sf = sf_result[0]
+        else:
+            multi_opt_sf = sf_result
         
-        return sf_result, tf, grid2value_mapping, map_func, points
+        return multi_opt_sf, tf, grid2value_mapping, map_func, points
     
     def _generate_indices(self, points):
         """Generate indices for parameter sampling with flexible synchronization."""
@@ -1153,7 +1158,10 @@ class RGCrfArray:
         return idx_dict
     
     def get_additional_results(self, anti_alignment=1, sf_id_list_additional=None):
-        """Enhanced get_additional_results with flexible synchronization."""
+        """
+        Always returns exactly 5 values for consistent unpacking.
+        LNK parameters should be handled separately via the use_lnk_override flag.
+        """
         points = self.grid_generator.generate_second_grid(anti_alignment=anti_alignment)
         idx_dict = self._generate_indices(points)
         
@@ -1162,12 +1170,14 @@ class RGCrfArray:
         tf = self._create_temporal_filter(idx_list=idx_dict.get('tf'))
         grid2value_mapping, map_func = self._get_grid_mapping(points)
         
-        # Handle LNK model
-        if self.use_lnk_override and isinstance(sf_result, tuple):
-            multi_opt_sf, multi_opt_sf_surround = sf_result
-            return multi_opt_sf, tf, grid2value_mapping, map_func, points, None, multi_opt_sf_surround
+        # Always return exactly 5 values
+        if isinstance(sf_result, tuple):
+            # If LNK model returns tuple, use only the center spatial filters
+            multi_opt_sf = sf_result[0]
+        else:
+            multi_opt_sf = sf_result
         
-        return sf_result, tf, grid2value_mapping, map_func, points
+        return multi_opt_sf, tf, grid2value_mapping, map_func, points
 
     def _get_grid_mapping(self, points):
         # Generate grid2value mapping and map function
