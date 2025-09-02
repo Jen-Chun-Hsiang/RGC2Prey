@@ -11,6 +11,7 @@ import logging
 from datasets.rgc_rf import map_to_fixed_grid_decay_batch, gaussian_multi, gaussian_temporalfilter, get_closest_indices, compute_distance_decay_matrix
 from datasets.rgc_rf import map_to_fixed_grid_closest_batch, precompute_grid_centers, compute_circular_mask_matrix
 from datasets.rgc_rf import map_to_fixed_grid_circle_batch, HexagonalGridGenerator
+from datasets.simple_lnk import sample_lnk_parameters
 from utils.utils import get_random_file_path, get_image_number, load_mat_to_dataframe, get_filename_without_extension
 from utils.tools import gaussian_smooth_1d
 from utils.trajectory import disparity_from_scaling_factor, convert_deg_to_pix, adjust_trajectories, plot_trajectories
@@ -376,8 +377,10 @@ class Cricket2RGCs(Dataset):
         # Simple LNK parameters
         use_lnk=False,
         lnk_params=None,
+        lnk_params_off=None,
         surround_sigma_ratio=4.0,
-        surround_sf=None,  # Add this parameter
+        surround_sf=None,  
+        surround_sf_off=None,
     ):
         # Core attributes
         self.num_samples = num_samples
@@ -438,25 +441,21 @@ class Cricket2RGCs(Dataset):
         
         # Store LNK parameters
         self.use_lnk = use_lnk
-        self.lnk_params = lnk_params
         self.surround_sigma_ratio = surround_sigma_ratio
 
         # Handle surround filters for LNK model
-        if surround_sf is not None and use_lnk:
-            self.surround_sf = torch.from_numpy(surround_sf).float() if isinstance(surround_sf, np.ndarray) else surround_sf
-            # Use same temporal filter as center
-            self.surround_tf = tf_multi.view(num_rgcs, 1, -1)
-        else:
-            self.surround_sf = None
-            self.surround_tf = None
-        
+        if surround_sf is None and use_lnk:
+            raise ValueError("Surround spatial filters are required for LNK model.")
+
         self.channels = [
             {
                 'sf': sf_tensor,
+                'sf_surround': torch.from_numpy(surround_sf).float(),
                 'tf': tf_multi.view(num_rgcs, 1, -1),  # [N, 1, T] for conv1d
                 'map_func': map_func,
                 'grid2value': grid2value_mapping,
-                'rect_thr': self.rectified_thr_ON, 
+                'rect_thr': self.rectified_thr_ON,
+                'lnk_params': self.lnk_params,
             }
         ]
         
@@ -488,10 +487,12 @@ class Cricket2RGCs(Dataset):
                 
             off_channel = {
                 'sf': sf_off_tensor,
+                'sf_surround': torch.from_numpy(surround_sf_off).float(),
                 'tf': tf_off_multi.view(num_rgcs_off, 1, -1),
                 'map_func': map_func_off,
                 'grid2value': grid2value_mapping_off,
                 'rect_thr': self.rectified_thr_OFF,
+                'lnk_params': self.lnk_params_off
             }
             
             self.channels.append(off_channel)
@@ -524,8 +525,7 @@ class Cricket2RGCs(Dataset):
         assert p.shape[0] == N, f"param length {p.shape[0]} != N {N}"
         return p
 
-    def _compute_rgc_time(self, movie, sf, tf, rect_thr,
-                            sf_surround=None, tf_surround=None,
+    def _compute_rgc_time(self, movie, sf, sf_surround, tf, rect_thr,
                             lnk_params=None):
         """
         Compute RGC response using either LN or simplified LNK model.
@@ -535,8 +535,8 @@ class Cricket2RGCs(Dataset):
             sf: [W, H, N] - spatial filters 
             tf: [N, 1, T_filter] - temporal filters
             rect_thr: float - rectification threshold
-            sf_surround: unused (kept for compatibility)
-            tf_surround: unused (kept for compatibility) 
+            sf_surround: [W, H, N] - surround spatial filters
+            tf_surround: [N, 1, T_filter] - surround temporal filters
             lnk_params: unused (kept for compatibility)
         Returns:
             rgc_time: [N, T_out] - RGC responses over time
@@ -549,9 +549,9 @@ class Cricket2RGCs(Dataset):
                 movie=movie,
                 center_sf=sf,
                 center_tf=tf,
-                surround_sf=self.surround_sf,
-                surround_tf=self.surround_tf.view(tf.shape[0], 1, -1),  # Match tf shape
-                lnk_params=self.lnk_params,
+                surround_sf=sf_surround,
+                surround_tf=tf,
+                lnk_params=lnk_params,
                 device=movie.device,
                 dtype=movie.dtype
             )
@@ -632,8 +632,10 @@ class Cricket2RGCs(Dataset):
             return self._compute_rgc_time(
                 mv,
                 ch['sf'],
+                ch['sf_surround'],
                 ch['tf'], 
-                ch['rect_thr']
+                ch['rect_thr'],
+                ch['lnk_params']
             )
 
         grid_values_list = []
@@ -1025,7 +1027,7 @@ class RGCrfArray:
                  grid_generate_method, tau=None, mask_radius=None, rgc_rand_seed=42, num_gauss_example=1, sf_mask_radius=35, 
                  sf_pixel_thr=99.7, sf_constraint_method=None, temporal_filter_len=50, grid_size_fac=0.5, is_pixelized_tf=False, 
                  set_s_scale=[], is_rf_median_subtract=True, is_rescale_diffgaussian=True, is_both_ON_OFF = False,
-                 grid_noise_level=0.3, is_reversed_tf = False, sf_id_list=None, syn_tf_sf=False, sf_SI_table=None, 
+                 grid_noise_level=0.3, is_reversed_tf = False, sf_id_list=None, syn_tf_sf=False, 
                  use_lnk_override=False,
                  surround_sigma_ratio=4.0,  # Add this parameter
                  # New synchronization parameters
@@ -1041,7 +1043,6 @@ class RGCrfArray:
         """
         self.sf_param_table = sf_param_table
         self.tf_param_table = tf_param_table
-        self.sf_SI_table = sf_SI_table
         self.use_lnk_override = use_lnk_override  # Flag to override s_scale when using LNK model
         self.rgc_array_rf_size = rgc_array_rf_size
         self.sf_scalar = sf_scalar
@@ -1074,16 +1075,11 @@ class RGCrfArray:
         self.surround_sigma_ratio = surround_sigma_ratio  # Add this line
         
         # Handle new synchronization options
-        self.syn_params = syn_params if syn_params else []
         self.lnk_param_table = lnk_param_table
         
         # Validate synchronization requirements
         if self.syn_params:
             self._validate_sync_params()
-        
-        # Backward compatibility
-        if syn_tf_sf and not self.syn_params:
-            self.syn_params = ['tf', 'sf']
         
         logging.info( f"   subprocessing...1.1")
 
@@ -1096,18 +1092,11 @@ class RGCrfArray:
         if 'tf' in self.syn_params:
             table_lengths['tf'] = len(self.tf_param_table)
         if 'lnk' in self.syn_params and self.lnk_param_table is not None:
-            # Filter valid rows for LNK
-            valid_lnk = self.lnk_param_table.dropna()
-            table_lengths['lnk'] = len(valid_lnk)
+            table_lengths['lnk'] = len(self.lnk_param_table)
         
         if len(set(table_lengths.values())) > 1:
-            logging.warning(f"Parameter tables have different lengths: {table_lengths}")
-            # Use minimum length for synchronization
-            self.sync_table_length = min(table_lengths.values())
-            logging.info(f"Using minimum length {self.sync_table_length} for synchronization")
-        else:
-            self.sync_table_length = list(table_lengths.values())[0] if table_lengths else None
-
+            raise ValueError(f"Parameter tables have different lengths: {table_lengths}")
+        
     def get_results(self):
         """
         Always returns exactly 5 values for consistent unpacking.
@@ -1115,46 +1104,69 @@ class RGCrfArray:
         """
         points = self.grid_generator.generate_first_grid()
         idx_dict = self._generate_indices(points)
-        
+
+        lnk_params = sample_lnk_parameters(self.lnk_param_table, idx_dict.get('lnk'))
+
         # Create filters
-        sf_result = self._create_multi_opt_sf(points, self.sf_id_list, idx_list=idx_dict.get('sf'))
+        multi_opt_sf_center, multi_opt_sf_surround = self._create_multi_opt_sf(points, self.sf_id_list, idx_list=idx_dict.get('sf'))
         tf = self._create_temporal_filter(idx_list=idx_dict.get('tf'))
         grid2value_mapping, map_func = self._get_grid_mapping(points)
-        
-        # Always return exactly 5 values
-        if isinstance(sf_result, tuple):
-            # If LNK model returns tuple, use only the center spatial filters
-            multi_opt_sf = sf_result[0]
-        else:
-            multi_opt_sf = sf_result
-        
-        return multi_opt_sf, tf, grid2value_mapping, map_func, points
-    
+
+        return multi_opt_sf_center, multi_opt_sf_surround, tf, grid2value_mapping, map_func, points, lnk_params
+
     def _generate_indices(self, points):
         """Generate indices for parameter sampling with flexible synchronization."""
         num_points = len(points)
         idx_dict = {}
-        
+
+        def get_non_nan_indices(df):
+            return df[~df.isna().any(axis=1)].index.to_numpy()
+
         if not self.syn_params:
             # No synchronization - generate independent indices
             if 'sf' not in idx_dict:
                 idx_dict['sf'] = np.random.choice(len(self.sf_param_table), num_points)
             if 'tf' not in idx_dict:
                 idx_dict['tf'] = np.random.choice(len(self.tf_param_table), num_points)
+            if 'lnk' not in idx_dict:
+                idx_dict['lnk'] = np.random.choice(len(self.lnk_param_table), num_points)
         else:
-            # Generate synchronized indices
-            if self.sync_table_length:
-                base_indices = np.random.choice(self.sync_table_length, num_points)
-                
-                for param in self.syn_params:
-                    idx_dict[param] = base_indices.copy()
+            # Get non-NaN indices for each table
+            non_nan_indices = {}
+            nan_indices = {}
+            if 'sf' in self.syn_params:
+                non_nan_indices['sf'] = get_non_nan_indices(self.sf_param_table)
+                nan_indices['sf'] = self.sf_param_table[self.sf_param_table.isna().any(axis=1)].index.to_numpy()
+            if 'tf' in self.syn_params:
+                non_nan_indices['tf'] = get_non_nan_indices(self.tf_param_table)
+                nan_indices['tf'] = self.tf_param_table[self.tf_param_table.isna().any(axis=1)].index.to_numpy()
+            if 'lnk' in self.syn_params and self.lnk_param_table is not None:
+                non_nan_indices['lnk'] = get_non_nan_indices(self.lnk_param_table)
+                nan_indices['lnk'] = self.lnk_param_table[self.lnk_param_table.isna().any(axis=1)].index.to_numpy()
+
+            # Sample base indices from the full range
+            base_indices = np.random.choice(self.sync_table_length, num_points)
+
+            # For each param, rewire indices that point to NaN rows
+            for param in self.syn_params:
+                idxs = base_indices.copy()
+                nan_rows = nan_indices[param]
+                valid_rows = non_nan_indices[param]
+                # Find which indices are NaN
+                for i, idx in enumerate(idxs):
+                    if idx in nan_rows:
+                        # Resample from valid rows for this table
+                        idxs[i] = np.random.choice(valid_rows)
+                idx_dict[param] = idxs
             
             # Add non-synchronized parameters
             if 'sf' not in self.syn_params:
                 idx_dict['sf'] = np.random.choice(len(self.sf_param_table), num_points)
             if 'tf' not in self.syn_params:
                 idx_dict['tf'] = np.random.choice(len(self.tf_param_table), num_points)
-        
+            if 'lnk' not in self.syn_params:
+                idx_dict['lnk'] = np.random.choice(len(self.lnk_param_table), num_points)
+
         return idx_dict
     
     def get_additional_results(self, anti_alignment=1, sf_id_list_additional=None):
@@ -1164,20 +1176,15 @@ class RGCrfArray:
         """
         points = self.grid_generator.generate_second_grid(anti_alignment=anti_alignment)
         idx_dict = self._generate_indices(points)
+
+        lnk_params = sample_lnk_parameters(self.lnk_param_table, idx_dict.get('lnk'))
         
         # Create filters
-        sf_result = self._create_multi_opt_sf(points, sf_id_list_additional, idx_list=idx_dict.get('sf'))
+        multi_opt_sf_center, multi_opt_sf_surround = self._create_multi_opt_sf(points, sf_id_list_additional, idx_list=idx_dict.get('sf'))
         tf = self._create_temporal_filter(idx_list=idx_dict.get('tf'))
         grid2value_mapping, map_func = self._get_grid_mapping(points)
-        
-        # Always return exactly 5 values
-        if isinstance(sf_result, tuple):
-            # If LNK model returns tuple, use only the center spatial filters
-            multi_opt_sf = sf_result[0]
-        else:
-            multi_opt_sf = sf_result
-        
-        return multi_opt_sf, tf, grid2value_mapping, map_func, points
+
+        return multi_opt_sf_center, multi_opt_sf_surround, tf, grid2value_mapping, map_func, points, lnk_params
 
     def _get_grid_mapping(self, points):
         # Generate grid2value mapping and map function
@@ -1272,7 +1279,7 @@ class RGCrfArray:
                 opt_sf = self._generate_and_normalize_sf(sf_params, point)
                 multi_opt_sf[:, :, i] = opt_sf
         
-        return (multi_opt_sf, multi_opt_sf_surround) if self.use_lnk_override else multi_opt_sf
+        return multi_opt_sf, multi_opt_sf_surround
 
     def _generate_and_normalize_sf(self, sf_params, point, radius_scale=1.0):
         """Helper method to generate and normalize spatial filter"""
@@ -1304,9 +1311,6 @@ class RGCrfArray:
 
     def _get_s_scale(self, row):
         """Get s_scale value based on configuration"""
-        if self.sf_SI_table is not None:
-            sid_i = np.random.randint(0, len(self.sf_SI_table))
-            return self.sf_SI_table.iloc[sid_i]
         return row['s_scale'] if not self.set_s_scale else self.set_s_scale[0]
 
     def _create_temporal_filter(self, idx_list=None):

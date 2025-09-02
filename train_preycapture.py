@@ -10,6 +10,7 @@ import logging
 from datetime import datetime
 import torch.optim as optim
 from scipy.io import savemat
+import sys
 
 from datasets.sim_cricket import RGCrfArray, SynMovieGenerator, Cricket2RGCs
 from utils.utils import plot_tensor_and_save, plot_vector_and_save, plot_two_path_comparison, plot_coordinate_and_save
@@ -120,7 +121,6 @@ def parse_args():
     parser.add_argument('--sf_sheet_name', type=str, default='SF_params_modified', help='Excel sheet name for the spatial filter')
     parser.add_argument("--sf_id_list", type=int, nargs="+", default=None, help='select RF ids from sf_sheet_name --pid 2 7 12')
     parser.add_argument("--sf_id_list_additional", type=int, nargs="+", default=None, help='select RF ids from sf_sheet_name --pid 2 7 12')
-    parser.add_argument('--syn_tf_sf', action='store_true', help='Synchronize TF and SF parameters for each RGC')
     parser.add_argument('--syn_params', type=str, nargs='+', 
                        choices=['tf', 'sf', 'lnk'],
                        help='Parameters to synchronize across cells. Example: --syn_params tf sf lnk')
@@ -224,18 +224,14 @@ def main():
         logging.info( f"Using standard LN model")
 
         # Simple parameter loading for RGCs
-    sf_param_table = pd.read_excel(rf_params_file, sheet_name=args.sf_sheet_name, usecols='A:L')
-    tf_param_table = pd.read_excel(rf_params_file, sheet_name=args.tf_sheet_name)
-    
-    # Enhanced parameter synchronization
-    syn_params = []
-    if args.syn_tf_sf:
-        syn_params = ['tf', 'sf']
-    
-    # Add new argument parsing for flexible synchronization
-    if hasattr(args, 'syn_params') and args.syn_params:
-        # Parse synchronization parameters from command line
-        # e.g., --syn_params tf sf lnk
+    # make sure the following usecol is provide to avoid full empty columns
+    sf_param_table = pd.read_excel(rf_params_file, sheet_name=args.sf_sheet_name, usecols='C:L')
+    tf_param_table = pd.read_excel(rf_params_file, sheet_name=args.tf_sheet_name, usecols='C:I')
+    lnk_param_table = pd.read_excel(rf_params_file, sheet_name=args.lnk_sheet_name, usecols='C:L')
+
+    if not args.use_lnk_model and args.syn_params:
+        syn_params = [p for p in args.syn_params if p != 'lnk']
+    else:
         syn_params = args.syn_params
     
     # Initialize RGC array with LNK support
@@ -247,44 +243,23 @@ def main():
         sf_mask_radius=args.sf_mask_radius, is_pixelized_tf=args.is_pixelized_tf, set_s_scale=args.set_s_scale, 
         is_rf_median_subtract=args.is_rf_median_subtract, is_rescale_diffgaussian=args.is_rescale_diffgaussian, 
         grid_noise_level=args.grid_noise_level, is_reversed_tf=args.is_reversed_tf, sf_id_list=args.sf_id_list, syn_tf_sf=args.syn_tf_sf,
-        use_lnk_override=args.use_lnk_model  # Pass LNK flag to RGCrfArray
+        use_lnk_override=args.use_lnk_model, lnk_param_table=lnk_param_table, syn_params=syn_params  # Pass LNK flag to RGCrfArray
     )
     
     logging.info( f"{args.experiment_name} processing...1")
-    
-    # Always get exactly 5 values from get_results()
-    multi_opt_sf, tf, grid2value_mapping, map_func, rgc_locs = rgc_array.get_results()
-    
-    # Handle LNK parameters separately based on model type
-    lnk_params = None
-    if args.use_lnk_model:
-        # LNK Model Path - Load additional parameters
-        from datasets.simple_lnk import load_lnk_parameters
-        num_rgcs = multi_opt_sf.shape[2]  # Number of RGC cells
-        lnk_params = load_lnk_parameters(rf_params_file, args.lnk_sheet_name, num_rgcs)
-        
-        if lnk_params is not None:
-            logging.info(f"LNK Model Path: Loaded LNK parameters for {num_rgcs} cells")
-            logging.info(f"LNK adaptation mode: {args.lnk_adapt_mode}")
-            if args.use_separate_surround:
-                logging.info("Using separate center/surround filters for LNK")
-        else:
-            logging.warning("Failed to load LNK parameters, falling back to LN model")
-            args.use_lnk_model = False  # Fall back to LN model
-    else:
-        # LN Model Path - Standard processing
-        logging.info("LN Model Path: Using standard LN model (no LNK parameters)")
+
+    multi_opt_sf, multi_opt_sf_surround, tf, grid2value_mapping, map_func, rgc_locs, lnk_params = rgc_array.get_results()
     
     logging.info( f"{args.experiment_name} processing...2")
 
     if args.is_both_ON_OFF or args.is_two_grids:
         num_input_channel = 2
         # sf_param_table = pd.read_excel(rf_params_file, sheet_name='SF_params_OFF', usecols='A:L')
-        multi_opt_sf_off, tf_off, grid2value_mapping_off, map_func_off, rgc_locs_off = \
+        multi_opt_sf_off, multi_opt_sf_surround_off, tf_off, grid2value_mapping_off, map_func_off, rgc_locs_off, lnk_params_off = \
             rgc_array.get_additional_results(anti_alignment=args.anti_alignment, sf_id_list_additional=args.sf_id_list_additional)  
         
     if args.is_both_ON_OFF or args.is_two_grids:
-        multi_opt_sf_off, tf_off, grid2value_mapping_off, map_func_off, rgc_locs_off = \
+        multi_opt_sf_off, multi_opt_sf_surround_off, tf_off, grid2value_mapping_off, map_func_off, rgc_locs_off, lnk_params_off = \
             rgc_array.get_additional_results(anti_alignment=args.anti_alignment, sf_id_list_additional=args.sf_id_list_additional)  
         
         if args.is_binocular: 
@@ -296,7 +271,7 @@ def main():
             num_input_channel = 2
         else:
             num_input_channel = 1
-        multi_opt_sf_off, tf_off, grid2value_mapping_off, map_func_off, rgc_locs_off = None, None, None, None, None
+        multi_opt_sf_off, multi_opt_sf_surround_off, tf_off, grid2value_mapping_off, map_func_off, rgc_locs_off, lnk_params_off = None, None, None, None, None, None, None
 
     if is_show_rgc_grid:
         plot_coordinate_and_save(rgc_locs, rgc_locs_off, plot_save_folder, file_name=f'{args.experiment_name}_rgc_grids.png')
@@ -381,7 +356,10 @@ def main():
             # Simple LNK parameters
             use_lnk=args.use_lnk_model,
             lnk_params=lnk_params,
-            surround_sigma_ratio=args.surround_sigma_ratio
+            lnk_params_off=lnk_params_off,
+            surround_sigma_ratio=args.surround_sigma_ratio,
+            surround_sf=multi_opt_sf_surround,
+            surround_sf_off=multi_opt_sf_surround_off
         )
         mu, sigma, mean_r, mean_width, (hist, edges), pct_nan, pct_nan_width, data, corr = estimate_rgc_signal_distribution(
             train_dataset,
@@ -396,18 +374,8 @@ def main():
         savemat(save_path, {'mu': mu, 'sigma': sigma, 'mean_r': mean_r, 'hist': hist, 'edges': edges, 'pct_nan':pct_nan, 
                             'rgc_noise_std':args.rgc_noise_std, 'pct_nan_width': pct_nan_width, 'mean_width': mean_width,
                             'data': data, 'corr': corr})
-        # Plot & save histogram
-        # centers = (edges[:-1] + edges[1:]) / 2
-        # plt.figure(figsize=(8, 5))
-        # plt.bar(centers, hist, width=edges[1]-edges[0], align='center')
-        # plt.xlabel('RGC response value')
-        # plt.ylabel('Probability density')
-        # plt.title(f'RGC Signal Distribution (μ={mu:.2f}, σ={sigma:.2f})')
-        # plt.tight_layout()
-        # plt.savefig('rgc_signal_distribution.png', dpi=300)
-        # plt.show()
     
-        raise ValueError(f"check data range...")
+        sys.exit(0)
 
     # Create training dataset with simplified LNK support  
     train_dataset = Cricket2RGCs(

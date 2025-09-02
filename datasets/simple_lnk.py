@@ -22,81 +22,30 @@ from typing import Optional, Dict, Any
 from scipy.stats import skew
 import sys
 
-
-def load_lnk_parameters(rf_params_file: str, lnk_sheet_name: str, num_rgcs: int) -> Optional[Dict[str, np.ndarray]]:
+def sample_lnk_parameters(df: pd.DataFrame, idx: np.ndarray) -> Dict[str, np.ndarray]:
     """
-    Simple LNK parameter loader - just loads the essentials.
+    Sample LNK parameters from a DataFrame using provided indices, with defaults if missing.
     
     Args:
-        rf_params_file: Path to Excel file
-        lnk_sheet_name: Sheet name with LNK parameters  
-        num_rgcs: Number of RGC cells
+        df: Pandas DataFrame containing LNK parameters
+        idx: Array of row indices to sample
         
     Returns:
-        Dict with LNK parameters as numpy arrays, or None if failed
+        Dict with LNK parameters as numpy arrays
     """
-    try:
-        df = pd.read_excel(rf_params_file, sheet_name=lnk_sheet_name).dropna()
-        if len(df) == 0:
-            logging.warning(f"Could not load LNK parameters: df length is zeros")
-            return None
-    except Exception as e:
-        logging.warning(f"Could not load LNK parameters: {e}")
-        return None
-    
-    # Sample parameters for each RGC
-    idx = np.random.choice(len(df), num_rgcs, replace=True)
-    
-    params = {}
-    # Core LNK parameters with defaults
+    num_rgcs = len(idx)
     param_defaults = {
         'tau': 0.1, 'alpha_d': 1.0, 'theta': 0.0, 'sigma0': 1.0, 
         'alpha': 0.1, 'beta': 0.0, 'b_out': 0.0, 'g_out': 1.0, 
         'w_xs': -0.1, 'dt': 0.01
     }
-    
+    params = {}
     for param, default in param_defaults.items():
         if param in df.columns:
-            params[param] = df.iloc[idx][param].values.astype(float)
+            params[param] = df.loc[idx, param].values.astype(float)
         else:
             params[param] = np.full(num_rgcs, default)
-    
-    logging.info(f"Loaded LNK parameters for {num_rgcs} cells")
     return params
-
-
-def generate_surround_filters(center_sf: np.ndarray, center_tf: np.ndarray, sigma_ratio: float = 4.0) -> tuple:
-    """
-    Generate surround filters by scaling center filters with larger sigma.
-    Simple approach using Gaussian blur approximation.
-    
-    Args:
-        center_sf: Center spatial filters [W, H, N]
-        center_tf: Center temporal filters [N, 1, T] or [N, T]
-        sigma_ratio: Factor to scale sigma for surround (default 4.0)
-        
-    Returns:
-        (surround_sf, surround_tf): Surround filters with same shapes as center
-    """
-    W, H, N = center_sf.shape
-    surround_sf = np.zeros_like(center_sf)
-    
-    # Generate surround spatial filters by blurring center
-    for i in range(N):
-        # Apply Gaussian blur to approximate larger sigma
-        surround_sf[:, :, i] = gaussian_filter(center_sf[:, :, i], sigma=sigma_ratio)
-        
-        # Normalize to similar magnitude as center
-        center_norm = np.abs(center_sf[:, :, i]).max()
-        surround_norm = np.abs(surround_sf[:, :, i]).max()
-        if surround_norm > 0:
-            surround_sf[:, :, i] *= center_norm / surround_norm
-    
-    # Use same temporal filters for surround (typical assumption)
-    surround_tf = center_tf.copy()
-    
-    return surround_sf, surround_tf
-
 
 def compute_lnk_response(movie: torch.Tensor, 
                         center_sf: torch.Tensor, 
@@ -223,45 +172,3 @@ def compute_lnk_response(movie: torch.Tensor,
     sys.exit(0)
     
     return rgc_response
-
-
-def add_lnk_to_cricket2rgcs(cricket_dataset, 
-                           rf_params_file: str, 
-                           lnk_sheet_name: str = 'LNK_params',
-                           surround_sigma_ratio: float = 4.0) -> bool:
-    """
-    Add LNK functionality to existing Cricket2RGCs dataset.
-    Simple modification that doesn't require restructuring.
-    
-    Args:
-        cricket_dataset: Existing Cricket2RGCs instance
-        rf_params_file: Path to Excel file with LNK parameters
-        lnk_sheet_name: Sheet name for LNK parameters
-        surround_sigma_ratio: Ratio for surround filter generation
-        
-    Returns:
-        True if LNK was successfully added, False otherwise
-    """
-    # Load LNK parameters
-    num_rgcs = cricket_dataset.multi_opt_sf.shape[2]  # [W, H, N]
-    lnk_params = load_lnk_parameters(rf_params_file, lnk_sheet_name, num_rgcs)
-    
-    if lnk_params is None:
-        logging.warning("Failed to load LNK parameters, keeping LN model")
-        return False
-    
-    # Generate surround filters
-    center_sf_np = cricket_dataset.multi_opt_sf.cpu().numpy()
-    center_tf_np = cricket_dataset.tf.cpu().numpy()
-    surround_sf_np, surround_tf_np = generate_surround_filters(
-        center_sf_np, center_tf_np, surround_sigma_ratio
-    )
-    
-    # Add to dataset
-    cricket_dataset.lnk_params = lnk_params
-    cricket_dataset.surround_sf = torch.from_numpy(surround_sf_np).to(cricket_dataset.multi_opt_sf.device)
-    cricket_dataset.surround_tf = torch.from_numpy(surround_tf_np).to(cricket_dataset.tf.device)
-    cricket_dataset.use_lnk = True
-    
-    logging.info(f"Added LNK functionality with surround sigma ratio {surround_sigma_ratio}")
-    return True
