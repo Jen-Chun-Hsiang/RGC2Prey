@@ -1076,7 +1076,7 @@ class RGCrfArray:
         
         # Handle new synchronization options
         self.lnk_param_table = lnk_param_table
-        
+        self.syn_params = syn_params if syn_params is not None else []
         # Validate synchronization requirements
         if self.syn_params:
             self._validate_sync_params()
