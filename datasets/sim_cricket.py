@@ -543,7 +543,7 @@ class Cricket2RGCs(Dataset):
         """
         
         # Check if using simple LNK model
-        if self.use_lnk and self.lnk_params is not None:
+        if self.use_lnk and lnk_params is not None:
             from datasets.simple_lnk import compute_lnk_response
             return compute_lnk_response(
                 movie=movie,
