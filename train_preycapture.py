@@ -227,8 +227,6 @@ def main():
     sf_param_table = pd.read_excel(rf_params_file, sheet_name=args.sf_sheet_name, usecols='A:L')
     tf_param_table = pd.read_excel(rf_params_file, sheet_name=args.tf_sheet_name)
     
-
-    
     # Enhanced parameter synchronization
     syn_params = []
     if args.syn_tf_sf:
@@ -239,17 +237,6 @@ def main():
         # Parse synchronization parameters from command line
         # e.g., --syn_params tf sf lnk
         syn_params = args.syn_params
-    
-    # Load LNK table if needed for synchronization
-    lnk_param_table = None
-    if 'lnk' in syn_params and args.use_lnk_model:
-        try:
-            lnk_param_table = pd.read_excel(rf_params_file, sheet_name=args.lnk_sheet_name)
-            logging.info(f"Loaded LNK parameter table for synchronization: {len(lnk_param_table)} rows")
-        except Exception as e:
-            logging.warning(f"Could not load LNK table for synchronization: {e}")
-            # Remove 'lnk' from syn_params if can't load the table
-            syn_params = [p for p in syn_params if p != 'lnk']
     
     # Initialize RGC array with LNK support
     rgc_array = RGCrfArray(
