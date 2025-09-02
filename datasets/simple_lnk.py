@@ -38,6 +38,7 @@ def load_lnk_parameters(rf_params_file: str, lnk_sheet_name: str, num_rgcs: int)
     try:
         df = pd.read_excel(rf_params_file, sheet_name=lnk_sheet_name).dropna()
         if len(df) == 0:
+            logging.warning(f"Could not load LNK parameters: df length is zeros")
             return None
     except Exception as e:
         logging.warning(f"Could not load LNK parameters: {e}")
