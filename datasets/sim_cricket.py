@@ -1096,7 +1096,9 @@ class RGCrfArray:
         
         if len(set(table_lengths.values())) > 1:
             raise ValueError(f"Parameter tables have different lengths: {table_lengths}")
-        
+        else:
+            self.sync_table_length = next(iter(table_lengths.values()))
+
     def get_results(self):
         """
         Always returns exactly 5 values for consistent unpacking.
