@@ -486,7 +486,7 @@ def main():
         # Simple LNK parameters
         use_lnk=args.use_lnk_model,
         lnk_params=lnk_params,
-        surround_sigma_ratio=args.surround_sigma_ratio
+        surround_sigma_ratio=args.surround_sigma_ratio,
         lnk_params_off=lnk_params_off,
         surround_sf=multi_opt_sf_surround,
         surround_sf_off=multi_opt_sf_surround_off
