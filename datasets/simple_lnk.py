@@ -54,7 +54,8 @@ def compute_lnk_response(movie: torch.Tensor,
                         surround_tf: torch.Tensor,
                         lnk_params: Dict[str, np.ndarray],
                         device: torch.device,
-                        dtype: torch.dtype) -> torch.Tensor:
+                        dtype: torch.dtype,
+                        rgc_noise_std: float = 0.0) -> torch.Tensor:
     """
     Compute LNK response with simplified implementation.
     
@@ -77,6 +78,7 @@ def compute_lnk_response(movie: torch.Tensor,
     Returns:
         RGC responses [N, T_out]
     """
+    _is_log_distribution_stats = False
     # Step 1: Center spatial-temporal convolution
     x_c = torch.einsum('whn,thw->nt', center_sf, movie)  # [N, T]
     x_c = x_c.unsqueeze(0)  # [1, N, T]
@@ -132,43 +134,47 @@ def compute_lnk_response(movie: torch.Tensor,
     
     # Step 6: Combined response
     combined_input = x_center + w_xs[:, None] * x_surround  # Center-surround interaction
+    if rgc_noise_std > 0:
+        noise = torch.randn_like(combined_input) * rgc_noise_std
+        combined_input = combined_input + noise
     y = combined_input / den + beta[:, None] * a + b_out[:, None]
     
     # Step 7: Output nonlinearity
     rgc_response = F.softplus(g_out[:, None] * y, beta=1.0, threshold=20.0)
     
-    # Log distribution statistics
-    def log_distribution_stats(tensor, name):
-        """Log mean, std, and skewness of a tensor"""
-        tensor_np = tensor.detach().cpu().numpy()
-        mean_val = np.mean(tensor_np)
-        std_val = np.std(tensor_np)
-        try:
-            from scipy.stats import skew
-            skew_val = skew(tensor_np.flatten())
-        except ImportError:
-            # Fallback skewness calculation
-            tensor_flat = tensor_np.flatten()
-            mean_flat = np.mean(tensor_flat)
-            std_flat = np.std(tensor_flat)
-            if std_flat > 0:
-                skew_val = np.mean(((tensor_flat - mean_flat) / std_flat) ** 3)
-            else:
-                skew_val = 0.0
+    if _is_log_distribution_stats:
+        # Log distribution statistics
+        def log_distribution_stats(tensor, name):
+            """Log mean, std, and skewness of a tensor"""
+            tensor_np = tensor.detach().cpu().numpy()
+            mean_val = np.mean(tensor_np)
+            std_val = np.std(tensor_np)
+            try:
+                from scipy.stats import skew
+                skew_val = skew(tensor_np.flatten())
+            except ImportError:
+                # Fallback skewness calculation
+                tensor_flat = tensor_np.flatten()
+                mean_flat = np.mean(tensor_flat)
+                std_flat = np.std(tensor_flat)
+                if std_flat > 0:
+                    skew_val = np.mean(((tensor_flat - mean_flat) / std_flat) ** 3)
+                else:
+                    skew_val = 0.0
+            
+            logging.info(f"{name} distribution - Mean: {mean_val:.6f}, Std: {std_val:.6f}, Skew: {skew_val:.6f}, Shape: {tensor.shape}")
         
-        logging.info(f"{name} distribution - Mean: {mean_val:.6f}, Std: {std_val:.6f}, Skew: {skew_val:.6f}, Shape: {tensor.shape}")
-    
-    logging.info("=" * 60)
-    logging.info("LNK Response Distribution Analysis")
-    logging.info("=" * 60)
-    log_distribution_stats(x_center, "x_center")
-    log_distribution_stats(x_surround, "x_surround") 
-    log_distribution_stats(y, "y (pre-nonlinearity)")
-    log_distribution_stats(rgc_response, "rgc_response (final)")
-    logging.info("=" * 60)
-    
-    # Stop the process
-    logging.info("Stopping process for distribution analysis...")
-    sys.exit(0)
+        logging.info("=" * 60)
+        logging.info("LNK Response Distribution Analysis")
+        logging.info("=" * 60)
+        log_distribution_stats(x_center, "x_center")
+        log_distribution_stats(x_surround, "x_surround") 
+        log_distribution_stats(y, "y (pre-nonlinearity)")
+        log_distribution_stats(rgc_response, "rgc_response (final)")
+        logging.info("=" * 60)
+        
+        # Stop the process
+        logging.info("Stopping process for distribution analysis...")
+        sys.exit(0)
     
     return rgc_response

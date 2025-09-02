@@ -553,7 +553,8 @@ class Cricket2RGCs(Dataset):
                 surround_tf=tf,
                 lnk_params=lnk_params,
                 device=movie.device,
-                dtype=movie.dtype
+                dtype=movie.dtype,
+                rgc_noise_std=self.rgc_noise_std if self.add_noise else 0.0,
             )
         
         # Original LN model (backward compatible)
