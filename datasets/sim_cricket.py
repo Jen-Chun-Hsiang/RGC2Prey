@@ -455,7 +455,7 @@ class Cricket2RGCs(Dataset):
                 'map_func': map_func,
                 'grid2value': grid2value_mapping,
                 'rect_thr': self.rectified_thr_ON,
-                'lnk_params': self.lnk_params,
+                'lnk_params': lnk_params,
             }
         ]
         
@@ -492,7 +492,7 @@ class Cricket2RGCs(Dataset):
                 'map_func': map_func_off,
                 'grid2value': grid2value_mapping_off,
                 'rect_thr': self.rectified_thr_OFF,
-                'lnk_params': self.lnk_params_off
+                'lnk_params': lnk_params_off
             }
             
             self.channels.append(off_channel)
