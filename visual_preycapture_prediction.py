@@ -184,14 +184,32 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
         args.surround_sigma_ratio = 4.0
     if not hasattr(args, 'is_two_grids'):
         args.is_two_grids = False
+    if not hasattr(args, 'syn_params'):
+        args.syn_params = None
+    if not hasattr(args, 'sf_id_list'):
+        args.sf_id_list = None
+    if not hasattr(args, 'sf_id_list_additional'):
+        args.sf_id_list_additional = None
+    if not hasattr(args, 'anti_alignment'):
+        args.anti_alignment = 1.0
             
 
     process_seed(args.seed)
 
     logging.info( f"{file_name} processing...1 seed:{args.seed}")
     
-    sf_param_table = pd.read_excel(rf_params_file, sheet_name=args.sf_sheet_name, usecols='A:L')
-    tf_param_table = pd.read_excel(rf_params_file, sheet_name=args.tf_sheet_name, usecols='A:I')
+    # Simple parameter loading for RGCs
+    # make sure the following usecol is provide to avoid full empty columns
+    sf_param_table = pd.read_excel(rf_params_file, sheet_name=args.sf_sheet_name, usecols='C:L')
+    tf_param_table = pd.read_excel(rf_params_file, sheet_name=args.tf_sheet_name, usecols='C:I')
+    lnk_param_table = pd.read_excel(rf_params_file, sheet_name=args.lnk_sheet_name, usecols='C:L')
+
+    if not args.use_lnk_model and args.syn_params:
+        syn_params = [p for p in args.syn_params if p != 'lnk']
+    else:
+        syn_params = args.syn_params
+    
+    # Initialize RGC array with LNK support
     rgc_array = RGCrfArray(
         sf_param_table, tf_param_table, rgc_array_rf_size=args.rgc_array_rf_size, xlim=args.xlim, ylim=args.ylim,
         target_num_centers=args.target_num_centers, sf_scalar=args.sf_scalar, grid_generate_method=args.grid_generate_method, 
@@ -199,39 +217,28 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
         sf_constraint_method=args.sf_constraint_method, temporal_filter_len=args.temporal_filter_len, grid_size_fac=args.grid_size_fac,
         sf_mask_radius=args.sf_mask_radius, is_pixelized_tf=args.is_pixelized_tf, set_s_scale=args.set_s_scale, 
         is_rf_median_subtract=args.is_rf_median_subtract, is_rescale_diffgaussian=args.is_rescale_diffgaussian, 
-        grid_noise_level=args.grid_noise_level, is_reversed_tf=args.is_reversed_tf, syn_tf_sf=args.syn_tf_sf,
-        use_lnk_override=args.use_lnk_model
+        grid_noise_level=args.grid_noise_level, is_reversed_tf=args.is_reversed_tf, sf_id_list=args.sf_id_list,
+        use_lnk_override=args.use_lnk_model, lnk_param_table=lnk_param_table, syn_params=syn_params  # Pass LNK flag to RGCrfArray
     )
     logging.info( f"{file_name} processing...1.5")
-    result = rgc_array.get_results()
-    if len(result) == 7:  # LNK model with surround
-        multi_opt_sf, tf, grid2value_mapping, map_func, rgc_locs, _, surround_sf = result
-    else:
-        multi_opt_sf, tf, grid2value_mapping, map_func, rgc_locs = result
-        surround_sf = None
+    
+    multi_opt_sf, multi_opt_sf_surround, tf, grid2value_mapping, map_func, rgc_locs, lnk_params = rgc_array.get_results()
 
-    # Load LNK parameters if needed
-    num_rgcs = multi_opt_sf.shape[2]
-    lnk_params = None
+    # Load LNK parameters if needed - they are now returned directly from get_results()
     if args.use_lnk_model:
-        from datasets.simple_lnk import load_lnk_parameters
-        lnk_params = load_lnk_parameters(rf_params_file, args.lnk_sheet_name, num_rgcs)
+        logging.info(f"Using LNK model with adaptation mode: {args.lnk_adapt_mode}")
         if lnk_params is not None:
-            logging.info(f"Loaded LNK parameters for {num_rgcs} cells")
+            logging.info(f"Loaded LNK parameters for {multi_opt_sf.shape[2]} cells")
         else:
-            logging.warning("Failed to load LNK parameters, using LN model")
+            logging.warning("No LNK parameters available, using LN model")
 
-    if args.is_both_ON_OFF:
+    if args.is_both_ON_OFF or args.is_two_grids:
         num_input_channel = 2
         grid_centers = None
         is_plot_centerFR = False
         # sf_param_table = pd.read_excel(rf_params_file, sheet_name='SF_params_OFF', usecols='A:L')
-        result_off = rgc_array.get_additional_results(anti_alignment=args.anti_alignment, sf_id_list_additional=args.sf_id_list_additional)
-        if len(result_off) == 7:  # LNK model with surround
-            multi_opt_sf_off, tf_off, grid2value_mapping_off, map_func_off, rgc_locs_off, _, surround_sf_off = result_off
-        else:
-            multi_opt_sf_off, tf_off, grid2value_mapping_off, map_func_off, rgc_locs_off = result_off
-            surround_sf_off = None
+        multi_opt_sf_off, multi_opt_sf_surround_off, tf_off, grid2value_mapping_off, map_func_off, rgc_locs_off, lnk_params_off = \
+            rgc_array.get_additional_results(anti_alignment=args.anti_alignment, sf_id_list_additional=args.sf_id_list_additional)  
         if args.is_binocular:
             num_input_channel = 4
             
@@ -241,8 +248,7 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
         else:
             num_input_channel = 1
         grid_centers = rgc_locs
-        multi_opt_sf_off, tf_off, grid2value_mapping_off, map_func_off, rgc_locs_off = None, None, None, None, None
-        surround_sf_off = None
+        multi_opt_sf_off, multi_opt_sf_surround_off, tf_off, grid2value_mapping_off, map_func_off, rgc_locs_off, lnk_params_off = None, None, None, None, None, None, None
 
     if is_show_rgc_grid:
         plot_coordinate_and_save(rgc_locs, rgc_locs_off, plot_save_folder, file_name=f'{args.experiment_name}_rgc_grids_test.png')
@@ -297,8 +303,10 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
                                 # LNK parameters
                                 use_lnk=args.use_lnk_model,
                                 lnk_params=lnk_params,
+                                lnk_params_off=lnk_params_off,
                                 surround_sigma_ratio=args.surround_sigma_ratio,
-                                surround_sf=surround_sf)
+                                surround_sf=multi_opt_sf_surround,
+                                surround_sf_off=multi_opt_sf_surround_off)
 
     test_loader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=True, 
                              num_workers=args.num_worker, pin_memory=True, persistent_workers=False, worker_init_fn=worker_init_fn)
@@ -335,8 +343,10 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
                                 # LNK parameters
                                 use_lnk=args.use_lnk_model,
                                 lnk_params=lnk_params,
+                                lnk_params_off=lnk_params_off,
                                 surround_sigma_ratio=args.surround_sigma_ratio,
-                                surround_sf=surround_sf)
+                                surround_sf=multi_opt_sf_surround,
+                                surround_sf_off=multi_opt_sf_surround_off)
     test_loader = DataLoader(test_dataset, batch_size=1, shuffle=True, worker_init_fn=worker_init_fn)
 
     logging.info( f"{file_name} processing...7")
@@ -410,8 +420,10 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
                                 # LNK parameters
                                 use_lnk=args.use_lnk_model,
                                 lnk_params=lnk_params,
+                                lnk_params_off=lnk_params_off,
                                 surround_sigma_ratio=args.surround_sigma_ratio,
-                                surround_sf=surround_sf)
+                                surround_sf=multi_opt_sf_surround,
+                                surround_sf_off=multi_opt_sf_surround_off)
     test_loader = DataLoader(test_dataset, batch_size=1, shuffle=False, worker_init_fn=worker_init_fn)
 
     logging.info( f"{file_name} processing...10")
