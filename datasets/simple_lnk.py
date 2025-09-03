@@ -175,6 +175,6 @@ def compute_lnk_response(movie: torch.Tensor,
         
         # Stop the process
         logging.info("Stopping process for distribution analysis...")
-        sys.exit(0)
+        # sys.exit(0)
     
     return rgc_response
