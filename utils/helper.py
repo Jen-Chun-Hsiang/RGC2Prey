@@ -40,7 +40,7 @@ def estimate_rgc_signal_distribution(
 
         # 2) Noise‐free RGC time‐series
         rgc_clean = dataset._compute_rgc_time(
-            mv, ch['sf'], ch['tf'], ch['rect_thr']
+            mv, ch['sf'], ch['sf_surround'], ch['tf'], ch['rect_thr'], ch['lnk_params']
         )
         vals = rgc_clean.flatten().detach().cpu().numpy()
         all_vals.append(vals)
@@ -60,10 +60,10 @@ def estimate_rgc_signal_distribution(
         # 3) If original config had noise, do two noisy replicates
         if orig_noise_flag:
             rgc_noisy1 = dataset._compute_rgc_time(
-                mv, ch['sf'], ch['tf'], ch['rect_thr']
+                mv, ch['sf'], ch['sf_surround'], ch['tf'], ch['rect_thr'], ch['lnk_params']
             )
             rgc_noisy2 = dataset._compute_rgc_time(
-                mv, ch['sf'], ch['tf'], ch['rect_thr']
+                mv, ch['sf'], ch['sf_surround'], ch['tf'], ch['rect_thr'], ch['lnk_params']
             )
             
             if is_single_middle_rgc:
