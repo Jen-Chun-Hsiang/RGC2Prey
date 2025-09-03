@@ -421,6 +421,7 @@ def main():
         print(f'iteration: {i}')
         sequence, path, path_bg, syn_movie, scaling_factors, _, _, _ = train_dataset[i]
 
+    sys.exit(0)
     # raise ValueError(f"check data range...")
     # raise ValueError(f"Temporal close exam processing...")
     if is_show_movie_frames:

@@ -15,7 +15,7 @@ from datasets.simple_lnk import sample_lnk_parameters
 from utils.utils import get_random_file_path, get_image_number, load_mat_to_dataframe, get_filename_without_extension
 from utils.tools import gaussian_smooth_1d
 from utils.trajectory import disparity_from_scaling_factor, convert_deg_to_pix, adjust_trajectories, plot_trajectories
-
+from datasets.simple_lnk import compute_lnk_response
 
 def create_multiple_temporal_filters(base_tf, num_rgcs, variation_std=0.0):
     """
@@ -544,7 +544,7 @@ class Cricket2RGCs(Dataset):
         
         # Check if using simple LNK model
         if self.use_lnk and lnk_params is not None:
-            from datasets.simple_lnk import compute_lnk_response
+            
             return compute_lnk_response(
                 movie=movie,
                 center_sf=sf,
