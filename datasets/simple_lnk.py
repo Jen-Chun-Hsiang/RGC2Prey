@@ -137,7 +137,7 @@ def compute_lnk_response(movie: torch.Tensor,
     # Step 6: Combined response
     combined_input = x_center + w_xs[:, None] * x_surround  # Center-surround interaction
     if rgc_noise_std > 0:
-        noise = torch.randn_like(combined_input) * rgc_noise_std
+        noise = torch.randn_like(combined_input) * rgc_noise_std * data_scaling_factor_4_fitting
         combined_input_noise = combined_input + noise
     else:
         combined_input_noise = combined_input
