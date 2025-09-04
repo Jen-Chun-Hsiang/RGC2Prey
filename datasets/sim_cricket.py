@@ -1293,8 +1293,12 @@ class RGCrfArray:
             opt_sf -= np.median(opt_sf)
         
         # Normalize by absolute sum
-        opt_sf = opt_sf / np.sum(np.abs(opt_sf))
-        
+        eps = 1e-8
+        if self.use_lnk_override:
+            opt_sf = opt_sf / (np.max(np.abs(opt_sf)) + eps)
+        else:
+            opt_sf = opt_sf / (np.sum(np.abs(opt_sf)) + eps)
+
         # Apply spatial constraints if specified
         if self.sf_constraint_method == 'circle':
             opt_sf = self._apply_circular_mask(opt_sf, point, self.sf_mask_radius * radius_scale)
