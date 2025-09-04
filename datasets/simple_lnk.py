@@ -169,6 +169,7 @@ def compute_lnk_response(movie: torch.Tensor,
         logging.info("=" * 60)
         log_distribution_stats(x_center, "x_center")
         log_distribution_stats(x_surround, "x_surround") 
+        log_distribution_stats(combined_input, "combined_input")
         log_distribution_stats(y, "y (pre-nonlinearity)")
         log_distribution_stats(rgc_response, "rgc_response (final)")
         logging.info("=" * 60)
