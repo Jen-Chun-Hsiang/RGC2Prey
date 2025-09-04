@@ -92,7 +92,7 @@ def compute_lnk_response(movie: torch.Tensor,
     # Align time lengths
     T_out = min(x_center.shape[1], x_surround.shape[1])
 
-    data_scaling_factor_4_fitting = 1e6
+    data_scaling_factor_4_fitting = 1
     x_center = x_center[:, :T_out]*data_scaling_factor_4_fitting
     x_surround = x_surround[:, :T_out]*data_scaling_factor_4_fitting
 
