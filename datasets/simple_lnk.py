@@ -136,9 +136,11 @@ def compute_lnk_response(movie: torch.Tensor,
     combined_input = x_center + w_xs[:, None] * x_surround  # Center-surround interaction
     if rgc_noise_std > 0:
         noise = torch.randn_like(combined_input) * rgc_noise_std
-        combined_input = combined_input + noise
-    y = combined_input / den + beta[:, None] * a + b_out[:, None]
-    
+        combined_input_noise = combined_input + noise
+    else:
+        combined_input_noise = combined_input
+    y = combined_input_noise / den + beta[:, None] * a + b_out[:, None]
+
     # Step 7: Output nonlinearity
     rgc_response = F.softplus(g_out[:, None] * y, beta=1.0, threshold=20.0)
     
@@ -170,6 +172,7 @@ def compute_lnk_response(movie: torch.Tensor,
         log_distribution_stats(x_center, "x_center")
         log_distribution_stats(x_surround, "x_surround") 
         log_distribution_stats(combined_input, "combined_input")
+        log_distribution_stats(combined_input_noise, "combined_input_noise")
         log_distribution_stats(y, "y (pre-nonlinearity)")
         log_distribution_stats(rgc_response, "rgc_response (final)")
         logging.info("=" * 60)
