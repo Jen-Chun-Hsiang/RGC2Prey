@@ -558,8 +558,10 @@ class Cricket2RGCs(Dataset):
 
             if mv_min >= -0.1 and mv_max <= 1.1:
                 movie = movie * 2.0 - 1.0
+                logging.info("Movie rescaled from [0, 1] to [-1, 1] for LNK model")
             
-            
+            logging.info(f"Movie min: {mv_min}, max: {mv_max}")
+
             return compute_lnk_response(
                 movie=movie,
                 center_sf=sf,
