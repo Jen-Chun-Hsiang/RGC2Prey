@@ -113,8 +113,3 @@ Tests and verification
 - Example test scripts:
   - LNK verification: [`test/lnk_verify.py`](test/lnk_verify.py)
   - Model separation tests: [`test/test_model_separation.py`](test/test_model_separation.py)
-
-If you want
-- I can:
-  - generate a top-level README.md file (this file) in the repository (I included the content above),
-  - or create smaller HOWTOs for e.g. "How to run LNK vs LN comparison" or "How to debug LNK parameters" (point to specific functions such as [`datasets.lnk_utils.load_lnk_parameters`](datasets/lnk_utils.py)
