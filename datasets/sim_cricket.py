@@ -547,19 +547,6 @@ class Cricket2RGCs(Dataset):
 
             if torch.isnan(movie).any():
                 raise ValueError("movie contains NaN values - cannot compute LNK response")
-            
-            try:
-                mv_min = float(movie.min().item())
-                mv_max = float(movie.max().item())
-            except Exception:
-                # Fallback numeric conversion
-                mv_min = float(movie.min())
-                mv_max = float(movie.max())
-
-            if mv_min >= -0.1 and mv_max <= 1.1:
-                movie = movie * 2.0 - 1.0
-            
-            # logging.info(f"Movie min: {mv_min}, max: {mv_max}")
 
             return compute_lnk_response(
                 movie=movie,
