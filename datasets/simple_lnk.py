@@ -78,7 +78,7 @@ def compute_lnk_response(movie: torch.Tensor,
     Returns:
         RGC responses [N, T_out]
     """
-    _is_log_distribution_stats = True  # Set True to log distribution stats and stop process
+    _is_log_distribution_stats = False  # Set True to log distribution stats and stop process
     _data_scaling_factor_4_fitting = 1e1
     # Step 1: Center spatial-temporal convolution
     x_c = torch.einsum('whn,thw->nt', center_sf, movie)  # [N, T]
