@@ -1297,10 +1297,7 @@ class RGCrfArray:
         
         # Normalize by absolute sum
         eps = 1e-8
-        if self.use_lnk_override:
-            opt_sf = opt_sf / (np.max(np.abs(opt_sf)) + eps)
-        else:
-            opt_sf = opt_sf / (np.sum(np.abs(opt_sf)) + eps)
+        opt_sf = opt_sf / (np.sum(np.abs(opt_sf)) + eps)
 
         # Apply spatial constraints if specified
         if self.sf_constraint_method == 'circle':
