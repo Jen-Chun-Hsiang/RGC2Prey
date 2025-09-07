@@ -79,6 +79,7 @@ def compute_lnk_response(movie: torch.Tensor,
         RGC responses [N, T_out]
     """
     _is_log_distribution_stats = True  # Set True to log distribution stats and stop process
+    _data_scaling_factor_4_fitting = 1e2
     # Step 1: Center spatial-temporal convolution
     x_c = torch.einsum('whn,thw->nt', center_sf, movie)  # [N, T]
     x_c = x_c.unsqueeze(0)  # [1, N, T]
@@ -92,9 +93,9 @@ def compute_lnk_response(movie: torch.Tensor,
     # Align time lengths
     T_out = min(x_center.shape[1], x_surround.shape[1])
 
-    data_scaling_factor_4_fitting = 1e8
-    x_center = x_center[:, :T_out]*data_scaling_factor_4_fitting
-    x_surround = x_surround[:, :T_out]*data_scaling_factor_4_fitting
+    
+    x_center = x_center[:, :T_out]*_data_scaling_factor_4_fitting
+    x_surround = x_surround[:, :T_out]*_data_scaling_factor_4_fitting
 
     N = x_center.shape[0]
     
@@ -137,7 +138,7 @@ def compute_lnk_response(movie: torch.Tensor,
     # Step 6: Combined response
     combined_input = x_center + w_xs[:, None] * x_surround  # Center-surround interaction
     if rgc_noise_std > 0:
-        noise = torch.randn_like(combined_input) * rgc_noise_std * data_scaling_factor_4_fitting
+        noise = torch.randn_like(combined_input) * rgc_noise_std * _data_scaling_factor_4_fitting
         combined_input_noise = combined_input + noise
     else:
         combined_input_noise = combined_input
