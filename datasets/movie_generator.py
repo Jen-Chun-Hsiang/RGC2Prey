@@ -186,6 +186,7 @@ class MovingBarMovieGenerator(BaseMovieGenerator):
         direction_range: Tuple[float, float] = (0.0, 360.0),  # degrees for movement direction
         num_episodes: int = 1,
         margin: float = 2.0,
+        disparity_range: Tuple[float, float] = (0.5, 4.0),  # disparity range in pixels for binocular
         **kwargs
     ):
         super().__init__(crop_size=crop_size, boundary_size=boundary_size, **kwargs)
@@ -195,6 +196,7 @@ class MovingBarMovieGenerator(BaseMovieGenerator):
         self.direction_range = direction_range
         self.num_episodes = num_episodes
         self.margin = margin
+        self.disparity_range = disparity_range
 
     def _make_bar_mask(self, W: int, H: int, center_xy: Tuple[float, float], width: float, height: float, angle_deg: float):
         """
@@ -228,6 +230,22 @@ class MovingBarMovieGenerator(BaseMovieGenerator):
         bg = 0.5 - c/2.0
         return bar, bg
 
+    def _compute_disparity(self, n_frames):
+        """
+        Compute disparity values for binocular rendering.
+        For moving bars, disparity can be constant or vary over time.
+        """
+        if self.fix_disparity is not None:
+            # Fixed disparity case
+            disparity = np.full(n_frames, self.fix_disparity, dtype=np.float32)
+        else:
+            # Random disparity from the specified range
+            # For moving bars, we'll use constant disparity per episode
+            base_disparity = np.random.uniform(self.disparity_range[0], self.disparity_range[1])
+            disparity = np.full(n_frames, base_disparity, dtype=np.float32)
+        
+        return disparity
+
     def _make_episode(self):
         W, H = int(self.crop_size[0]), int(self.crop_size[1])
         # randomize parameters
@@ -241,32 +259,83 @@ class MovingBarMovieGenerator(BaseMovieGenerator):
         start_dist = self._compute_start_distance(W, H, bar_w, bar_h)
         total_travel = 2.0 * start_dist
         n_frames = max(2, int(np.ceil(total_travel / speed)) + 1)
-        # param t from -start_dist to +start_dist
-        positions = []
-        angles = []
-        frames = np.zeros((H, W, n_frames), dtype=np.float32)
+        
+        # movement and positioning
         dx = np.cos(np.deg2rad(move_dir))
         dy = np.sin(np.deg2rad(move_dir))
         center_screen = np.array([W/2.0, H/2.0])
+        
         # contrast
         contrast = float(np.random.uniform(-1.0, 1.0))
         bar_col, bg_col = self._contrast_colors(contrast)
-        # generate frames
+        
+        # generate center positions (without disparity)
         ts = np.linspace(-start_dist, start_dist, n_frames)
-        for i, t in enumerate(ts):
+        center_positions = []
+        for t in ts:
             cen = center_screen + np.array([dx * t, dy * t])
-            mask = self._make_bar_mask(W, H, (cen[0], cen[1]), width=bar_w, height=bar_h, angle_deg=bar_angle)
-            frames[:, :, i] = bg_col
-            frames[:, :, i][mask] = bar_col
-            positions.append(cen.copy())
-            angles.append(bar_angle)
-        meta = dict(
-            bar_width=bar_w, bar_height=bar_h, speed=speed, move_dir=move_dir,
-            bar_angle=bar_angle, contrast=contrast, n_frames=n_frames,
-            start_dist=start_dist, center=(W/2.0, H/2.0)
-        )
-        path = np.vstack(positions)  # (T,2) in image coords (x,y)
-        path_bg = None
+            center_positions.append(cen.copy())
+        center_positions = np.vstack(center_positions)  # (T, 2)
+        
+        if self.is_binocular:
+            # Compute disparity for binocular rendering
+            disparity = self._compute_disparity(n_frames)
+            
+            # Create left and right eye positions
+            # Left eye: shift by -disparity/2 in x, right eye: shift by +disparity/2 in x
+            left_positions = center_positions.copy()
+            right_positions = center_positions.copy()
+            left_positions[:, 0] -= disparity / 2.0   # shift left
+            right_positions[:, 0] += disparity / 2.0  # shift right
+            
+            # Generate frames for both eyes
+            frames = np.zeros((H, W, 2, n_frames), dtype=np.float32)  # (H, W, 2_eyes, T)
+            
+            # Left eye frames (eye index 0)
+            for i in range(n_frames):
+                mask = self._make_bar_mask(W, H, (left_positions[i, 0], left_positions[i, 1]), 
+                                         width=bar_w, height=bar_h, angle_deg=bar_angle)
+                frames[:, :, 0, i] = bg_col
+                frames[:, :, 0, i][mask] = bar_col
+            
+            # Right eye frames (eye index 1)  
+            for i in range(n_frames):
+                mask = self._make_bar_mask(W, H, (right_positions[i, 0], right_positions[i, 1]), 
+                                         width=bar_w, height=bar_h, angle_deg=bar_angle)
+                frames[:, :, 1, i] = bg_col
+                frames[:, :, 1, i][mask] = bar_col
+            
+            # For path output, use the average (center) positions
+            path = center_positions
+            
+            # Add binocular info to metadata
+            meta = dict(
+                bar_width=bar_w, bar_height=bar_h, speed=speed, move_dir=move_dir,
+                bar_angle=bar_angle, contrast=contrast, n_frames=n_frames,
+                start_dist=start_dist, center=(W/2.0, H/2.0),
+                is_binocular=True, disparity=disparity,
+                left_positions=left_positions, right_positions=right_positions
+            )
+            
+        else:
+            # Monocular case (original implementation)
+            frames = np.zeros((H, W, n_frames), dtype=np.float32)
+            
+            for i in range(n_frames):
+                mask = self._make_bar_mask(W, H, (center_positions[i, 0], center_positions[i, 1]), 
+                                         width=bar_w, height=bar_h, angle_deg=bar_angle)
+                frames[:, :, i] = bg_col
+                frames[:, :, i][mask] = bar_col
+            
+            path = center_positions
+            meta = dict(
+                bar_width=bar_w, bar_height=bar_h, speed=speed, move_dir=move_dir,
+                bar_angle=bar_angle, contrast=contrast, n_frames=n_frames,
+                start_dist=start_dist, center=(W/2.0, H/2.0),
+                is_binocular=False
+            )
+        
+        path_bg = None  # No background movement for moving bars
         return frames, path, path_bg, meta
 
     def generate(self, num_episodes: int = None) -> Dict[str, Any]:

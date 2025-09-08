@@ -189,23 +189,75 @@ def test_binocular_mode():
             speed_range=(4.0, 6.0),
             num_episodes=1,
             is_binocular=True,
-            interocular_dist=1.0  # cm
+            interocular_dist=1.0,  # cm
+            disparity_range=(1.0, 3.0),  # pixels
+            fix_disparity=2.0  # fixed disparity for testing
         )
         
         result = movie_generator.generate()
         episode = result["episodes"][0]
         
-        print(f"✓ Binocular frames shape: {episode['frames'].shape}")
-        print(f"✓ Binocular path shape: {episode['path'].shape}")
+        frames = episode["frames"]
+        path = episode["path"]
+        meta = episode["meta"]
         
-        # For binocular mode, we might expect different behavior
-        # This is a placeholder for now since the actual binocular implementation
-        # might need to be completed in the MovingBarMovieGenerator class
+        print(f"✓ Binocular frames shape: {frames.shape}")
+        print(f"✓ Binocular path shape: {path.shape}")
         
+        # Check binocular-specific properties
+        if frames.ndim == 4:  # (H, W, 2_eyes, T)
+            H, W, n_eyes, T = frames.shape
+            assert n_eyes == 2, f"Expected 2 eyes, got {n_eyes}"
+            print(f"✓ Correct binocular format: (H={H}, W={W}, eyes={n_eyes}, T={T})")
+            
+            # Check that left and right eye frames are different (due to disparity)
+            left_frames = frames[:, :, 0, :]
+            right_frames = frames[:, :, 1, :]
+            
+            # They should be different due to horizontal shift
+            are_different = not np.array_equal(left_frames, right_frames)
+            print(f"✓ Left and right eye frames are different: {are_different}")
+            
+            # Check metadata contains binocular info
+            assert 'is_binocular' in meta and meta['is_binocular'], "Missing binocular flag in metadata"
+            assert 'disparity' in meta, "Missing disparity in metadata"
+            assert 'left_positions' in meta, "Missing left_positions in metadata"
+            assert 'right_positions' in meta, "Missing right_positions in metadata"
+            
+            left_pos = meta['left_positions']
+            right_pos = meta['right_positions']
+            disparity = meta['disparity']
+            
+            print(f"✓ Disparity values: min={disparity.min():.2f}, max={disparity.max():.2f}")
+            
+            # Verify horizontal shift pattern
+            # Left should be center - disparity/2, right should be center + disparity/2
+            expected_diff = disparity[0]  # use first frame disparity
+            actual_diff = right_pos[0, 0] - left_pos[0, 0]  # horizontal difference
+            
+            print(f"✓ Expected horizontal difference: {expected_diff:.2f}")
+            print(f"✓ Actual horizontal difference: {actual_diff:.2f}")
+            
+            # Check that vertical positions are the same
+            vertical_diff = np.abs(right_pos[:, 1] - left_pos[:, 1]).max()
+            print(f"✓ Max vertical difference (should be ~0): {vertical_diff:.6f}")
+            
+            # Check that average position equals the reported path
+            avg_pos = (left_pos + right_pos) / 2.0
+            path_diff = np.abs(avg_pos - path).max()
+            print(f"✓ Max difference between average and path (should be ~0): {path_diff:.6f}")
+            
+        else:
+            print(f"✗ Unexpected frame shape for binocular: {frames.shape}")
+            return False
+            
     except Exception as e:
-        print(f"Binocular mode test failed (may not be fully implemented): {e}")
-        # Don't return False here since binocular might not be fully implemented yet
+        print(f"✗ Binocular mode test failed: {e}")
+        import traceback
+        traceback.print_exc()
+        return False
     
+    print("✓ Binocular mode test passed!")
     return True
 
 if __name__ == "__main__":
