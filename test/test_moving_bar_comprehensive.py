@@ -39,8 +39,9 @@ VISUALIZATION_AVAILABLE = HAS_MATPLOTLIB
 class MovingBarTester:
     """Comprehensive tester for MovingBarMovieGenerator with optional visualization."""
     
-    def __init__(self, enable_visualization=True):
+    def __init__(self, enable_visualization=True, save_folder='test_results'):
         self.enable_viz = enable_visualization and VISUALIZATION_AVAILABLE
+        self.save_folder = save_folder
         if enable_visualization and not VISUALIZATION_AVAILABLE:
             print("Warning: Visualization requested but dependencies not available")
     
@@ -383,12 +384,12 @@ class MovingBarTester:
             print(f"Movement direction: {meta['move_dir']:.1f} degrees")
             
             # Create output directory
-            os.makedirs('test_results', exist_ok=True)
+            os.makedirs(self.save_folder, exist_ok=True)
             
             # Save frames as text for inspection
             frames_to_show = [0, T//4, T//2, 3*T//4, T-1]
             
-            with open('test_results/binocular_frames_text.txt', 'w') as f:
+            with open(os.path.join(self.save_folder, 'binocular_frames_text.txt'), 'w') as f:
                 f.write("BINOCULAR MOVING BAR TEXT VISUALIZATION\n")
                 f.write("=" * 50 + "\n")
                 f.write(f"Disparity: {meta['disparity'][0]:.1f} pixels\n")
@@ -436,16 +437,16 @@ class MovingBarTester:
                     
                     f.write("\n" + "=" * 40 + "\n\n")
             
-            print("✓ Text visualization saved to: test_results/binocular_frames_text.txt")
+            print(f"✓ Text visualization saved to: {os.path.join(self.save_folder, 'binocular_frames_text.txt')}")
             
             # Also save numerical data for analysis
-            np.save('test_results/left_frames.npy', frames[:, :, 0, :])
-            np.save('test_results/right_frames.npy', frames[:, :, 1, :])
-            np.save('test_results/positions.npy', path)
-            np.save('test_results/left_positions.npy', meta['left_positions'])
-            np.save('test_results/right_positions.npy', meta['right_positions'])
+            np.save(os.path.join(self.save_folder, 'left_frames.npy'), frames[:, :, 0, :])
+            np.save(os.path.join(self.save_folder, 'right_frames.npy'), frames[:, :, 1, :])
+            np.save(os.path.join(self.save_folder, 'positions.npy'), path)
+            np.save(os.path.join(self.save_folder, 'left_positions.npy'), meta['left_positions'])
+            np.save(os.path.join(self.save_folder, 'right_positions.npy'), meta['right_positions'])
             
-            print("✓ Numerical data saved to test_results/")
+            print(f"✓ Numerical data saved to {self.save_folder}/")
             
             # Test monocular vs binocular comparison
             self._create_text_comparison()
@@ -485,7 +486,7 @@ class MovingBarTester:
         bino_episode = bino_result["episodes"][0]
         
         # Save comparison
-        with open('test_results/mono_vs_bino_comparison.txt', 'w') as f:
+        with open(os.path.join(self.save_folder, 'mono_vs_bino_comparison.txt'), 'w') as f:
             f.write("MONOCULAR vs BINOCULAR COMPARISON\n")
             f.write("=" * 50 + "\n")
             f.write(f"Movement direction: {mono_episode['meta']['move_dir']:.1f} degrees\n")
@@ -533,7 +534,7 @@ class MovingBarTester:
                         f.write("░░")
                 f.write("\n")
         
-        print("✓ Text comparison saved to: test_results/mono_vs_bino_comparison.txt")
+        print(f"✓ Text comparison saved to: {os.path.join(self.save_folder, 'mono_vs_bino_comparison.txt')}")
     
     def visualization_test(self):
         """Create visualizations to inspect the MovingBarMovieGenerator functionality."""
@@ -562,7 +563,7 @@ class MovingBarTester:
             print(f"Creating visualizations for {len(episodes)} episodes...")
             
             # Create output directory
-            os.makedirs('test_results', exist_ok=True)
+            os.makedirs(self.save_folder, exist_ok=True)
             
             for ep_idx, episode in enumerate(episodes):
                 frames = episode["frames"]
@@ -585,7 +586,7 @@ class MovingBarTester:
             self._test_binocular_visualization()
             
             print("✓ Visualization test completed!")
-            print("Check the 'test_results' directory for output files")
+            print(f"Check the '{self.save_folder}' directory for output files")
             
         except Exception as e:
             print(f"✗ Visualization test failed: {e}")
@@ -639,14 +640,14 @@ class MovingBarTester:
         ax_traj.invert_yaxis()  # Invert y-axis to match image coordinates
         
         plt.tight_layout()
-        plt.savefig(f'test_results/moving_bar_episode_{episode_idx + 1}_summary.png', 
+        plt.savefig(os.path.join(self.save_folder, f'moving_bar_episode_{episode_idx + 1}_summary.png'), 
                     dpi=150, bbox_inches='tight')
         plt.close()
     
     def _save_sample_frames(self, frames, path, meta, episode_idx, save_every=10):
         """Save sample frames as PNG images."""
         H, W, T = frames.shape
-        os.makedirs(f'test_results/episode_{episode_idx + 1}_frames', exist_ok=True)
+        os.makedirs(os.path.join(self.save_folder, f'episode_{episode_idx + 1}_frames'), exist_ok=True)
         
         # Save only a few frames to avoid too many files
         frame_indices = range(0, T, save_every)
@@ -670,7 +671,7 @@ class MovingBarTester:
             plt.colorbar(im, ax=ax, shrink=0.8)
             
             plt.tight_layout()
-            plt.savefig(f'test_results/episode_{episode_idx + 1}_frames/frame_{t:03d}.png', 
+            plt.savefig(os.path.join(self.save_folder, f'episode_{episode_idx + 1}_frames', f'frame_{t:03d}.png'), 
                        dpi=100, bbox_inches='tight')
             plt.close()
     
@@ -706,11 +707,11 @@ class MovingBarTester:
                                      blit=True, repeat=True)
         
         # Save as GIF
-        anim.save(f'test_results/moving_bar_episode_{episode_idx + 1}_animation.gif', 
+        anim.save(os.path.join(self.save_folder, f'moving_bar_episode_{episode_idx + 1}_animation.gif'), 
                   writer='pillow', fps=5)
         
         plt.close()
-        print(f"Animation saved: test_results/moving_bar_episode_{episode_idx + 1}_animation.gif")
+        print(f"Animation saved: {os.path.join(self.save_folder, f'moving_bar_episode_{episode_idx + 1}_animation.gif')}")
     
     def _test_binocular_visualization(self):
         """Create a visualization comparing monocular and binocular modes."""
@@ -765,7 +766,7 @@ class MovingBarTester:
         plt.colorbar(im, ax=axes[2], shrink=0.8)
         
         plt.tight_layout()
-        plt.savefig('test_results/binocular_comparison.png', dpi=150, bbox_inches='tight')
+        plt.savefig(os.path.join(self.save_folder, 'binocular_comparison.png'), dpi=150, bbox_inches='tight')
         plt.close()
 
 
@@ -780,11 +781,14 @@ def main():
                        help='Run only basic functionality tests')
     
     args = parser.parse_args()
-    
+
+    test_save_folder = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/MovingBar/test_results/'
+    if not os.path.exists(test_save_folder):
+        os.makedirs(test_save_folder)
     enable_viz = not args.no_viz
     
     # Create tester
-    tester = MovingBarTester(enable_visualization=enable_viz)
+    tester = MovingBarTester(enable_visualization=enable_viz, save_folder=test_save_folder)
     
     if args.basic_only:
         success = tester.basic_functionality_test()
@@ -794,7 +798,7 @@ def main():
     if success:
         print("\n🎉 All tests passed! MovingBarMovieGenerator is working correctly.")
         if enable_viz and VISUALIZATION_AVAILABLE:
-            print("Check the 'test_results' directory for visualization outputs.")
+            print(f"Check the '{test_save_folder}' directory for visualization outputs.")
     else:
         print("\n❌ Some tests failed. Check the output above for details.")
     
