@@ -204,7 +204,8 @@ class MovingBarMovieGenerator(BaseMovieGenerator):
         and height (perp to movement) is True. angle_deg is bar orientation in degrees (0 => x-axis).
         """
         cy, cx = center_xy[1], center_xy[0]
-        yy, xx = np.meshgrid(np.arange(H), np.arange(W), indexing='xy')
+        # Create coordinate grids: xx has shape (H, W) with x-coordinates, yy has shape (H, W) with y-coordinates
+        xx, yy = np.meshgrid(np.arange(W), np.arange(H), indexing='xy')
         # coordinates relative to bar center
         xr = xx - center_xy[0]
         yr = yy - center_xy[1]
