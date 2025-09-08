@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import torch.nn as nn
+import multiprocessing as mp
 from datetime import datetime
 from torch.utils.data import DataLoader
 from scipy.io import savemat
@@ -16,6 +17,38 @@ from utils.data_handling import CheckpointLoader
 from utils.tools import MovieGenerator
 from utils.file_name import make_file_name
 from utils.initialization import process_seed, initialize_logging, worker_init_fn
+
+
+def _generate_movie_job(job):
+    """Worker function to generate a single movie in a separate process.
+    
+    Args:
+        job (dict): Dictionary containing all necessary data and parameters
+                   for movie generation (must be picklable).
+    """
+    try:
+        # Import here to avoid issues with multiprocessing
+        from utils.tools import MovieGenerator
+        
+        data_movie = MovieGenerator(
+            job['frame_width'], job['frame_height'], job['fps'], 
+            job['video_save_folder'], bls_tag=f"{job['file_name']}_{job['epoch_number']}",
+            grid_generate_method=job['grid_generate_method']
+        )
+        
+        data_movie.generate_movie(
+            job['inputs'], job['syn_movie'], job['true_path'], job['bg_path'],
+            job['predicted_path'], job['scaling_factors'], video_id=job['video_id'],
+            weighted_coords=job.get('weighted_coords', None)
+        )
+        
+        return f"Movie {job['video_id']} generated successfully"
+        
+    except Exception as e:
+        import logging
+        logging.exception(f"Movie generation failed for job {job.get('video_id', 'unknown')}: {e}")
+        return f"Movie {job.get('video_id', 'unknown')} failed: {str(e)}"
+
 
 def parse_args():
     
@@ -428,7 +461,8 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
 
     logging.info( f"{file_name} processing...10")
     
-    # Test model on samples
+    # Test model on samples - collect video jobs for parallel processing
+    video_jobs = []
     for batch_idx, (inputs, true_path, bg_path, syn_movie, scaling_factors, bg_image_name, image_id, weighted_coords) in enumerate(test_loader):
         # inputs = inputs.to(args.device)
         true_path = true_path.squeeze(0).cpu().numpy()
@@ -446,14 +480,28 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
         sequence_length = len(true_path)
 
         if is_making_video:
-            syn_movie = syn_movie.squeeze().cpu().numpy()
-            inputs = inputs.squeeze().cpu().numpy()
-            scaling_factors = scaling_factors.squeeze().cpu().numpy()
-            data_movie = MovieGenerator(frame_width, frame_height, fps, video_save_folder, bls_tag=f'{file_name}_{epoch_number}',
-                                    grid_generate_method=args.grid_generate_method)
-                                
-            data_movie.generate_movie(inputs, syn_movie, true_path, bg_path, predicted_path, scaling_factors, video_id=batch_idx, 
-                                      weighted_coords=weighted_coords)
+            syn_movie_np = syn_movie.squeeze().cpu().numpy()
+            inputs_np = inputs.squeeze().cpu().numpy()
+            scaling_factors_np = scaling_factors.squeeze().cpu().numpy()
+            
+            # Collect job data for parallel processing
+            video_jobs.append({
+                'inputs': inputs_np,
+                'syn_movie': syn_movie_np,
+                'true_path': true_path,
+                'bg_path': bg_path,
+                'predicted_path': predicted_path,
+                'scaling_factors': scaling_factors_np,
+                'video_id': batch_idx,
+                'weighted_coords': weighted_coords,
+                'frame_width': frame_width,
+                'frame_height': frame_height,
+                'fps': fps,
+                'video_save_folder': video_save_folder,
+                'file_name': file_name,
+                'epoch_number': epoch_number,
+                'grid_generate_method': args.grid_generate_method
+            })
 
         x1, y1 = true_path[:, 0], true_path[:, 1]
         x2, y2 = predicted_path[:, 0], predicted_path[:, 1]
@@ -501,6 +549,30 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
         save_path = os.path.join(test_save_folder, f'{file_name}_{epoch_number}_prediction_plot_sample_{batch_idx + 1}.png')
         plt.savefig(save_path, bbox_inches="tight")
         plt.close()
+
+    # Generate movies in parallel after all data processing is complete
+    if is_making_video and len(video_jobs) > 0:
+        # Use up to 24 workers (respecting available CPUs) for parallel movie generation
+        # Movie generation is CPU-intensive (video encoding), so we can use all available cores
+        num_workers = min(24, mp.cpu_count(), len(video_jobs))
+        logging.info(f"{file_name}: generating {len(video_jobs)} videos using {num_workers} parallel workers")
+        
+        try:
+            # Use spawn method explicitly for better cross-platform compatibility
+            with mp.Pool(processes=num_workers) as pool:
+                results = pool.map(_generate_movie_job, video_jobs)
+            
+            # Log results
+            for result in results:
+                logging.info(result)
+                
+        except Exception as e:
+            logging.error(f"Parallel movie generation failed: {e}")
+            # Fallback to sequential processing
+            logging.info("Falling back to sequential movie generation...")
+            for job in video_jobs:
+                result = _generate_movie_job(job)
+                logging.info(result)
 
 if __name__ == "__main__":
     main()
