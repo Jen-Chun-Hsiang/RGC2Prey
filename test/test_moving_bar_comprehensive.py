@@ -8,9 +8,11 @@ Can run in basic mode (no visualization dependencies) or full mode (with plots/a
 import os
 import sys
 import numpy as np
+import argparse
+import traceback
 
 # Add the project root to the Python path
-sys.path.insert(0, '/Users/emilyhsiang/Desktop/Documents/RGC2Prey')
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 from datasets.movie_generator import MovingBarMovieGenerator
 
@@ -50,6 +52,7 @@ class MovingBarTester:
         success &= self.basic_functionality_test()
         success &= self.parameter_variation_test()
         success &= self.binocular_test()
+        success &= self.text_visual_test()  # Always run text-based visual test
         
         if self.enable_viz:
             success &= self.visualization_test()
@@ -346,6 +349,191 @@ class MovingBarTester:
         
         print("✓ Binocular mode test passed!")
         return True
+    
+    def text_visual_test(self):
+        """Create text-based visualizations for inspection (no dependencies required)."""
+        print("\n=== Text-Based Visual Test ===")
+        
+        try:
+            # Create a small test case for text visualization
+            movie_generator = MovingBarMovieGenerator(
+                crop_size=(40, 30),  # Small for easy text inspection
+                boundary_size=(30, 20),
+                bar_width_range=(8, 8),    # Fixed width
+                bar_height_range=(20, 20), # Fixed height  
+                speed_range=(2.0, 2.0),    # Fixed speed
+                direction_range=(0.0, 0.0), # Horizontal movement only
+                num_episodes=1,
+                is_binocular=True,
+                fix_disparity=4.0  # Fixed disparity for predictable results
+            )
+            
+            result = movie_generator.generate()
+            episode = result["episodes"][0]
+            
+            frames = episode["frames"]  # Shape: (H, W, 2, T)
+            path = episode["path"]
+            meta = episode["meta"]
+            
+            H, W, n_eyes, T = frames.shape
+            
+            print(f"Generated frames: {frames.shape}")
+            print(f"Disparity: {meta['disparity'][0]:.1f} pixels")
+            print(f"Bar size: {meta['bar_width']:.0f} x {meta['bar_height']:.0f}")
+            print(f"Movement direction: {meta['move_dir']:.1f} degrees")
+            
+            # Create output directory
+            os.makedirs('test_results', exist_ok=True)
+            
+            # Save frames as text for inspection
+            frames_to_show = [0, T//4, T//2, 3*T//4, T-1]
+            
+            with open('test_results/binocular_frames_text.txt', 'w') as f:
+                f.write("BINOCULAR MOVING BAR TEXT VISUALIZATION\n")
+                f.write("=" * 50 + "\n")
+                f.write(f"Disparity: {meta['disparity'][0]:.1f} pixels\n")
+                f.write(f"Bar: {meta['bar_width']:.0f}x{meta['bar_height']:.0f}, Speed: {meta['speed']:.1f}\n")
+                f.write("=" * 50 + "\n\n")
+                
+                for frame_idx in frames_to_show:
+                    f.write(f"FRAME {frame_idx}\n")
+                    f.write("-" * 40 + "\n")
+                    
+                    left_frame = frames[:, :, 0, frame_idx]
+                    right_frame = frames[:, :, 1, frame_idx]
+                    
+                    left_pos = meta['left_positions'][frame_idx]
+                    right_pos = meta['right_positions'][frame_idx]
+                    center_pos = path[frame_idx]
+                    
+                    f.write(f"Center position: ({center_pos[0]:.1f}, {center_pos[1]:.1f})\n")
+                    f.write(f"Left position:   ({left_pos[0]:.1f}, {left_pos[1]:.1f})\n") 
+                    f.write(f"Right position:  ({right_pos[0]:.1f}, {right_pos[1]:.1f})\n")
+                    f.write(f"Horizontal diff: {right_pos[0] - left_pos[0]:.1f}\n\n")
+                    
+                    # Show left eye
+                    f.write("LEFT EYE:\n")
+                    for y in range(H):
+                        for x in range(W):
+                            if left_frame[y, x] > 0.6:  # Bar pixels
+                                f.write("██")
+                            elif left_frame[y, x] > 0.4:  # Background 
+                                f.write("░░")
+                            else:  # Dark background
+                                f.write("  ")
+                        f.write("\n")
+                    
+                    f.write("\nRIGHT EYE:\n")
+                    for y in range(H):
+                        for x in range(W):
+                            if right_frame[y, x] > 0.6:  # Bar pixels
+                                f.write("██")
+                            elif right_frame[y, x] > 0.4:  # Background
+                                f.write("░░") 
+                            else:  # Dark background
+                                f.write("  ")
+                        f.write("\n")
+                    
+                    f.write("\n" + "=" * 40 + "\n\n")
+            
+            print("✓ Text visualization saved to: test_results/binocular_frames_text.txt")
+            
+            # Also save numerical data for analysis
+            np.save('test_results/left_frames.npy', frames[:, :, 0, :])
+            np.save('test_results/right_frames.npy', frames[:, :, 1, :])
+            np.save('test_results/positions.npy', path)
+            np.save('test_results/left_positions.npy', meta['left_positions'])
+            np.save('test_results/right_positions.npy', meta['right_positions'])
+            
+            print("✓ Numerical data saved to test_results/")
+            
+            # Test monocular vs binocular comparison
+            self._create_text_comparison()
+            
+        except Exception as e:
+            print(f"✗ Text visual test failed: {e}")
+            import traceback
+            traceback.print_exc()
+            return False
+        
+        print("✓ Text-based visual test completed!")
+        return True
+    
+    def _create_text_comparison(self):
+        """Create text-based comparison between monocular and binocular modes."""
+        print("Creating monocular vs binocular text comparison...")
+        
+        # Same parameters for both
+        params = {
+            'crop_size': (40, 30),
+            'boundary_size': (30, 20),
+            'bar_width_range': (6, 6),
+            'bar_height_range': (15, 15),
+            'speed_range': (1.5, 1.5),
+            'direction_range': (45.0, 45.0),  # Diagonal movement
+            'num_episodes': 1
+        }
+        
+        # Monocular version
+        mono_gen = MovingBarMovieGenerator(**params, is_binocular=False)
+        mono_result = mono_gen.generate()
+        mono_episode = mono_result["episodes"][0]
+        
+        # Binocular version  
+        bino_gen = MovingBarMovieGenerator(**params, is_binocular=True, fix_disparity=3.0)
+        bino_result = bino_gen.generate()
+        bino_episode = bino_result["episodes"][0]
+        
+        # Save comparison
+        with open('test_results/mono_vs_bino_comparison.txt', 'w') as f:
+            f.write("MONOCULAR vs BINOCULAR COMPARISON\n")
+            f.write("=" * 50 + "\n")
+            f.write(f"Movement direction: {mono_episode['meta']['move_dir']:.1f} degrees\n")
+            f.write(f"Bar size: {mono_episode['meta']['bar_width']:.0f}x{mono_episode['meta']['bar_height']:.0f}\n")
+            if bino_episode['meta']['is_binocular']:
+                f.write(f"Binocular disparity: {bino_episode['meta']['disparity'][0]:.1f} pixels\n")
+            f.write("\n")
+            
+            # Show middle frame
+            mono_frames = mono_episode['frames']
+            bino_frames = bino_episode['frames']
+            
+            mid_frame = mono_frames.shape[-1] // 2
+            
+            f.write(f"FRAME {mid_frame} COMPARISON\n")
+            f.write("-" * 30 + "\n")
+            
+            f.write("MONOCULAR:\n")
+            mono_frame = mono_frames[:, :, mid_frame]
+            for y in range(mono_frame.shape[0]):
+                for x in range(mono_frame.shape[1]):
+                    if mono_frame[y, x] > 0.6:
+                        f.write("██")
+                    else:
+                        f.write("░░")
+                f.write("\n")
+            
+            f.write("\nBINOCULAR LEFT:\n")
+            left_frame = bino_frames[:, :, 0, mid_frame]
+            for y in range(left_frame.shape[0]):
+                for x in range(left_frame.shape[1]):
+                    if left_frame[y, x] > 0.6:
+                        f.write("██")
+                    else:
+                        f.write("░░")
+                f.write("\n")
+            
+            f.write("\nBINOCULAR RIGHT:\n")
+            right_frame = bino_frames[:, :, 1, mid_frame]
+            for y in range(right_frame.shape[0]):
+                for x in range(right_frame.shape[1]):
+                    if right_frame[y, x] > 0.6:
+                        f.write("██")
+                    else:
+                        f.write("░░")
+                f.write("\n")
+        
+        print("✓ Text comparison saved to: test_results/mono_vs_bino_comparison.txt")
     
     def visualization_test(self):
         """Create visualizations to inspect the MovingBarMovieGenerator functionality."""
