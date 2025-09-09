@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import sys
 import os
 import time
+from datetime import datetime
 
 # Conditional import for torch (only needed if using new LNK model)
 try:
@@ -21,7 +22,17 @@ if TORCH_AVAILABLE:
 
 # --- CONFIGURATION ---
 mat_file_path = '/storage1/fs1/KerschensteinerD/Active/Emily/PreyCaptureRGC/Results/temp_082125_e100724.mat'  # Update with your .mat file path
-fig_save_file_path = '/storage1/fs1/KerschensteinerD/Active/Emily/PreyCaptureRGC/Results/temp_082125_e100724_03.png'  # Update with your .png file path
+
+# Folder to save figures (change if you want a different location)
+fig_save_file_folder = '/storage1/fs1/KerschensteinerD/Active/Emily/PreyCaptureRGC/Results'
+
+# Derive a timestamped figure filename from the mat file name so it doesn't need to be edited manually
+mat_basename = os.path.splitext(os.path.basename(mat_file_path))[0]
+timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+fig_save_file_path = os.path.join(fig_save_file_folder, f"{mat_basename}_{timestamp}.png")
+
+# Ensure output folder exists
+os.makedirs(fig_save_file_folder, exist_ok=True)
 
 dt = 0.001  # Time step in seconds (update as needed)
 
