@@ -21,10 +21,10 @@ if TORCH_AVAILABLE:
     from datasets.simple_lnk import compute_lnk_response_from_convolved
 
 # --- CONFIGURATION ---
-mat_file_path = '/storage1/fs1/KerschensteinerD/Active/Emily/PreyCaptureRGC/Results/temp_082125_e100724.mat'  # Update with your .mat file path
+mat_file_path = '/storage1/fs1/KerschensteinerD/Active/Emily/PreyCaptureRGC/Results/lnk_verification/e100724_for_lnk_verification.mat'  # Update with your .mat file path
 
 # Folder to save figures (change if you want a different location)
-fig_save_file_folder = '/storage1/fs1/KerschensteinerD/Active/Emily/PreyCaptureRGC/Results'
+fig_save_file_folder = '/storage1/fs1/KerschensteinerD/Active/Emily/PreyCaptureRGC/lnk_verification/figures'
 
 # Derive a timestamped figure filename from the mat file name so it doesn't need to be edited manually
 mat_basename = os.path.splitext(os.path.basename(mat_file_path))[0]
