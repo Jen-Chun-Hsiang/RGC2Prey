@@ -4,14 +4,81 @@ import matplotlib.pyplot as plt
 import sys
 import os
 import time
+
+# Conditional import for torch (only needed if using new LNK model)
+try:
+    import torch
+    TORCH_AVAILABLE = True
+except ImportError:
+    TORCH_AVAILABLE = False
+    print("Warning: PyTorch not available. New LNK model will be disabled.")
+
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from utils.dynamic_fitting import predict_lnk_rate, predict_lnk_rate_two, LNKParams
+
+if TORCH_AVAILABLE:
+    from datasets.simple_lnk import compute_lnk_response_from_convolved
 
 # --- CONFIGURATION ---
 mat_file_path = '/storage1/fs1/KerschensteinerD/Active/Emily/PreyCaptureRGC/Results/temp_082125_e100724.mat'  # Update with your .mat file path
 fig_save_file_path = '/storage1/fs1/KerschensteinerD/Active/Emily/PreyCaptureRGC/Results/temp_082125_e100724_03.png'  # Update with your .png file path
 
 dt = 0.001  # Time step in seconds (update as needed)
+
+# Model selection: Choose which LNK implementation to use
+USE_NEW_LNK_MODEL = True and TORCH_AVAILABLE  # Set to True to use compute_lnk_response_from_convolved, False for predict_lnk_rate_two
+
+if USE_NEW_LNK_MODEL and not TORCH_AVAILABLE:
+    print("Warning: New LNK model requested but PyTorch not available. Falling back to original model.")
+    USE_NEW_LNK_MODEL = False
+
+def lnk_params_to_dict(params: LNKParams, dt: float) -> dict:
+    """Convert LNKParams dataclass to dictionary format expected by compute_lnk_response_from_convolved."""
+    return {
+        'tau': np.array([params.tau]),
+        'alpha_d': np.array([params.alpha_d]),
+        'theta': np.array([params.theta]),
+        'sigma0': np.array([params.sigma0]),
+        'alpha': np.array([params.alpha]),
+        'beta': np.array([params.beta]),
+        'b_out': np.array([params.b_out]),
+        'g_out': np.array([params.g_out]),
+        'w_xs': np.array([params.w_xs]),
+        'dt': np.array([dt])
+    }
+
+if TORCH_AVAILABLE:
+    def compute_lnk_new(x_center: np.ndarray, x_surround: np.ndarray, params: LNKParams, dt: float) -> np.ndarray:
+        """
+        Wrapper function to use compute_lnk_response_from_convolved with numpy arrays.
+        
+        Args:
+            x_center: Center signal [T] - corresponds to sim
+            x_surround: Surround signal [T] - corresponds to sim_s
+            params: LNKParams object
+            dt: Time step
+            
+        Returns:
+            rate_hat: Predicted firing rate [T]
+        """
+        # Convert to torch tensors
+        device = torch.device('cpu')
+        dtype = torch.float32
+        
+        # Reshape to [N=1, T] format expected by the function
+        x_center_torch = torch.from_numpy(x_center).unsqueeze(0).to(device=device, dtype=dtype)
+        x_surround_torch = torch.from_numpy(x_surround).unsqueeze(0).to(device=device, dtype=dtype)
+        
+        # Convert parameters
+        lnk_params_dict = lnk_params_to_dict(params, dt)
+        
+        # Compute response
+        rgc_response = compute_lnk_response_from_convolved(
+            x_center_torch, x_surround_torch, lnk_params_dict, device, dtype
+        )
+        
+        # Convert back to numpy and squeeze to [T] shape
+        return rgc_response.squeeze(0).detach().cpu().numpy()
 
 # --- LOAD DATA ---
 mat_data = sio.loadmat(mat_file_path)
@@ -66,15 +133,36 @@ params_s = LNKParams(
 # --- TIMING predict_lnk_rate ---
 
 num_runs = 100
-start_time = time.time()
-for _ in range(num_runs):
-	rate_hat_s, _ = predict_lnk_rate_two(sim * 1e6, sim_s * 1e6, params_s, dt)
-	rate_hat, _ = predict_lnk_rate(sim * 1e6, params, dt)
-end_time = time.time()
-avg_time = (end_time - start_time) / num_runs
-print(f"Average time per predict_lnk_rate run over {num_runs} runs: {avg_time:.6f} seconds")
+
+if USE_NEW_LNK_MODEL:
+    print("Using new LNK model: compute_lnk_response_from_convolved")
+    start_time = time.time()
+    for _ in range(num_runs):
+        rate_hat_s = compute_lnk_new(sim * 1e6, sim_s * 1e6, params_s, dt)
+        # For single input case, create a params object without w_xs or set w_xs=0
+        params_single = LNKParams(
+            tau=params.tau, alpha_d=params.alpha_d, theta=params.theta,
+            sigma0=params.sigma0, alpha=params.alpha, beta=params.beta,
+            b_out=params.b_out, g_out=params.g_out, w_xs=0.0
+        )
+        rate_hat = compute_lnk_new(sim * 1e6, np.zeros_like(sim_s) * 1e6, params_single, dt)
+    end_time = time.time()
+    avg_time = (end_time - start_time) / num_runs
+    print(f"Average time per new LNK model run over {num_runs} runs: {avg_time:.6f} seconds")
+else:
+    print("Using original LNK model: predict_lnk_rate_two")
+    start_time = time.time()
+    for _ in range(num_runs):
+        rate_hat_s, _ = predict_lnk_rate_two(sim * 1e6, sim_s * 1e6, params_s, dt)
+        rate_hat, _ = predict_lnk_rate(sim * 1e6, params, dt)
+    end_time = time.time()
+    avg_time = (end_time - start_time) / num_runs
+    print(f"Average time per original LNK model run over {num_runs} runs: {avg_time:.6f} seconds")
 
 # --- CORRELATION PRINTING ---
+model_name = "New LNK Model" if USE_NEW_LNK_MODEL else "Original LNK Model"
+print(f"\n--- {model_name} Results ---")
+
 sim_exp_corr = np.corrcoef(sim, exp)[0, 1]
 ratehat_exp_corr = np.corrcoef(rate_hat, exp)[0, 1]
 ratehat_s_exp_corr = np.corrcoef(rate_hat_s, exp)[0, 1]
@@ -92,10 +180,23 @@ print(f"Correlation between r_hat_s and exp: {r_hat_s_exp_corr:.4f}")
 # --- COMPARISON ---
 plt.figure(figsize=(10, 4))
 plt.plot(exp, label='Experimental')
-plt.plot(rate_hat_s, label='Simulated (LNK Model)', alpha=0.7)
+plt.plot(rate_hat_s, label=f'Simulated ({model_name})', alpha=0.7)
 plt.legend()
 plt.xlabel('Time')
 plt.ylabel('Rate')
-plt.title(f'LNK Model Verification\nSim-Exp Corr: {sim_exp_corr:.4f}, RateHat-Exp Corr: {ratehat_exp_corr:.4f}')
+plt.title(f'{model_name} Verification\nSim-Exp Corr: {sim_exp_corr:.4f}, RateHat-Exp Corr: {ratehat_exp_corr:.4f}')
 plt.tight_layout()
 plt.savefig(fig_save_file_path)
+print(f"\nPlot saved to: {fig_save_file_path}")
+
+# --- SUMMARY ---
+print(f"\n--- Summary ---")
+print(f"Model used: {model_name}")
+print(f"Best correlation with experimental data: {max(ratehat_exp_corr, ratehat_s_exp_corr):.4f}")
+print(f"Performance metric (rate_hat_s vs exp): {ratehat_s_exp_corr:.4f}")
+if TORCH_AVAILABLE and USE_NEW_LNK_MODEL:
+    print("✓ New LNK model executed successfully!")
+elif not TORCH_AVAILABLE:
+    print("⚠ PyTorch not available - using original model only")
+else:
+    print("Using original LNK model as requested")

@@ -221,3 +221,75 @@ The modular design allows for easy extensions:
 ## API Reference
 
 See docstrings in `datasets/lnk_utils.py` for detailed function documentation with type hints and examples.
+
+---
+
+# New LNK Model Integration (compute_lnk_response_from_convolved)
+
+## Overview
+
+The `lnk_verify.py` script has been enhanced to support both the original LNK implementation and the new PyTorch-based implementation from `simple_lnk.py`. **Note: These represent different modeling approaches and are not expected to produce identical results.**
+
+This integration provides:
+
+1. **Dual Model Support**: Switch between implementations via a simple flag
+2. **Automatic Detection**: PyTorch availability check with graceful fallback
+3. **Parameter Conversion**: Seamless mapping between parameter formats
+4. **Independent Verification**: Each model can be validated against experimental data
+
+## Key Integration Features
+
+### Model Selection Flag
+```python
+USE_NEW_LNK_MODEL = True  # Set to False to use original model
+```
+
+### Parameter Mapping
+- Automatic conversion from `LNKParams` dataclass to dictionary format
+- Preserves all parameter values and meanings
+- Handles single vs. dual input cases appropriately
+
+### Signal Correspondence
+- `x_center` ← `sim` (center/primary signal)
+- `x_surround` ← `sim_s` (surround signal)
+- Both signals scaled by 1e6 for compatibility
+
+### Wrapper Functions
+- `lnk_params_to_dict()`: Convert parameter formats
+- `compute_lnk_new()`: Unified interface for new implementation
+- Error handling and device management included
+
+## Usage Example
+
+```python
+# In lnk_verify.py
+USE_NEW_LNK_MODEL = True  # Enable new implementation
+
+# The script automatically:
+# 1. Detects PyTorch availability
+# 2. Converts parameters to appropriate format
+# 3. Runs timing comparisons
+# 4. Generates correlation analysis
+# 5. Creates visualization plots
+```
+
+## Testing Integration
+
+Run the integration test to verify the new implementation works correctly:
+```bash
+python test/test_lnk_integration.py
+```
+
+This test creates synthetic data and validates that the new implementation:
+- Executes without errors
+- Produces reasonable output values
+- Handles parameter conversion correctly
+- Manages tensor operations properly
+
+## Benefits
+
+1. **Backward Compatibility**: Existing code continues to work unchanged
+2. **Model Choice**: Select implementation based on specific needs
+3. **Easy Integration**: Simple flag-based switching between models
+4. **Independent Validation**: Each model can be tested against experimental data
+5. **Future Ready**: GPU acceleration available with new implementation
