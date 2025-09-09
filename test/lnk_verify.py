@@ -148,15 +148,16 @@ num_runs = 100
 if USE_NEW_LNK_MODEL:
     print("Using new LNK model: compute_lnk_response_from_convolved")
     start_time = time.time()
+    _scaling_fac = 1e8
     for _ in range(num_runs):
-        rate_hat_s = compute_lnk_new(sim * 1e6, sim_s * 1e6, params_s, dt)
+        rate_hat_s = compute_lnk_new(sim * _scaling_fac, sim_s * _scaling_fac, params_s, dt)
         # For single input case, create a params object without w_xs or set w_xs=0
         params_single = LNKParams(
             tau=params.tau, alpha_d=params.alpha_d, theta=params.theta,
             sigma0=params.sigma0, alpha=params.alpha, beta=params.beta,
             b_out=params.b_out, g_out=params.g_out, w_xs=0.0
         )
-        rate_hat = compute_lnk_new(sim * 1e6, np.zeros_like(sim_s) * 1e6, params_single, dt)
+        rate_hat = compute_lnk_new(sim * _scaling_fac, np.zeros_like(sim_s) * _scaling_fac, params_single, dt)
     end_time = time.time()
     avg_time = (end_time - start_time) / num_runs
     print(f"Average time per new LNK model run over {num_runs} runs: {avg_time:.6f} seconds")
