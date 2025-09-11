@@ -148,7 +148,7 @@ num_runs = 100
 if USE_NEW_LNK_MODEL:
     print("Using new LNK model: compute_lnk_response_from_convolved")
     start_time = time.time()
-    _scaling_fac = 1e8
+    _scaling_fac = 1e7
     for _ in range(num_runs):
         rate_hat_s = compute_lnk_new(sim * _scaling_fac, sim_s * _scaling_fac, params_s, dt)
         # For single input case, create a params object without w_xs or set w_xs=0
