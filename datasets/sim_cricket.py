@@ -450,12 +450,12 @@ class Cricket2RGCs(Dataset):
         self.channels = [
             {
                 'sf': sf_tensor,
-                'sf_surround': torch.from_numpy(surround_sf).float(),
+                'sf_surround': torch.from_numpy(surround_sf).float() if (surround_sf is not None and self.use_lnk) else None,
                 'tf': tf_multi.view(num_rgcs, 1, -1),  # [N, 1, T] for conv1d
                 'map_func': map_func,
                 'grid2value': grid2value_mapping,
                 'rect_thr': self.rectified_thr_ON,
-                'lnk_params': lnk_params,
+                'lnk_params': lnk_params if self.use_lnk else None,
             }
         ]
         
@@ -487,12 +487,12 @@ class Cricket2RGCs(Dataset):
                 
             off_channel = {
                 'sf': sf_off_tensor,
-                'sf_surround': torch.from_numpy(surround_sf_off).float(),
+                'sf_surround': torch.from_numpy(surround_sf_off).float() if (surround_sf_off is not None and self.use_lnk) else None,
                 'tf': tf_off_multi.view(num_rgcs_off, 1, -1),
                 'map_func': map_func_off,
                 'grid2value': grid2value_mapping_off,
                 'rect_thr': self.rectified_thr_OFF,
-                'lnk_params': lnk_params_off
+                'lnk_params': lnk_params_off if self.use_lnk else None
             }
             
             self.channels.append(off_channel)
