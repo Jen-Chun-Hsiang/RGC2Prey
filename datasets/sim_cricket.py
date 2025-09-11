@@ -1111,7 +1111,10 @@ class RGCrfArray:
         points = self.grid_generator.generate_first_grid()
         idx_dict = self._generate_indices(points)
 
-        lnk_params = sample_lnk_parameters(self.lnk_param_table, idx_dict.get('lnk'))
+        if self.use_lnk_override:
+            lnk_params = sample_lnk_parameters(self.lnk_param_table, idx_dict.get('lnk'))
+        else:
+                lnk_params = None
 
         # Create filters
         multi_opt_sf_center, multi_opt_sf_surround = self._create_multi_opt_sf(points, self.sf_id_list, idx_list=idx_dict.get('sf'))
@@ -1134,7 +1137,7 @@ class RGCrfArray:
                 idx_dict['sf'] = np.random.choice(len(self.sf_param_table), num_points)
             if 'tf' not in idx_dict:
                 idx_dict['tf'] = np.random.choice(len(self.tf_param_table), num_points)
-            if 'lnk' not in idx_dict:
+            if 'lnk' not in idx_dict and self.lnk_param_table is not None:
                 idx_dict['lnk'] = np.random.choice(len(self.lnk_param_table), num_points)
         else:
             # Get non-NaN indices for each table
@@ -1170,7 +1173,7 @@ class RGCrfArray:
                 idx_dict['sf'] = np.random.choice(len(self.sf_param_table), num_points)
             if 'tf' not in self.syn_params:
                 idx_dict['tf'] = np.random.choice(len(self.tf_param_table), num_points)
-            if 'lnk' not in self.syn_params:
+            if 'lnk' not in self.syn_params and self.lnk_param_table is not None:
                 idx_dict['lnk'] = np.random.choice(len(self.lnk_param_table), num_points)
 
         return idx_dict
@@ -1183,8 +1186,11 @@ class RGCrfArray:
         points = self.grid_generator.generate_second_grid(anti_alignment=anti_alignment)
         idx_dict = self._generate_indices(points)
 
-        lnk_params = sample_lnk_parameters(self.lnk_param_table, idx_dict.get('lnk'))
-        
+        if self.use_lnk_override:
+            lnk_params = sample_lnk_parameters(self.lnk_param_table, idx_dict.get('lnk'))
+        else:
+            lnk_params = None
+
         # Create filters
         multi_opt_sf_center, multi_opt_sf_surround = self._create_multi_opt_sf(points, sf_id_list_additional, idx_list=idx_dict.get('sf'))
         tf = self._create_temporal_filter(idx_list=idx_dict.get('tf'))
