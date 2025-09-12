@@ -205,6 +205,8 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
         args.syn_tf_sf = False
     if not hasattr(args, 'is_rescale_diffgaussian'):
         args.is_rescale_diffgaussian = True
+    if not hasattr(args, 'set_surround_size_scalar'):
+        args.set_surround_size_scalar = None
     
     # Add LNK model attributes
     if not hasattr(args, 'use_lnk_model'):
@@ -251,7 +253,8 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
         sf_mask_radius=args.sf_mask_radius, is_pixelized_tf=args.is_pixelized_tf, set_s_scale=args.set_s_scale, 
         is_rf_median_subtract=args.is_rf_median_subtract, is_rescale_diffgaussian=args.is_rescale_diffgaussian, 
         grid_noise_level=args.grid_noise_level, is_reversed_tf=args.is_reversed_tf, sf_id_list=args.sf_id_list,
-        use_lnk_override=args.use_lnk_model, lnk_param_table=lnk_param_table, syn_params=syn_params  # Pass LNK flag to RGCrfArray
+        use_lnk_override=args.use_lnk_model, lnk_param_table=lnk_param_table, syn_params=syn_params,
+        set_surround_size_scalar=args.set_surround_size_scalar  # Pass LNK flag to RGCrfArray
     )
     logging.info( f"{file_name} processing...1.5")
     

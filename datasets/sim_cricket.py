@@ -1034,6 +1034,7 @@ class RGCrfArray:
                  grid_noise_level=0.3, is_reversed_tf = False, sf_id_list=None, syn_tf_sf=False, 
                  use_lnk_override=False,
                  surround_sigma_ratio=4.0,  # Add this parameter
+                 set_surround_size_scalar=None,
                  # New synchronization parameters
                  syn_params=None,
                  lnk_param_table=None):
@@ -1077,6 +1078,7 @@ class RGCrfArray:
         self.sf_id_list = sf_id_list
         self.syn_tf_sf = syn_tf_sf
         self.surround_sigma_ratio = surround_sigma_ratio  # Add this line
+        self.set_surround_size_scalar = set_surround_size_scalar
         
         # Handle new synchronization options
         self.lnk_param_table = lnk_param_table
@@ -1281,11 +1283,20 @@ class RGCrfArray:
             else:
                 # Standard LN model
                 s_scale = self._get_s_scale(row)
+                # Determine surround sigmas: if set_surround_size_scalar is provided, derive surround sigma
+                # from the center sigma multiplied by that scalar (and sf_scalar). Otherwise use row['s_sigma_x']/y.
+                if self.set_surround_size_scalar is not None:
+                    s_sigma_x_val = row['sigma_x'] * self.sf_scalar * float(self.set_surround_size_scalar)
+                    s_sigma_y_val = row['sigma_y'] * self.sf_scalar * float(self.set_surround_size_scalar)
+                else:
+                    s_sigma_x_val = row['s_sigma_x'] * self.sf_scalar
+                    s_sigma_y_val = row['s_sigma_y'] * self.sf_scalar
+
                 sf_params = np.array([
                     point[1], point[0], 
                     row['sigma_x'] * self.sf_scalar, row['sigma_y'] * self.sf_scalar,
                     row['theta'], row['bias'], row['c_scale'], 
-                    row['s_sigma_x'] * self.sf_scalar, row['s_sigma_y'] * self.sf_scalar, 
+                    s_sigma_x_val, s_sigma_y_val, 
                     s_scale
                 ])
                 opt_sf = self._generate_and_normalize_sf(sf_params, point)

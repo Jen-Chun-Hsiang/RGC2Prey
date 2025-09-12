@@ -125,7 +125,8 @@ def parse_args():
                        choices=['tf', 'sf', 'lnk'],
                        help='Parameters to synchronize across cells. Example: --syn_params tf sf lnk')
     parser.add_argument('--is_rescale_diffgaussian', action='store_true', help='Rescale the diffgaussian RF to have zero min and max to 1')
-    
+    parser.add_argument('--set_surround_size_scalar', type=float, default=None, help='Resize the rf surround size ')
+
     # Arguments for LNK model
     parser.add_argument('--use_lnk_model', action='store_true', help='Use LNK model instead of LN model for RGC responses. In LNK: w_xs controls surround interaction, s_scale is ignored.')
     parser.add_argument('--lnk_sheet_name', type=str, default='LNK_params', help='Excel sheet name for LNK parameters (includes w_xs for center-surround interaction)')
@@ -244,7 +245,8 @@ def main():
         sf_mask_radius=args.sf_mask_radius, is_pixelized_tf=args.is_pixelized_tf, set_s_scale=args.set_s_scale, 
         is_rf_median_subtract=args.is_rf_median_subtract, is_rescale_diffgaussian=args.is_rescale_diffgaussian, 
         grid_noise_level=args.grid_noise_level, is_reversed_tf=args.is_reversed_tf, sf_id_list=args.sf_id_list,
-        use_lnk_override=args.use_lnk_model, lnk_param_table=lnk_param_table, syn_params=syn_params  # Pass LNK flag to RGCrfArray
+        use_lnk_override=args.use_lnk_model, lnk_param_table=lnk_param_table, syn_params=syn_params,
+        set_surround_size_scalar=args.set_surround_size_scalar  # Pass surround size scalar to RGCrfArray
     )
     
     logging.info( f"{args.experiment_name} processing...1")
