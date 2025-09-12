@@ -373,7 +373,10 @@ class Cricket2RGCs(Dataset):
         is_reversed_OFF_sign=False,
         is_two_grids=False,
         rectified_thr_ON=0.0,
-        rectified_thr_OFF=0.0,
+        rectified_thr_OFF=None,
+        rectified_mode='softplus',
+        rectified_softness=1.0,
+        rectified_softness_OFF=None,
         # Simple LNK parameters
         use_lnk=False,
         lnk_params=None,
@@ -408,8 +411,14 @@ class Cricket2RGCs(Dataset):
         self.is_both_ON_OFF = is_both_ON_OFF
         self.is_two_grids = is_two_grids
         self.is_reversed_OFF_sign = is_reversed_OFF_sign
-        self.rectified_thr_ON=rectified_thr_ON
-        self.rectified_thr_OFF=rectified_thr_OFF
+        self.rectified_thr_ON = rectified_thr_ON
+        # If OFF threshold not provided, use ON threshold so both match by default
+        self.rectified_thr_OFF = rectified_thr_OFF if rectified_thr_OFF is not None else rectified_thr_ON
+        # Rectification behaviour: 'hard' (clamp_min) or 'softplus'
+        self.rectified_mode = rectified_mode
+        self.rectified_softness = rectified_softness
+        # allow separate OFF softness; fall back to global softness if None
+        self.rectified_softness_OFF = rectified_softness_OFF if rectified_softness_OFF is not None else rectified_softness
 
         # Normalization for path coordinates
         self.norm_path_fac = (
@@ -455,6 +464,7 @@ class Cricket2RGCs(Dataset):
                 'map_func': map_func,
                 'grid2value': grid2value_mapping,
                 'rect_thr': self.rectified_thr_ON,
+                'rect_softness': self.rectified_softness,
                 'lnk_params': lnk_params if self.use_lnk else None,
             }
         ]
@@ -492,6 +502,7 @@ class Cricket2RGCs(Dataset):
                 'map_func': map_func_off,
                 'grid2value': grid2value_mapping_off,
                 'rect_thr': self.rectified_thr_OFF,
+                'rect_softness': self.rectified_softness_OFF,
                 'lnk_params': lnk_params_off if self.use_lnk else None
             }
             
@@ -526,6 +537,7 @@ class Cricket2RGCs(Dataset):
         return p
 
     def _compute_rgc_time(self, movie, sf, sf_surround, tf, rect_thr,
+                            rect_softness=1.0,
                             lnk_params=None):
         """
         Compute RGC response using either LN or simplified LNK model.
@@ -578,8 +590,16 @@ class Cricket2RGCs(Dataset):
         if self.add_noise:
             rgc_time += torch.randn_like(rgc_time) * self.rgc_noise_std
         if self.is_rectified:
-            rgc_time = torch.clamp_min(rgc_time, rect_thr)
-            
+            # Support soft rectification via softplus, or fall back to hard clamp_min
+            if getattr(self, 'rectified_mode', 'hard') == 'softplus':
+                # Use per-channel softness if provided, else fall back to dataset-level softness
+                softness = rect_softness if (rect_softness is not None) else getattr(self, 'rectified_softness', 1.0)
+                softness = float(max(1e-6, softness))
+                # Center softplus at rect_thr so the transition happens around the threshold
+                rgc_time = rect_thr + F.softplus((rgc_time - rect_thr) / softness) * softness
+            else:
+                rgc_time = torch.clamp_min(rgc_time, rect_thr)
+
         return rgc_time
 
     def _process_direct_image(self, syn_movie):
@@ -639,7 +659,8 @@ class Cricket2RGCs(Dataset):
                 ch['sf_surround'],
                 ch['tf'], 
                 ch['rect_thr'],
-                ch['lnk_params']
+                rect_softness=ch.get('rect_softness', getattr(self, 'rectified_softness', 1.0)),
+                lnk_params=ch['lnk_params']
             )
 
         grid_values_list = []

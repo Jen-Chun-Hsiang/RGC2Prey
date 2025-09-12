@@ -74,6 +74,13 @@ def parse_args():
     parser.add_argument('--is_two_grids', action='store_true', help='Make two grids instead of one, like ON and OFF, but same sign')
     parser.add_argument('--rectified_thr_ON', type=float, default=0.0, help='Threshold for ON rectification')
     parser.add_argument('--rectified_thr_OFF', type=float, default=0.0, help='Threshold for OFF rectification')
+    # New rectification options matching Cricket2RGCs constructor
+    parser.add_argument('--rectified_mode', type=str, default='softplus', choices=['hard', 'softplus'],
+                        help='Rectification mode for RGC outputs (hard clamp_min or softplus)')
+    parser.add_argument('--rectified_softness', type=float, default=1.0,
+                        help='Softness parameter for softplus rectification (ON channel)')
+    parser.add_argument('--rectified_softness_OFF', type=float, default=None,
+                        help='Softness parameter for OFF channel; if omitted, uses ON softness')
     
     # Arguments for RGCrfArray
     parser.add_argument('--rgc_array_rf_size', type=tuple, default=(320, 240), help="Receptive field size (height, width).")
@@ -337,6 +344,9 @@ def main():
             is_two_grids=args.is_two_grids,
             rectified_thr_ON=args.rectified_thr_ON,
             rectified_thr_OFF=args.rectified_thr_OFF,
+            rectified_mode=args.rectified_mode,
+            rectified_softness=args.rectified_softness,
+            rectified_softness_OFF=args.rectified_softness_OFF,
             multi_opt_sf_off=multi_opt_sf_off,
             tf_off=tf_off,
             map_func_off=map_func_off,
@@ -388,8 +398,11 @@ def main():
         is_direct_image=args.is_direct_image,
         is_reversed_OFF_sign=args.is_reversed_OFF_sign,
         is_two_grids=args.is_two_grids,
-        rectified_thr_ON=args.rectified_thr_ON,
-        rectified_thr_OFF=args.rectified_thr_OFF,
+    rectified_thr_ON=args.rectified_thr_ON,
+    rectified_thr_OFF=args.rectified_thr_OFF,
+    rectified_mode=args.rectified_mode,
+    rectified_softness=args.rectified_softness,
+    rectified_softness_OFF=args.rectified_softness_OFF,
         multi_opt_sf_off=multi_opt_sf_off,
         tf_off=tf_off,
         map_func_off=map_func_off,
@@ -464,8 +477,11 @@ def main():
         is_direct_image=args.is_direct_image,
         is_reversed_OFF_sign=args.is_reversed_OFF_sign,
         is_two_grids=args.is_two_grids,
-        rectified_thr_ON=args.rectified_thr_ON,
-        rectified_thr_OFF=args.rectified_thr_OFF,
+    rectified_thr_ON=args.rectified_thr_ON,
+    rectified_thr_OFF=args.rectified_thr_OFF,
+    rectified_mode=args.rectified_mode,
+    rectified_softness=args.rectified_softness,
+    rectified_softness_OFF=args.rectified_softness_OFF,
         multi_opt_sf_off=multi_opt_sf_off,
         tf_off=tf_off,
         map_func_off=map_func_off,
