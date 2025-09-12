@@ -173,18 +173,21 @@ def main():
     is_rgc_distribution = False
 
     args = parse_args()
-    bottom_img_folder = f'/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/CricketDataset/Images/cropped/{args.bg_folder}/'  #grass
-    top_img_folder    = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/CricketDataset/Images/cropped/cricket/'
-    syn_save_folder  = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/CricketDataset/Images/syn_img/'
-    rf_save_folder  = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/CricketDataset/RFs/RGCs/'
-    distribution_save_folder = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/CricketDataset/Distribution/RGC_outputs/'
-    plot_save_folder =  '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/Results/Figures/TFs/'
-    log_save_folder  = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/Results/Prints/'
-    savemodel_dir = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/Results/CheckPoints/'
-    rf_params_file = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/SimulationParams.xlsx'
-    coord_mat_file = f'/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/selected_points_summary_{args.coord_adj_type}.mat'   #selected_points_summary.mat
-    video_save_folder = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/Results/Videos/RFs/'
-    mat_save_folder = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/Results/Mats/'
+    # Shared root to avoid repeating long absolute prefixes
+    root_folder = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver'
+
+    bottom_img_folder = os.path.join(root_folder, 'CricketDataset', 'Images', 'cropped', args.bg_folder) + '/'  # grass
+    top_img_folder = os.path.join(root_folder, 'CricketDataset', 'Images', 'cropped', 'cricket') + '/'
+    syn_save_folder = os.path.join(root_folder, 'CricketDataset', 'Images', 'syn_img') + '/'
+    rf_save_folder = os.path.join(root_folder, 'CricketDataset', 'RFs', 'RGCs') + '/'
+    distribution_save_folder = os.path.join(root_folder, 'CricketDataset', 'Distribution', 'RGC_outputs') + '/'
+    plot_save_folder = os.path.join(root_folder, 'RGC2Prey', 'Results', 'Figures', 'TFs') + '/'
+    log_save_folder = os.path.join(root_folder, 'RGC2Prey', 'Results', 'Prints') + '/'
+    savemodel_dir = os.path.join(root_folder, 'RGC2Prey', 'Results', 'CheckPoints') + '/'
+    rf_params_file = os.path.join(root_folder, 'RGC2Prey', 'SimulationParams.xlsx')
+    coord_mat_file = os.path.join(root_folder, 'RGC2Prey', f'selected_points_summary_{args.coord_adj_type}.mat')   # selected_points_summary.mat
+    video_save_folder = os.path.join(root_folder, 'RGC2Prey', 'Results', 'Videos', 'RFs') + '/'
+    mat_save_folder = os.path.join(root_folder, 'RGC2Prey', 'Results', 'Mats') + '/'
 
     initialize_logging(log_save_folder=log_save_folder, experiment_name=args.experiment_name)
     process_seed(args.seed)
