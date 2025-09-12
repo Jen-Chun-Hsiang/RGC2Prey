@@ -60,6 +60,8 @@ def parse_args():
     parser.add_argument('--test_ob_folder', type=str, default=None, help="Object folder for testing")
     parser.add_argument('--boundary_size', type=str, default=None, help="Boundary size as '(x_limit, y_limit)'.")
     parser.add_argument('--epoch_number', type=int, default=200, help="Epoch number to check")
+    parser.add_argument('--num_worker', type=int, default=None,
+                        help="Number of DataLoader workers and max parallel movie workers (overrides checkpoint setting)")
 
     return parser.parse_args()
 
@@ -78,6 +80,7 @@ def main():
                             test_bg_folder=args.test_bg_folder,
                             test_ob_folder=args.test_ob_folder,
                             boundary_size=args.boundary_size,
+                            cli_num_worker=args.num_worker,
                             epoch_number=args.epoch_number
                         )
         else:
@@ -89,11 +92,12 @@ def main():
                     test_bg_folder=args.test_bg_folder,
                     test_ob_folder=args.test_ob_folder,
                     boundary_size=args.boundary_size,
+                    cli_num_worker=args.num_worker,
                     epoch_number=args.epoch_number
                 )
 
 
-def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None, test_bg_folder=None, test_ob_folder=None, boundary_size=None, epoch_number=200):
+def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None, test_bg_folder=None, test_ob_folder=None, boundary_size=None, epoch_number=200, cli_num_worker=None):
     num_display = 3
     frame_width = 640
     frame_height = 480
@@ -135,6 +139,13 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
         checkpoint_filename = os.path.join(checkpoint_path, f'{experiment_name}_checkpoint_epoch_{epoch_number}.pth')
     checkpoint_loader = CheckpointLoader(checkpoint_filename)
     args = checkpoint_loader.load_args()
+    # Merge CLI override for num_worker if provided (do not overwrite other checkpoint args)
+    if cli_num_worker is not None:
+        try:
+            args.num_worker = int(cli_num_worker)
+            logging.info(f"Overriding checkpoint num_worker with CLI value: {args.num_worker}")
+        except Exception:
+            logging.warning(f"Invalid cli_num_worker provided: {cli_num_worker}. Using checkpoint or defaults.")
     training_losses = checkpoint_loader.load_training_losses()
 
     
@@ -347,8 +358,18 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
                                 surround_sf=multi_opt_sf_surround,
                                 surround_sf_off=multi_opt_sf_surround_off)
 
+    # Ensure num_workers is a non-negative integer (DataLoader accepts 0 for inline workers)
+    dl_num_workers = getattr(args, 'num_worker', None)
+    if dl_num_workers is None:
+        dl_num_workers = 0
+    else:
+        try:
+            dl_num_workers = max(0, int(dl_num_workers))
+        except Exception:
+            dl_num_workers = 0
+
     test_loader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=True, 
-                             num_workers=args.num_worker, pin_memory=True, persistent_workers=False, worker_init_fn=worker_init_fn)
+                             num_workers=dl_num_workers, pin_memory=True, persistent_workers=False, worker_init_fn=worker_init_fn)
 
     logging.info( f"{file_name} processing...5")
     test_losses = [] 
@@ -560,7 +581,18 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
     if is_making_video and len(video_jobs) > 0:
         # Use up to 24 workers (respecting available CPUs) for parallel movie generation
         # Movie generation is CPU-intensive (video encoding), so we can use all available cores
-        num_workers = min(24, mp.cpu_count(), len(video_jobs))
+        # Determine pool size: prefer explicit CLI/checkpoint setting if provided and > 0
+        pool_worker_setting = getattr(args, 'num_worker', None)
+        if pool_worker_setting is not None:
+            try:
+                pool_worker_setting = int(pool_worker_setting)
+            except Exception:
+                pool_worker_setting = None
+
+        if pool_worker_setting and pool_worker_setting > 0:
+            num_workers = min(pool_worker_setting, mp.cpu_count(), len(video_jobs))
+        else:
+            num_workers = min(24, mp.cpu_count(), len(video_jobs))
         logging.info(f"{file_name}: generating {len(video_jobs)} videos using {num_workers} parallel workers")
         
         try:
