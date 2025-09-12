@@ -1116,7 +1116,7 @@ class RGCrfArray:
         if self.use_lnk_override:
             lnk_params = sample_lnk_parameters(self.lnk_param_table, idx_dict.get('lnk'))
         else:
-                lnk_params = None
+            lnk_params = None
 
         # Create filters
         multi_opt_sf_center, multi_opt_sf_surround = self._create_multi_opt_sf(points, self.sf_id_list, idx_list=idx_dict.get('sf'))
