@@ -237,8 +237,11 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
     # make sure the following usecol is provide to avoid full empty columns
     sf_param_table = pd.read_excel(rf_params_file, sheet_name=args.sf_sheet_name, usecols='C:L')
     tf_param_table = pd.read_excel(rf_params_file, sheet_name=args.tf_sheet_name, usecols='C:I')
-    lnk_param_table = pd.read_excel(rf_params_file, sheet_name=args.lnk_sheet_name, usecols='C:L')
-
+    
+    if args.use_lnk_model:
+        lnk_param_table = pd.read_excel(rf_params_file, sheet_name=args.lnk_sheet_name, usecols='C:L')
+    else:
+        lnk_param_table = None
     if not args.use_lnk_model and args.syn_params:
         syn_params = [p for p in args.syn_params if p != 'lnk']
     else:
