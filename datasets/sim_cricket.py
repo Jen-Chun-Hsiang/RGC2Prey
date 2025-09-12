@@ -1273,8 +1273,11 @@ class RGCrfArray:
                 surround_params = base_params.copy()
                 surround_params[2] *= self.surround_sigma_ratio  # scale sigma_x
                 surround_params[3] *= self.surround_sigma_ratio  # scale sigma_y
-                opt_sf_surround = self._generate_and_normalize_sf(surround_params, point, 
-                                                                  radius_scale=self.surround_sigma_ratio)
+                # Allow different circular-mask cutoff for surround. If user provided
+                # set_surround_size_scalar, use it to scale the mask; otherwise use surround_sigma_ratio.
+                surround_mask_scale = self.set_surround_size_scalar if self.set_surround_size_scalar is not None else self.surround_sigma_ratio
+                opt_sf_surround = self._generate_and_normalize_sf(
+                    surround_params, point, radius_scale=self.surround_sigma_ratio, mask_scale=surround_mask_scale)
                 multi_opt_sf_surround[:, :, i] = opt_sf_surround
                 
                 if i == 0:  # Log only once to avoid spam
@@ -1304,8 +1307,15 @@ class RGCrfArray:
         
         return multi_opt_sf, multi_opt_sf_surround
 
-    def _generate_and_normalize_sf(self, sf_params, point, radius_scale=1.0):
-        """Helper method to generate and normalize spatial filter"""
+    def _generate_and_normalize_sf(self, sf_params, point, radius_scale=1.0, mask_scale=1.0):
+        """Helper method to generate and normalize spatial filter
+
+        Parameters:
+        - sf_params: parameters for gaussian_multi
+        - point: grid point used for optional masking
+        - radius_scale: multiplier applied to mask and surround sizing (keeps prior behavior)
+        - mask_scale: additional multiplier to allow different circular-mask cutoff between center and surround
+        """
         opt_sf = gaussian_multi(sf_params, self.rgc_array_rf_size, 
                                self.num_gauss_example, self.is_rescale_diffgaussian)
         
@@ -1318,7 +1328,13 @@ class RGCrfArray:
 
         # Apply spatial constraints if specified
         if self.sf_constraint_method == 'circle':
-            opt_sf = self._apply_circular_mask(opt_sf, point, self.sf_mask_radius * radius_scale)
+            # Allow an extra mask_scale so center and surround can have different cutoffs.
+            try:
+                sf_scalar_val = float(self.sf_scalar)
+            except Exception:
+                sf_scalar_val = 1.0
+            mask_radius = self.sf_mask_radius * radius_scale * sf_scalar_val * float(mask_scale)
+            opt_sf = self._apply_circular_mask(opt_sf, point, mask_radius)
         elif self.sf_constraint_method == 'threshold':
             threshold_value = np.percentile(opt_sf, self.sf_pixel_thr)
             opt_sf = np.where(opt_sf > threshold_value, 1, 0)
