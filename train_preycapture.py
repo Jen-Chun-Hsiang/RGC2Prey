@@ -28,35 +28,17 @@ def parse_args():
     parser.add_argument('--config_name', type=str, default='not_yet_there', help='Config file name for data generation')
     parser.add_argument('--experiment_name', type=str, default='new_experiment', help='Experiment name')
 
-    # Default values
-    default_crop_size = (320, 240)
-    default_boundary_size = '(220, 140)'
-    default_center_ratio = (0.2, 0.2)
-    default_rg_array_rf_size = (320, 240)
-    default_xlim = (-120, 120)
-    default_ylim = (-90, 90)
-    default_cricket_size_range = (40, 100)
-    default_initial_velocity = 6
-    default_max_steps = 200
-    default_num_ext = 50
-    default_sf_scalar = 0.2
-    default_tau = 3
-    default_grid_generate_method = 'circle'
-    default_sf_constraint_method = 'circle'
-    default_target_width = 640
-    default_target_height = 480
-
     # Arguments for SynMovieGenerator
-    parser.add_argument('--crop_size', type=tuple, default=default_crop_size, help="Crop size as (width, height).")
-    parser.add_argument('--boundary_size', type=str, default=default_boundary_size, help="Boundary size as '(x_limit, y_limit)'.")
-    parser.add_argument('--center_ratio', type=tuple, default=default_center_ratio, help="Center ratio for initial movement placement.")
-    parser.add_argument('--max_steps', type=int, default=default_max_steps, help="Maximum steps for movement.")
+    parser.add_argument('--crop_size', type=tuple, default=(320, 240), help="Crop size as (width, height).")
+    parser.add_argument('--boundary_size', type=str, default='(220, 140)', help="Boundary size as '(x_limit, y_limit)'.")
+    parser.add_argument('--center_ratio', type=tuple, default=(0.2, 0.2), help="Center ratio for initial movement placement.")
+    parser.add_argument('--max_steps', type=int, default=200, help="Maximum steps for movement.")
     parser.add_argument('--prob_stay_ob', type=float, default=0.95, help='Probability of step transition from stay to stay')
     parser.add_argument('--prob_mov_ob', type=float, default=0.975, help='Probability of step transition from moving to moving')
     parser.add_argument('--prob_stay_bg', type=float, default=0.95, help='Probability of step transition from stay to stay')
     parser.add_argument('--prob_mov_bg', type=float, default=0.975, help='Probability of step transition from moving to moving')
-    parser.add_argument('--num_ext', type=int, default=default_num_ext, help="Number of extended static frames.")
-    parser.add_argument('--initial_velocity', type=float, default=default_initial_velocity, help="Initial velocity for movement.")
+    parser.add_argument('--num_ext', type=int, default=50, help="Number of extended static frames.")
+    parser.add_argument('--initial_velocity', type=float, default=6, help="Initial velocity for movement.")
     parser.add_argument('--momentum_decay_ob', type=float, default=0.95, help='Reduce speed in each run after moving for object')
     parser.add_argument('--momentum_decay_bg', type=float, default=0.9, help='Reduce speed in each run after moving for background')
     parser.add_argument('--scale_factor', type=float, default=1.0, help='Size of cricket image compare to its original size')
@@ -94,16 +76,16 @@ def parse_args():
     parser.add_argument('--rectified_thr_OFF', type=float, default=0.0, help='Threshold for OFF rectification')
     
     # Arguments for RGCrfArray
-    parser.add_argument('--rgc_array_rf_size', type=tuple, default=default_rg_array_rf_size, help="Receptive field size (height, width).")
-    parser.add_argument('--xlim', type=tuple, default=default_xlim, help="x-axis limits for grid centers.")
-    parser.add_argument('--ylim', type=tuple, default=default_ylim, help="y-axis limits for grid centers.")
+    parser.add_argument('--rgc_array_rf_size', type=tuple, default=(320, 240), help="Receptive field size (height, width).")
+    parser.add_argument('--xlim', type=tuple, default=(-120, 120), help="x-axis limits for grid centers.")
+    parser.add_argument('--ylim', type=tuple, default=(-90, 90), help="y-axis limits for grid centers.")
     parser.add_argument('--target_num_centers', type=int, default=500, help="Number of target centers to generate.")
-    parser.add_argument('--sf_scalar', type=float, default=default_sf_scalar, help="Scaling factor for spatial frequency.")
-    parser.add_argument('--grid_generate_method', type=str, default=default_grid_generate_method, 
+    parser.add_argument('--sf_scalar', type=float, default=0.2, help="Scaling factor for spatial frequency.")
+    parser.add_argument('--grid_generate_method', type=str, default='circle', 
                         choices=['closest', 'decay', 'circle'], help="Method for grid generation.")
-    parser.add_argument('--sf_constraint_method', type=str, default=default_sf_constraint_method, 
+    parser.add_argument('--sf_constraint_method', type=str, default='circle', 
                         choices=['circle', 'threshold', 'None'], help="Method for grid generation.")
-    parser.add_argument('--tau', type=float, default=default_tau, help="Decay factor for 'decay' method.")
+    parser.add_argument('--tau', type=float, default=3, help="Decay factor for 'decay' method.")
     parser.add_argument('--sf_mask_radius', type=float, default=35, help='RGC dendritic receptive field radius size in pixel')
     parser.add_argument('--mask_radius', type=float, default=30, help='RGC axonal in SC radius size in pixel')
     parser.add_argument('--rgc_rand_seed', type=int, default=42, help="Random seed for reproducibility.")
