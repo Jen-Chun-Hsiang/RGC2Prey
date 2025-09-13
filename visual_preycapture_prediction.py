@@ -196,16 +196,26 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
         args.is_reversed_tf = False
     if not hasattr(args, 'is_reversed_OFF_sign'):
         args.is_reversed_OFF_sign = False
+    # Rectification threshold defaults (handle legacy misspelled attributes)
     if not hasattr(args, 'rectified_thr_ON'):
-        if not hasattr(args, 'rectifed_thr_ON'):
+        if hasattr(args, 'rectifed_thr_ON'):
+            # legacy misspelled attribute exists, copy it
             args.rectified_thr_ON = args.rectifed_thr_ON
         else:
             args.rectified_thr_ON = 0.0
     if not hasattr(args, 'rectified_thr_OFF'):
-        if not hasattr(args, 'rectifed_thr_OFF'):
+        if hasattr(args, 'rectifed_thr_OFF'):
+            # legacy misspelled attribute exists, copy it
             args.rectified_thr_OFF = args.rectifed_thr_OFF
         else:
             args.rectified_thr_OFF = 0.0
+    # Ensure rectification mode/softness attributes exist (may come from checkpoint)
+    if not hasattr(args, 'rectified_mode'):
+        args.rectified_mode = 'softplus'
+    if not hasattr(args, 'rectified_softness'):
+        args.rectified_softness = 1.0
+    if not hasattr(args, 'rectified_softness_OFF'):
+        args.rectified_softness_OFF = None
     if not hasattr(args, 'bottom_contrast'):
         args.bottom_contrast = 1.0
     if not hasattr(args, 'top_contrast'):
@@ -349,6 +359,8 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
                                 add_noise=is_add_noise, rgc_noise_std=noise_level, smooth_data=args.smooth_data, 
                                 is_rectified=args.is_rectified, is_direct_image=args.is_direct_image, is_reversed_OFF_sign=args.is_reversed_OFF_sign,
                                 rectified_thr_ON=args.rectified_thr_ON, rectified_thr_OFF=args.rectified_thr_OFF,
+                                rectified_mode=args.rectified_mode, rectified_softness=args.rectified_softness,
+                                rectified_softness_OFF=args.rectified_softness_OFF,
                                 is_two_grids=args.is_two_grids,
                                 # LNK parameters
                                 use_lnk=args.use_lnk_model,
@@ -399,6 +411,8 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
                                 is_rectified=args.is_rectified, is_direct_image=args.is_direct_image, grid_coords=grid_centers,
                                 is_reversed_OFF_sign=args.is_reversed_OFF_sign, rectified_thr_ON=args.rectified_thr_ON, 
                                 rectified_thr_OFF=args.rectified_thr_OFF,
+                                rectified_mode=args.rectified_mode, rectified_softness=args.rectified_softness,
+                                rectified_softness_OFF=args.rectified_softness_OFF,
                                 is_two_grids=args.is_two_grids,
                                 # LNK parameters
                                 use_lnk=args.use_lnk_model,
@@ -476,6 +490,8 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
                                 is_rectified=args.is_rectified, is_direct_image=args.is_direct_image, grid_coords=grid_centers,
                                 is_reversed_OFF_sign=args.is_reversed_OFF_sign, rectified_thr_ON=args.rectified_thr_ON, 
                                 rectified_thr_OFF=args.rectified_thr_OFF,
+                                rectified_mode=args.rectified_mode, rectified_softness=args.rectified_softness,
+                                rectified_softness_OFF=args.rectified_softness_OFF,
                                 is_two_grids=args.is_two_grids,
                                 # LNK parameters
                                 use_lnk=args.use_lnk_model,
