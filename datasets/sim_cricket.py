@@ -573,7 +573,12 @@ class Cricket2RGCs(Dataset):
                     sampled_std = float(self.rgc_noise_std)
                 elif (self.rgc_noise_std_max is not None) and (self.rgc_noise_std_max > 0):
                     # Only use rgc_noise_std_max if rgc_noise_std is default (0.0)
-                    sampled_std = float(np.random.uniform(0.0, float(self.rgc_noise_std_max)))
+                    # Sample log-uniformly so that powers-of-two (e.g. 0.008,0.016,0.032,...) are evenly represented.
+                    max_std = float(self.rgc_noise_std_max)
+                    # choose a lower bound such that max/min ~= 2^5 -> yields sequence like 0.008..0.256 for common max
+                    min_std = max(1e-6, max_std / 32.0)
+                    exp = np.random.uniform(np.log2(min_std), np.log2(max_std))
+                    sampled_std = float(2.0 ** exp)
                 else:
                     sampled_std = 0.0
             else:
@@ -613,7 +618,11 @@ class Cricket2RGCs(Dataset):
                 sampled_std = float(self.rgc_noise_std)
             elif (self.rgc_noise_std_max is not None) and (self.rgc_noise_std_max > 0):
                 # Only use rgc_noise_std_max if rgc_noise_std is default (0.0)
-                sampled_std = float(np.random.uniform(0.0, float(self.rgc_noise_std_max)))
+                # Sample log-uniformly so that powers-of-two (e.g. 0.008,0.016,0.032,...) are evenly represented.
+                max_std = float(self.rgc_noise_std_max)
+                min_std = max(1e-6, max_std / 32.0)
+                exp = np.random.uniform(np.log2(min_std), np.log2(max_std))
+                sampled_std = float(2.0 ** exp)
             else:
                 sampled_std = 0.0
 
