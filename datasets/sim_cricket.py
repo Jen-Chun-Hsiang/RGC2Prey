@@ -377,6 +377,7 @@ class Cricket2RGCs(Dataset):
         rectified_mode='softplus',
         rectified_softness=1.0,
         rectified_softness_OFF=None,
+        rgc_noise_std_max=None,
         # Simple LNK parameters
         use_lnk=False,
         lnk_params=None,
@@ -384,6 +385,7 @@ class Cricket2RGCs(Dataset):
         surround_sigma_ratio=4.0,
         surround_sf=None,  
         surround_sf_off=None,
+        
     ):
         # Core attributes
         self.num_samples = num_samples
@@ -514,6 +516,11 @@ class Cricket2RGCs(Dataset):
             if grid_coords is not None else None
         )
 
+        # Noise parameters: fixed std and optional max for sampling per-sample std
+        self.rgc_noise_std = rgc_noise_std
+        # If set (float), sample uniform(0, rgc_noise_std_max) and use that sampled std when adding noise
+        self.rgc_noise_std_max = rgc_noise_std_max
+
     def __len__(self):
         return self.num_samples
 
@@ -559,6 +566,18 @@ class Cricket2RGCs(Dataset):
 
             if torch.isnan(movie).any():
                 raise ValueError("movie contains NaN values - cannot compute LNK response")
+            # Determine per-sample noise std: rgc_noise_std takes precedence if non-zero
+            if self.add_noise:
+                if self.rgc_noise_std > 0:
+                    # Use fixed rgc_noise_std if explicitly set to non-zero
+                    sampled_std = float(self.rgc_noise_std)
+                elif (self.rgc_noise_std_max is not None) and (self.rgc_noise_std_max > 0):
+                    # Only use rgc_noise_std_max if rgc_noise_std is default (0.0)
+                    sampled_std = float(np.random.uniform(0.0, float(self.rgc_noise_std_max)))
+                else:
+                    sampled_std = 0.0
+            else:
+                sampled_std = 0.0
 
             return compute_lnk_response(
                 movie=movie,
@@ -569,7 +588,7 @@ class Cricket2RGCs(Dataset):
                 lnk_params=lnk_params,
                 device=movie.device,
                 dtype=movie.dtype,
-                rgc_noise_std=self.rgc_noise_std if self.add_noise else 0.0,
+                rgc_noise_std=sampled_std,
             )
         
         # Original LN model (backward compatible)
@@ -588,7 +607,17 @@ class Cricket2RGCs(Dataset):
                 sigma=self.smooth_sigma,
             )
         if self.add_noise:
-            rgc_time += torch.randn_like(rgc_time) * self.rgc_noise_std
+            # rgc_noise_std takes precedence if non-zero, otherwise use rgc_noise_std_max sampling
+            if self.rgc_noise_std > 0:
+                # Use fixed rgc_noise_std if explicitly set to non-zero
+                sampled_std = float(self.rgc_noise_std)
+            elif (self.rgc_noise_std_max is not None) and (self.rgc_noise_std_max > 0):
+                # Only use rgc_noise_std_max if rgc_noise_std is default (0.0)
+                sampled_std = float(np.random.uniform(0.0, float(self.rgc_noise_std_max)))
+            else:
+                sampled_std = 0.0
+
+            rgc_time += torch.randn_like(rgc_time) * sampled_std
         if self.is_rectified:
             # Support soft rectification via softplus, or fall back to hard clamp_min
             if getattr(self, 'rectified_mode', 'hard') == 'softplus':

@@ -248,6 +248,8 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
         args.sf_id_list_additional = None
     if not hasattr(args, 'anti_alignment'):
         args.anti_alignment = 1.0
+    if not hasattr(args, 'rgc_noise_std_max'):
+        args.rgc_noise_std_max = None
             
 
     process_seed(args.seed)
@@ -356,7 +358,7 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
                                 target_height=target_height, movie_generator=movie_generator, grid_size_fac=args.grid_size_fac, 
                                 is_norm_coords=args.is_norm_coords, is_syn_mov_shown=False, fr2spikes=args.fr2spikes, 
                                 is_both_ON_OFF=args.is_both_ON_OFF, quantize_scale=args.quantize_scale, 
-                                add_noise=is_add_noise, rgc_noise_std=noise_level, smooth_data=args.smooth_data, 
+                                add_noise=is_add_noise, rgc_noise_std=noise_level, rgc_noise_std_max=args.rgc_noise_std_max, smooth_data=args.smooth_data, 
                                 is_rectified=args.is_rectified, is_direct_image=args.is_direct_image, is_reversed_OFF_sign=args.is_reversed_OFF_sign,
                                 rectified_thr_ON=args.rectified_thr_ON, rectified_thr_OFF=args.rectified_thr_OFF,
                                 rectified_mode=args.rectified_mode, rectified_softness=args.rectified_softness,
@@ -407,7 +409,7 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
                                 target_height=target_height, movie_generator=movie_generator, grid_size_fac=args.grid_size_fac, 
                                 is_norm_coords=args.is_norm_coords, is_syn_mov_shown=True, fr2spikes=args.fr2spikes, 
                                 is_both_ON_OFF=args.is_both_ON_OFF, quantize_scale=args.quantize_scale, 
-                                add_noise=is_add_noise, rgc_noise_std=noise_level, smooth_data=args.smooth_data, 
+                                add_noise=is_add_noise, rgc_noise_std=noise_level, rgc_noise_std_max=args.rgc_noise_std_max, smooth_data=args.smooth_data, 
                                 is_rectified=args.is_rectified, is_direct_image=args.is_direct_image, grid_coords=grid_centers,
                                 is_reversed_OFF_sign=args.is_reversed_OFF_sign, rectified_thr_ON=args.rectified_thr_ON, 
                                 rectified_thr_OFF=args.rectified_thr_OFF,
@@ -486,7 +488,7 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
                                 target_height=target_height, movie_generator=movie_generator, grid_size_fac=args.grid_size_fac, 
                                 is_norm_coords=args.is_norm_coords, is_syn_mov_shown=True, fr2spikes=args.fr2spikes, 
                                 is_both_ON_OFF=args.is_both_ON_OFF, quantize_scale=args.quantize_scale, 
-                                add_noise=is_add_noise, rgc_noise_std=noise_level, smooth_data=args.smooth_data, 
+                                add_noise=is_add_noise, rgc_noise_std=noise_level, rgc_noise_std_max=args.rgc_noise_std_max, smooth_data=args.smooth_data, 
                                 is_rectified=args.is_rectified, is_direct_image=args.is_direct_image, grid_coords=grid_centers,
                                 is_reversed_OFF_sign=args.is_reversed_OFF_sign, rectified_thr_ON=args.rectified_thr_ON, 
                                 rectified_thr_OFF=args.rectified_thr_OFF,

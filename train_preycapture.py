@@ -68,6 +68,7 @@ def parse_args():
     parser.add_argument('--quantize_scale', type=float, default=1.0, help="Firing rate to spike - quantization scaling.")
     parser.add_argument('--add_noise', action='store_true', help='Add noise to the RGC outputs')
     parser.add_argument('--rgc_noise_std', type=float, default=0.0, help="Level of noise added to the RGC outputs")
+    parser.add_argument('--rgc_noise_std_max', type=float, default=None, help="Max level for sampling noise std (if set, sample uniform from [0, rgc_noise_std_max])")
     parser.add_argument('--smooth_data', action='store_true', help='Smooth data of RGC outputs, especially quantized one')
     parser.add_argument('--is_rectified', action='store_true', help='Rectify the RGC outputs')
     parser.add_argument('--is_direct_image', action='store_true', help='By passing RGC convolution')
@@ -337,6 +338,7 @@ def main():
             quantize_scale=args.quantize_scale,
             add_noise=args.add_noise,
             rgc_noise_std=args.rgc_noise_std,
+            rgc_noise_std_max=args.rgc_noise_std_max,
             smooth_data=args.smooth_data,
             is_rectified=args.is_rectified,
             is_direct_image=args.is_direct_image,
@@ -393,6 +395,7 @@ def main():
         quantize_scale=args.quantize_scale,
         add_noise=args.add_noise,
         rgc_noise_std=args.rgc_noise_std,
+        rgc_noise_std_max=args.rgc_noise_std_max,
         smooth_data=args.smooth_data,
         is_rectified=args.is_rectified,
         is_direct_image=args.is_direct_image,
@@ -472,6 +475,7 @@ def main():
         quantize_scale=args.quantize_scale,
         add_noise=args.add_noise,
         rgc_noise_std=args.rgc_noise_std,
+        rgc_noise_std_max=args.rgc_noise_std_max,
         smooth_data=args.smooth_data,
         is_rectified=args.is_rectified,
         is_direct_image=args.is_direct_image,
