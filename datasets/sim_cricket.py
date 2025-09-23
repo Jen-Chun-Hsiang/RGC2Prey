@@ -1119,7 +1119,8 @@ class RGCrfArray:
                  set_surround_size_scalar=None,
                  # New synchronization parameters
                  syn_params=None,
-                 lnk_param_table=None):
+                 lnk_param_table=None,
+                 set_bias=None):
         """
         Enhanced constructor with flexible parameter synchronization.
         
@@ -1161,6 +1162,7 @@ class RGCrfArray:
         self.syn_tf_sf = syn_tf_sf
         self.surround_sigma_ratio = surround_sigma_ratio  # Add this line
         self.set_surround_size_scalar = set_surround_size_scalar
+        self.set_bias = set_bias  # Default bias value
         
         # Handle new synchronization options
         self.lnk_param_table = lnk_param_table
@@ -1377,6 +1379,8 @@ class RGCrfArray:
                     s_sigma_x_val = row['s_sigma_x'] * self.sf_scalar
                     s_sigma_y_val = row['s_sigma_y'] * self.sf_scalar
 
+                if self.set_bias:
+                    row['bias'] = self.set_bias[0]
                 sf_params = np.array([
                     point[1], point[0], 
                     row['sigma_x'] * self.sf_scalar, row['sigma_y'] * self.sf_scalar,
