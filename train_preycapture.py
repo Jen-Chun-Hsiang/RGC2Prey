@@ -401,11 +401,11 @@ def main():
         is_direct_image=args.is_direct_image,
         is_reversed_OFF_sign=args.is_reversed_OFF_sign,
         is_two_grids=args.is_two_grids,
-    rectified_thr_ON=args.rectified_thr_ON,
-    rectified_thr_OFF=args.rectified_thr_OFF,
-    rectified_mode=args.rectified_mode,
-    rectified_softness=args.rectified_softness,
-    rectified_softness_OFF=args.rectified_softness_OFF,
+        rectified_thr_ON=args.rectified_thr_ON,
+        rectified_thr_OFF=args.rectified_thr_OFF,
+        rectified_mode=args.rectified_mode,
+        rectified_softness=args.rectified_softness,
+        rectified_softness_OFF=args.rectified_softness_OFF,
         multi_opt_sf_off=multi_opt_sf_off,
         tf_off=tf_off,
         map_func_off=map_func_off,
@@ -420,12 +420,12 @@ def main():
     )
     
     logging.info( f"{args.experiment_name} processing...6")
-    # Visualize one data points
+    # Visualize a few points
     for i in range(20):
-        print(f'iteration: {i}')
+        logging.info(f'iteration: {i}')
         sequence, path, path_bg, syn_movie, scaling_factors, _, _, _ = train_dataset[i]
 
-    # sys.exit(0)
+    sys.exit(0)
     if is_show_movie_frames:
         for i in range(syn_movie.shape[0]):
             Timg = syn_movie[i, :, :]

@@ -14,8 +14,11 @@ from datasets.rgc_rf import map_to_fixed_grid_circle_batch, HexagonalGridGenerat
 from datasets.simple_lnk import sample_lnk_parameters
 from utils.utils import get_random_file_path, get_image_number, load_mat_to_dataframe, get_filename_without_extension
 from utils.tools import gaussian_smooth_1d
+from utils.helper import log_tensor_distribution
 from utils.trajectory import disparity_from_scaling_factor, convert_deg_to_pix, adjust_trajectories, plot_trajectories
 from datasets.simple_lnk import compute_lnk_response
+
+
 
 def create_multiple_temporal_filters(base_tf, num_rgcs, variation_std=0.0):
     """
@@ -627,6 +630,12 @@ class Cricket2RGCs(Dataset):
                 sampled_std = 0.0
 
             rgc_time += torch.randn_like(rgc_time) * sampled_std
+        # Log pre-rectification distribution for LN pathway
+        try:
+            log_tensor_distribution(rgc_time, "rgc_time (pre-rectification)")
+        except Exception:
+            logging.debug("Failed to log pre-rectification rgc_time distribution")
+
         if self.is_rectified:
             # Support soft rectification via softplus, or fall back to hard clamp_min
             if getattr(self, 'rectified_mode', 'hard') == 'softplus':
@@ -637,6 +646,12 @@ class Cricket2RGCs(Dataset):
                 rgc_time = rect_thr + F.softplus((rgc_time - rect_thr) / softness) * softness
             else:
                 rgc_time = torch.clamp_min(rgc_time, rect_thr)
+
+            # Log post-rectification distribution
+            try:
+                log_tensor_distribution(rgc_time, "rgc_time (post-rectification)")
+            except Exception:
+                logging.debug("Failed to log post-rectification rgc_time distribution")
 
         return rgc_time
 

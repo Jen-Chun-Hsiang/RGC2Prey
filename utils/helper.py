@@ -2,6 +2,44 @@ import numpy as np
 import os
 import scipy.io as sio
 import torch
+from scipy.stats import skew as _skew
+import logging
+
+
+def log_tensor_distribution(tensor: torch.Tensor, name: str, logger=logging.getLogger(__name__)):
+    """
+    Log basic distribution statistics (mean, median, std, skew) for a torch tensor.
+
+    The tensor is detached and moved to CPU for aggregation. Skew is computed
+    as the third standardized moment when SciPy is not available.
+    """
+    try:
+        arr = tensor.detach().cpu().numpy()
+    except Exception:
+        logger.debug(f"Could not convert tensor for logging: {name}")
+        return
+
+    # Flatten for statistics
+    flat = arr.flatten()
+    if flat.size == 0:
+        logger.info(f"{name} distribution - empty tensor")
+        return
+
+    mean_val = float(np.mean(flat))
+    median_val = float(np.median(flat))
+    std_val = float(np.std(flat))
+    # Compute skew: prefer scipy.stats.skew if available, else use third standardized moment
+    try:
+        skew_val = float(_skew(flat))
+    except Exception:
+        if std_val > 0:
+            skew_val = float(np.mean(((flat - mean_val) / std_val) ** 3))
+        else:
+            skew_val = 0.0
+
+    logger.info(f"{name} distribution - Mean: {mean_val:.6f}, Median: {median_val:.6f}, Std: {std_val:.6f}, Skew: {skew_val:.6f}, Shape: {tensor.shape}")
+
+
 
 def estimate_rgc_signal_distribution(
     dataset,            # instance of Cricket2RGCs
