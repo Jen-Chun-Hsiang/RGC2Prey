@@ -1,5 +1,6 @@
 import random
 import ast
+import os
 from PIL import Image, ImageEnhance
 import numpy as np
 import torch
@@ -7,6 +8,8 @@ import torchvision.transforms as T
 from torch.utils.data import Dataset
 import torch.nn.functional as F
 import logging
+from scipy.io import savemat
+from datetime import datetime
 
 from datasets.rgc_rf import map_to_fixed_grid_decay_batch, gaussian_multi, gaussian_temporalfilter, get_closest_indices, compute_distance_decay_matrix
 from datasets.rgc_rf import map_to_fixed_grid_closest_batch, precompute_grid_centers, compute_circular_mask_matrix
@@ -794,6 +797,11 @@ class Cricket2RGCs(Dataset):
         # Stack channels
         grid_seq = torch.stack(grid_values_list, dim=1)
 
+        _root_folder = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver'
+        _mat_save_folder = os.path.join(_root_folder, 'RGC2Prey', 'Results', 'Mats') + '/'
+        _current_time = datetime.now().strftime('%Y%m%d_%H%M%S')
+        _save_path = os.path.join(_mat_save_folder, f'rgc_time_distribution_singleRGC_{_current_time}.mat')
+        savemat(_save_path, {'rgc_time': rgc_time.detach().cpu().numpy()})
         # Weighted coords if needed
         if self.grid_coords is not None:
             weighted_sum = torch.einsum('nt,nc->tc', rgc_time, self.grid_coords)
