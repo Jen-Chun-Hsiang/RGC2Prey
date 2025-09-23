@@ -804,8 +804,9 @@ class Cricket2RGCs(Dataset):
         savemat(_save_path, {'rgc_time': rgc_time.detach().cpu().numpy()})
         # Weighted coords if needed
         if self.grid_coords is not None:
-            weighted_sum = torch.einsum('nt,nc->tc', rgc_time, self.grid_coords)
-            sum_rates = torch.sum(rgc_time, dim=0, keepdim=True).clamp(min=1e-6).view(-1, 1)
+            s_rgc_time = torch.abs(rgc_time - rgc_time[:, :1])
+            weighted_sum = torch.einsum('nt,nc->tc', s_rgc_time, self.grid_coords)
+            sum_rates = torch.sum(s_rgc_time, dim=0, keepdim=True).clamp(min=1e-6).view(-1, 1)
             weighted_coords = (weighted_sum / sum_rates).detach().numpy()
         else:
             weighted_coords = np.array(0)

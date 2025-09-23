@@ -250,7 +250,8 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
         args.anti_alignment = 1.0
     if not hasattr(args, 'rgc_noise_std_max'):
         args.rgc_noise_std_max = None
-            
+    if not hasattr(args, 'set_bias'):
+        args.set_bias = None
 
     process_seed(args.seed)
 
@@ -280,7 +281,7 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
         is_rf_median_subtract=args.is_rf_median_subtract, is_rescale_diffgaussian=args.is_rescale_diffgaussian, 
         grid_noise_level=args.grid_noise_level, is_reversed_tf=args.is_reversed_tf, sf_id_list=args.sf_id_list,
         use_lnk_override=args.use_lnk_model, lnk_param_table=lnk_param_table, syn_params=syn_params,
-        set_surround_size_scalar=args.set_surround_size_scalar  # Pass LNK flag to RGCrfArray
+        set_surround_size_scalar=args.set_surround_size_scalar, set_bias=args.set_bias  # Pass LNK flag to RGCrfArray
     )
     logging.info( f"{file_name} processing...1.5")
     
