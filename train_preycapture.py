@@ -247,6 +247,7 @@ def main():
 
     multi_opt_sf, multi_opt_sf_surround, tf, grid2value_mapping, map_func, rgc_locs, lnk_params = rgc_array.get_results()
     
+    logging.info(f" rgc_locs overall min={np.nanmin(rgc_locs)}, max={np.nanmax(rgc_locs)}, shape={rgc_locs.shape}")
     logging.info( f"{args.experiment_name} processing...2")
 
     if args.is_both_ON_OFF or args.is_two_grids:
