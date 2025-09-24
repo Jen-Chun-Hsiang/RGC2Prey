@@ -634,10 +634,10 @@ class Cricket2RGCs(Dataset):
 
             rgc_time += torch.randn_like(rgc_time) * sampled_std
         # Log pre-rectification distribution for LN pathway
-        try:
-            log_tensor_distribution(rgc_time, "rgc_time (pre-rectification)")
-        except Exception:
-            logging.debug("Failed to log pre-rectification rgc_time distribution")
+        # try:
+        #     log_tensor_distribution(rgc_time, "rgc_time (pre-rectification)")
+        # except Exception:
+        #     logging.debug("Failed to log pre-rectification rgc_time distribution")
 
         if self.is_rectified:
             # Support soft rectification via softplus, or fall back to hard clamp_min
@@ -651,10 +651,10 @@ class Cricket2RGCs(Dataset):
                 rgc_time = torch.clamp_min(rgc_time, rect_thr)
 
             # Log post-rectification distribution
-            try:
-                log_tensor_distribution(rgc_time, "rgc_time (post-rectification)")
-            except Exception:
-                logging.debug("Failed to log post-rectification rgc_time distribution")
+            # try:
+            #     log_tensor_distribution(rgc_time, "rgc_time (post-rectification)")
+            # except Exception:
+            #     logging.debug("Failed to log post-rectification rgc_time distribution")
 
         return rgc_time
 
