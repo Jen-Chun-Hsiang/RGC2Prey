@@ -104,11 +104,13 @@ def parse_args():
     parser.add_argument('--set_s_scale', type=float, nargs='*', default=[], help='Set scale for surround weight of RF (LN model only; ignored in LNK model)')
     parser.add_argument('--is_rf_median_subtract', action='store_true', help="Flag for substract median of rf")
     parser.add_argument('--is_both_ON_OFF', action='store_true', help="Flag for including OFF cell")
+    parser.add_argument('--sf_sheet_name', type=str, default='SF_params_modified', help='Excel sheet name for the spatial filter')
+    parser.add_argument('--sf_sheet_name_additional', type=str, default=None, help='Excel sheet name for the spatial filter of additional grid')
     parser.add_argument('--tf_sheet_name', type=str, default='TF_params', help='Excel sheet name for the temporal filter')
+    parser.add_argument('--tf_sheet_name_additional', type=str, default=None, help='Excel sheet name for the temporal filter of additional grid')
     parser.add_argument('--anti_alignment', type=float, default=1, help="value of anti-alignment from 0 (overlapping) to 1 (maximum spacing)")
     parser.add_argument('--grid_noise_level', type=float, default=0.3, help='Grid noise level (float)')
     parser.add_argument('--is_reversed_tf', action='store_true', help='Convert TF to the opposite contrast')
-    parser.add_argument('--sf_sheet_name', type=str, default='SF_params_modified', help='Excel sheet name for the spatial filter')
     parser.add_argument("--sf_id_list", type=int, nargs="+", default=None, help='select RF ids from sf_sheet_name --pid 2 7 12')
     parser.add_argument("--sf_id_list_additional", type=int, nargs="+", default=None, help='select RF ids from sf_sheet_name --pid 2 7 12')
     parser.add_argument('--syn_params', type=str, nargs='+', 
@@ -251,14 +253,11 @@ def main():
     logging.info( f"{args.experiment_name} processing...2")
 
     if args.is_both_ON_OFF or args.is_two_grids:
-        num_input_channel = 2
-        # sf_param_table = pd.read_excel(rf_params_file, sheet_name='SF_params_OFF', usecols='A:L')
+        sf_param_table = pd.read_excel(rf_params_file, sheet_name=args.sf_sheet_name_additional, usecols='C:L')
+        tf_param_table = pd.read_excel(rf_params_file, sheet_name=args.tf_sheet_name_additional, usecols='C:I')
         multi_opt_sf_off, multi_opt_sf_surround_off, tf_off, grid2value_mapping_off, map_func_off, rgc_locs_off, lnk_params_off = \
-            rgc_array.get_additional_results(anti_alignment=args.anti_alignment, sf_id_list_additional=args.sf_id_list_additional)  
-        
-    if args.is_both_ON_OFF or args.is_two_grids:
-        multi_opt_sf_off, multi_opt_sf_surround_off, tf_off, grid2value_mapping_off, map_func_off, rgc_locs_off, lnk_params_off = \
-            rgc_array.get_additional_results(anti_alignment=args.anti_alignment, sf_id_list_additional=args.sf_id_list_additional)  
+            rgc_array.get_additional_results(anti_alignment=args.anti_alignment, sf_id_list_additional=args.sf_id_list_additional,
+                                             sf_param_table_override=sf_param_table, tf_param_table_override=tf_param_table)  
         
         if args.is_binocular: 
             num_input_channel = 4
