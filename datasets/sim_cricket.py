@@ -1211,35 +1211,44 @@ class RGCrfArray:
 
         return multi_opt_sf_center, multi_opt_sf_surround, tf, grid2value_mapping, map_func, points, lnk_params
 
-    def _generate_indices(self, points):
+    def _generate_indices(self, points, sf_table=None, tf_table=None, lnk_table=None):
         """Generate indices for parameter sampling with flexible synchronization."""
+        # Use overrides when provided, else fall back to self tables
+        sf_tab = sf_table if sf_table is not None else self.sf_param_table
+        tf_tab = tf_table if tf_table is not None else self.tf_param_table
+        lnk_tab = lnk_table if lnk_table is not None else self.lnk_param_table
+
+
         num_points = len(points)
         idx_dict = {}
 
         def get_non_nan_indices(df):
             return df[~df.isna().any(axis=1)].index.to_numpy()
+        
+        def table_len(tab):
+            return len(tab) if tab is not None else 0
 
         if not self.syn_params:
             # No synchronization - generate independent indices
-            if 'sf' not in idx_dict:
-                idx_dict['sf'] = np.random.choice(len(self.sf_param_table), num_points)
-            if 'tf' not in idx_dict:
-                idx_dict['tf'] = np.random.choice(len(self.tf_param_table), num_points)
-            if 'lnk' not in idx_dict and self.lnk_param_table is not None:
-                idx_dict['lnk'] = np.random.choice(len(self.lnk_param_table), num_points)
+            if 'sf' not in idx_dict and table_len(sf_tab) > 0:
+                idx_dict['sf'] = np.random.choice(table_len(sf_tab), num_points)
+            if 'tf' not in idx_dict and table_len(tf_tab) > 0:
+                idx_dict['tf'] = np.random.choice(table_len(tf_tab), num_points)
+            if 'lnk' not in idx_dict and lnk_tab is not None and table_len(lnk_tab) > 0:
+                idx_dict['lnk'] = np.random.choice(table_len(lnk_tab), num_points)
         else:
-            # Get non-NaN indices for each table
+            # Get non-NaN indices for each table (based on the provided/override tables)
             non_nan_indices = {}
             nan_indices = {}
-            if 'sf' in self.syn_params:
-                non_nan_indices['sf'] = get_non_nan_indices(self.sf_param_table)
-                nan_indices['sf'] = self.sf_param_table[self.sf_param_table.isna().any(axis=1)].index.to_numpy()
-            if 'tf' in self.syn_params:
-                non_nan_indices['tf'] = get_non_nan_indices(self.tf_param_table)
-                nan_indices['tf'] = self.tf_param_table[self.tf_param_table.isna().any(axis=1)].index.to_numpy()
-            if 'lnk' in self.syn_params and self.lnk_param_table is not None:
-                non_nan_indices['lnk'] = get_non_nan_indices(self.lnk_param_table)
-                nan_indices['lnk'] = self.lnk_param_table[self.lnk_param_table.isna().any(axis=1)].index.to_numpy()
+            if 'sf' in self.syn_params and sf_tab is not None:
+                non_nan_indices['sf'] = get_non_nan_indices(sf_tab)
+                nan_indices['sf'] = sf_tab[sf_tab.isna().any(axis=1)].index.to_numpy()
+            if 'tf' in self.syn_params and tf_tab is not None:
+                non_nan_indices['tf'] = get_non_nan_indices(tf_tab)
+                nan_indices['tf'] = tf_tab[tf_tab.isna().any(axis=1)].index.to_numpy()
+            if 'lnk' in self.syn_params and lnk_tab is not None:
+                non_nan_indices['lnk'] = get_non_nan_indices(lnk_tab)
+                nan_indices['lnk'] = lnk_tab[lnk_tab.isna().any(axis=1)].index.to_numpy()
 
             # Sample base indices from the full range
             base_indices = np.random.choice(self.sync_table_length, num_points)
@@ -1247,41 +1256,71 @@ class RGCrfArray:
             # For each param, rewire indices that point to NaN rows
             for param in self.syn_params:
                 idxs = base_indices.copy()
-                nan_rows = nan_indices[param]
-                valid_rows = non_nan_indices[param]
-                # Find which indices are NaN
+                nan_rows = nan_indices.get(param, np.array([]))
+                valid_rows = non_nan_indices.get(param, np.array([]))
                 for i, idx in enumerate(idxs):
                     if idx in nan_rows:
-                        # Resample from valid rows for this table
-                        idxs[i] = np.random.choice(valid_rows)
+                        # Resample from valid rows for this table (defensive)
+                        if valid_rows.size > 0:
+                            idxs[i] = np.random.choice(valid_rows)
+                        else:
+                            # fallback: choose a random row in the full table length
+                            full_len = table_len({'sf': sf_tab, 'tf': tf_tab, 'lnk': lnk_tab}[param])
+                            idxs[i] = np.random.randint(0, max(1, full_len))
                 idx_dict[param] = idxs
-            
-            # Add non-synchronized parameters
-            if 'sf' not in self.syn_params:
-                idx_dict['sf'] = np.random.choice(len(self.sf_param_table), num_points)
-            if 'tf' not in self.syn_params:
-                idx_dict['tf'] = np.random.choice(len(self.tf_param_table), num_points)
-            if 'lnk' not in self.syn_params and self.lnk_param_table is not None:
-                idx_dict['lnk'] = np.random.choice(len(self.lnk_param_table), num_points)
+
+            # Add non-synchronized parameters (sample independently from their tables)
+            if 'sf' not in self.syn_params and table_len(sf_tab) > 0:
+                idx_dict['sf'] = np.random.choice(table_len(sf_tab), num_points)
+            if 'tf' not in self.syn_params and table_len(tf_tab) > 0:
+                idx_dict['tf'] = np.random.choice(table_len(tf_tab), num_points)
+            if 'lnk' not in self.syn_params and lnk_tab is not None and table_len(lnk_tab) > 0:
+                idx_dict['lnk'] = np.random.choice(table_len(lnk_tab), num_points)
 
         return idx_dict
     
-    def get_additional_results(self, anti_alignment=1, sf_id_list_additional=None):
+    def get_additional_results(self, anti_alignment=1, sf_id_list_additional=None,
+                               sf_param_table_override=None, tf_param_table_override=None, lnk_param_table_override=None):
         """
         Always returns exactly 5 values for consistent unpacking.
         LNK parameters should be handled separately via the use_lnk_override flag.
         """
+        # Use overrides when provided, otherwise fall back to stored tables
+        sf_tab = sf_param_table_override if sf_param_table_override is not None else self.sf_param_table
+        tf_tab = tf_param_table_override if tf_param_table_override is not None else self.tf_param_table
+        lnk_tab = lnk_param_table_override if lnk_param_table_override is not None else self.lnk_param_table
+
+        # If synchronization is used, validate that the provided override tables are compatible
+        if self.syn_params:
+            # Simple validation: ensure lengths match across synchronized tables
+            lengths = {}
+            if 'sf' in self.syn_params and sf_tab is not None:
+                lengths['sf'] = len(sf_tab)
+            if 'tf' in self.syn_params and tf_tab is not None:
+                lengths['tf'] = len(tf_tab)
+            if 'lnk' in self.syn_params and lnk_tab is not None:
+                lengths['lnk'] = len(lnk_tab)
+            if len(lengths) > 0 and len(set(lengths.values())) > 1:
+                raise ValueError(f"Override tables lengths inconsistent for syn_params: {lengths}")
+
+            # update sync_table_length if overrides provided and consistent
+            if len(lengths) > 0:
+                self.sync_table_length = next(iter(lengths.values()))
+
         points = self.grid_generator.generate_second_grid(anti_alignment=anti_alignment)
-        idx_dict = self._generate_indices(points)
+        idx_dict = self._generate_indices(points, sf_table=sf_tab, tf_table=tf_tab, lnk_table=lnk_tab)
 
         if self.use_lnk_override:
-            lnk_params = sample_lnk_parameters(self.lnk_param_table, idx_dict.get('lnk'))
+            lnk_params_table_for_sample = lnk_tab if lnk_tab is not None else self.lnk_param_table
+            lnk_params = sample_lnk_parameters(lnk_params_table_for_sample, idx_dict.get('lnk'))
         else:
             lnk_params = None
 
         # Create filters
-        multi_opt_sf_center, multi_opt_sf_surround = self._create_multi_opt_sf(points, sf_id_list_additional, idx_list=idx_dict.get('sf'))
-        tf = self._create_temporal_filter(idx_list=idx_dict.get('tf'))
+        multi_opt_sf_center, multi_opt_sf_surround = self._create_multi_opt_sf(points, sf_id_list_additional, 
+                                                                               idx_list=idx_dict.get('sf'),
+                                                                               sf_param_table_override=sf_tab)
+        tf = self._create_temporal_filter(idx_list=idx_dict.get('tf'), tf_param_table_override=tf_tab)
         grid2value_mapping, map_func = self._get_grid_mapping(points)
 
         return multi_opt_sf_center, multi_opt_sf_surround, tf, grid2value_mapping, map_func, points, lnk_params
@@ -1319,27 +1358,32 @@ class RGCrfArray:
 
         return grid2value_mapping, map_func
 
-    def _create_multi_opt_sf(self, points, pids=None, idx_list=None):
+    def _create_multi_opt_sf(self, points, pids=None, idx_list=None, sf_param_table_override=None):
         """Create multi-optical spatial filters"""
+        sf_table = sf_param_table_override if sf_param_table_override is not None else self.sf_param_table
+
         multi_opt_sf = np.zeros((self.rgc_array_rf_size[0], self.rgc_array_rf_size[1], len(points)))
         multi_opt_sf_surround = None
         
         if self.use_lnk_override:
             multi_opt_sf_surround = np.zeros_like(multi_opt_sf)
         
-        num_sim_data = len(self.sf_param_table)
+        num_sim_data = len(sf_table)
         pid_list = None if pids is None else list(pids)
         
         for i, point in enumerate(points):
             # Select parameter index
-            if idx_list is not None:
+            if idx_list is not None and 'sf' in idx_list:
+                # idx_list could be an array (returned by _generate_indices)
+                pid_i = idx_list[i]
+            elif idx_list is not None and isinstance(idx_list, (list, np.ndarray)):
                 pid_i = idx_list[i]
             elif pid_list is None:
                 pid_i = np.random.randint(0, num_sim_data)
             else:
                 pid_i = np.random.choice(pid_list)
                 
-            row = self.sf_param_table.iloc[pid_i]
+            row = sf_table.iloc[pid_i]
             
             if self.use_lnk_override:
                 # LNK model: simplified center and surround generation
@@ -1441,17 +1485,19 @@ class RGCrfArray:
         """Get s_scale value based on configuration"""
         return row['s_scale'] if not self.set_s_scale else self.set_s_scale[0]
 
-    def _create_temporal_filter(self, idx_list=None):
+    def _create_temporal_filter(self, idx_list=None, tf_param_table_override=None):
+        tf_table = tf_param_table_override if tf_param_table_override is not None else self.tf_param_table
+
         if self.is_pixelized_tf:
             tf = np.zeros(self.temporal_filter_len)
             tf[-1] = 1 
         else:
-            num_sim_data = len(self.tf_param_table)
+            num_sim_data = len(tf_table)
             if idx_list is not None:
                 # Return array of filters
                 tf_arr = []
                 for pid in idx_list:
-                    row = self.tf_param_table.iloc[pid]
+                    row = tf_table.iloc[pid]
                     tf_params = np.array([row['sigma1'], row['sigma2'], row['mean1'], row['mean2'], row['amp1'], row['amp2'], row['offset']])
                     tf = gaussian_temporalfilter(self.temporal_filter_len, tf_params)
                     tf = tf-tf[0]
@@ -1462,7 +1508,7 @@ class RGCrfArray:
                 return np.stack(tf_arr, axis=-1)
             else:
                 pid = np.random.randint(0, num_sim_data)
-                row = self.tf_param_table.iloc[pid]
+                row = tf_table.iloc[pid]
                 tf_params = np.array([row['sigma1'], row['sigma2'], row['mean1'], row['mean2'], row['amp1'], row['amp2'], row['offset']])
                 tf = gaussian_temporalfilter(self.temporal_filter_len, tf_params)
                 tf = tf-tf[0]
