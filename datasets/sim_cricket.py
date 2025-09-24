@@ -797,11 +797,12 @@ class Cricket2RGCs(Dataset):
         # Stack channels
         grid_seq = torch.stack(grid_values_list, dim=1)
 
-        _root_folder = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver'
-        _mat_save_folder = os.path.join(_root_folder, 'RGC2Prey', 'Results', 'Mats') + '/'
-        _current_time = datetime.now().strftime('%Y%m%d_%H%M%S')
-        _save_path = os.path.join(_mat_save_folder, f'rgc_time_distribution_singleRGC_{_current_time}.mat')
-        savemat(_save_path, {'rgc_time': rgc_time.detach().cpu().numpy()})
+        # _root_folder = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver'
+        # _mat_save_folder = os.path.join(_root_folder, 'RGC2Prey', 'Results', 'Mats') + '/'
+        # _current_time = datetime.now().strftime('%Y%m%d_%H%M%S')
+        # _save_path = os.path.join(_mat_save_folder, f'rgc_time_distribution_singleRGC_{_current_time}.mat')
+        # savemat(_save_path, {'rgc_time': rgc_time.detach().cpu().numpy()})
+
         # Weighted coords if needed
         if self.grid_coords is not None:
             s_rgc_time = torch.abs(rgc_time - rgc_time[:, :1])

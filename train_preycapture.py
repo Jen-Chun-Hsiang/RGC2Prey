@@ -422,11 +422,11 @@ def main():
     
     logging.info( f"{args.experiment_name} processing...6")
     # Visualize a few points
-    for i in range(20):
-        logging.info(f'iteration: {i}')
-        sequence, path, path_bg, syn_movie, scaling_factors, _, _, _ = train_dataset[i]
+    # for i in range(20):
+    #     logging.info(f'iteration: {i}')
+    #     sequence, path, path_bg, syn_movie, scaling_factors, _, _, _ = train_dataset[i]
+    # sys.exit(0)
 
-    sys.exit(0)
     if is_show_movie_frames:
         for i in range(syn_movie.shape[0]):
             Timg = syn_movie[i, :, :]
