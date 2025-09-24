@@ -253,8 +253,12 @@ def main():
     logging.info( f"{args.experiment_name} processing...2")
 
     if args.is_both_ON_OFF or args.is_two_grids:
-        sf_param_table = pd.read_excel(rf_params_file, sheet_name=args.sf_sheet_name_additional, usecols='C:L')
-        tf_param_table = pd.read_excel(rf_params_file, sheet_name=args.tf_sheet_name_additional, usecols='C:I')
+        if args.sf_sheet_name_additional and args.tf_sheet_name_additional:
+            sf_param_table = pd.read_excel(rf_params_file, sheet_name=args.sf_sheet_name_additional, usecols='C:L')
+            tf_param_table = pd.read_excel(rf_params_file, sheet_name=args.tf_sheet_name_additional, usecols='C:I')
+        else:
+            sf_param_table = None
+            tf_param_table = None
         multi_opt_sf_off, multi_opt_sf_surround_off, tf_off, grid2value_mapping_off, map_func_off, rgc_locs_off, lnk_params_off = \
             rgc_array.get_additional_results(anti_alignment=args.anti_alignment, sf_id_list_additional=args.sf_id_list_additional,
                                              sf_param_table_override=sf_param_table, tf_param_table_override=tf_param_table)  
