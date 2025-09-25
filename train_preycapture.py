@@ -634,6 +634,21 @@ def main():
             
             # Average loss for the epoch
             avg_train_loss = epoch_loss / len(train_loader)
+
+            # Simple sanity check for epoch loss: None, NaN, Inf, or extremely large values
+            if avg_train_loss is None or not np.isfinite(avg_train_loss) or np.isnan(avg_train_loss) or abs(avg_train_loss) > 1e12:
+                logging.error(f"Abnormal epoch loss detected at epoch {epoch}: {avg_train_loss}")
+                # Try to save a checkpoint for debugging
+                try:
+                    checkpoint_filename = f'{args.experiment_name}_abnormal_epoch_loss_epoch_{epoch + 1}.pth'
+                    save_checkpoint(epoch, model, optimizer, training_losses=training_losses, scheduler=scheduler, args=args,
+                                    file_path=os.path.join(savemodel_dir, checkpoint_filename))
+                    logging.info(f"Saved checkpoint to {os.path.join(savemodel_dir, checkpoint_filename)} before aborting.")
+                except Exception as e:
+                    logging.error(f"Failed to save checkpoint before aborting: {e}")
+
+                raise ValueError(f"Abnormal epoch loss detected: {avg_train_loss} at epoch {epoch}")
+
             training_losses.append(avg_train_loss)
             # Scheduler step
             if args.schedule_method.lower() == 'rlrp':
