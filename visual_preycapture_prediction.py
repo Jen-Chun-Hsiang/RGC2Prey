@@ -178,6 +178,8 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
         args.seed = '42'
     if not hasattr(args, 'is_direct_image'):
         args.is_direct_image = False
+    if not hasattr(args, 'sf_sheet_name'):
+        args.sf_sheet_name = 'SF_params_modified'
     if not hasattr(args, 'tf_sheet_name'):
         args.tf_sheet_name = 'TF_params'
     if not hasattr(args, 'bg_info_cost_ratio'):
@@ -252,6 +254,10 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
         args.rgc_noise_std_max = None
     if not hasattr(args, 'set_bias'):
         args.set_bias = None
+    if not hasattr(args, 'sf_sheet_name_additional'):
+        args.sf_sheet_name_additional = None
+    if not hasattr(args, 'tf_sheet_name_additional'):
+        args.tf_sheet_name_additional = None
 
     process_seed(args.seed)
 
@@ -299,9 +305,16 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
         num_input_channel = 2
         grid_centers = None
         is_plot_centerFR = False
-        # sf_param_table = pd.read_excel(rf_params_file, sheet_name='SF_params_OFF', usecols='A:L')
+        # Load additional parameter tables if specified
+        if args.sf_sheet_name_additional and args.tf_sheet_name_additional:
+            sf_param_table_additional = pd.read_excel(rf_params_file, sheet_name=args.sf_sheet_name_additional, usecols='C:L')
+            tf_param_table_additional = pd.read_excel(rf_params_file, sheet_name=args.tf_sheet_name_additional, usecols='C:I')
+        else:
+            sf_param_table_additional = None
+            tf_param_table_additional = None
         multi_opt_sf_off, multi_opt_sf_surround_off, tf_off, grid2value_mapping_off, map_func_off, rgc_locs_off, lnk_params_off = \
-            rgc_array.get_additional_results(anti_alignment=args.anti_alignment, sf_id_list_additional=args.sf_id_list_additional)  
+            rgc_array.get_additional_results(anti_alignment=args.anti_alignment, sf_id_list_additional=args.sf_id_list_additional,
+                                             sf_param_table_override=sf_param_table_additional, tf_param_table_override=tf_param_table_additional)  
         if args.is_binocular:
             num_input_channel = 4
             
