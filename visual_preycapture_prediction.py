@@ -396,8 +396,11 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
         except Exception:
             dl_num_workers = 0
 
+    dl_generator = torch.Generator().manual_seed(args.seed)         # for larger-batch test loader 
+    dl_generator_small = torch.Generator().manual_seed(args.seed+1)
     test_loader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=True, 
-                             num_workers=dl_num_workers, pin_memory=True, persistent_workers=False, worker_init_fn=worker_init_fn)
+                             num_workers=dl_num_workers, pin_memory=True, persistent_workers=False, 
+                             worker_init_fn=worker_init_fn, generator=dl_generator)
 
     logging.info( f"{file_name} processing...5")
     test_losses = [] 
@@ -437,7 +440,9 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
                                 surround_sigma_ratio=args.surround_sigma_ratio,
                                 surround_sf=multi_opt_sf_surround,
                                 surround_sf_off=multi_opt_sf_surround_off)
-    test_loader = DataLoader(test_dataset, batch_size=1, shuffle=True, worker_init_fn=worker_init_fn)
+    
+    test_loader = DataLoader(test_dataset, batch_size=1, shuffle=True, 
+                             worker_init_fn=worker_init_fn, generator=dl_generator_small)
 
     logging.info( f"{file_name} processing...7")
     test_losses = [] 

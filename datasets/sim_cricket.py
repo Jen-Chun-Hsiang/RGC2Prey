@@ -456,6 +456,8 @@ class Cricket2RGCs(Dataset):
         else:
             raise ValueError(f"tf must be 1D or 2D array, got {tf.ndim}D with shape {tf.shape}")
         
+        logging.debug(f"tf_multi stats: min={tf_multi.min().item():.6g}, max={tf_multi.max().item():.6g}")
+            
         # Store LNK parameters
         self.use_lnk = use_lnk
         self.surround_sigma_ratio = surround_sigma_ratio
@@ -500,9 +502,8 @@ class Cricket2RGCs(Dataset):
                 raise ValueError(f"tf_off must be 1D or 2D array, got {tf_off.ndim}D with shape {tf_off.shape}")
             
             # Sign handling for OFF pathway
-            if not (is_two_grids or is_reversed_OFF_sign):
-                tf_off_multi = -tf_off_multi
-                
+            logging.debug(f"tf_off_multi stats: min={tf_off_multi.min().item():.6g}, max={tf_off_multi.max().item():.6g}")
+            
             off_channel = {
                 'sf': sf_off_tensor,
                 'sf_surround': torch.from_numpy(surround_sf_off).float() if (surround_sf_off is not None and self.use_lnk) else None,
