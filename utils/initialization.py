@@ -25,7 +25,7 @@ def set_seed(seed):
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
 
-    return
+    return seed
 
 def process_seed(seed_input):
     """
