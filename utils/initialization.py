@@ -25,6 +25,8 @@ def set_seed(seed):
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
 
+    return
+
 def process_seed(seed_input):
     """
     Validate and process the seed input.
@@ -48,9 +50,10 @@ def process_seed(seed_input):
             raise ValueError("Invalid seed input. Must be 'fixed', 'random', or a numeric value.")
         
         # Call the seed-setting function
-        set_seed(seed_value)
+        return set_seed(seed_value)
     except ValueError as e:
         print(f"Error: {e}")
+        raise
 
 
 def worker_init_fn(worker_id):

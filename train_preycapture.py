@@ -201,7 +201,7 @@ def main():
     mat_save_folder = os.path.join(root_folder, 'RGC2Prey', 'Results', 'Mats') + '/'
 
     initialize_logging(log_save_folder=log_save_folder, experiment_name=args.experiment_name)
-    process_seed(args.seed)
+    rnd_seed = process_seed(args.seed)
     
     if args.is_GPU:
         device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -505,12 +505,14 @@ def main():
     )
 
     logging.info( f"{args.experiment_name} processing...8")
+    dl_generator = torch.Generator().manual_seed(rnd_seed) 
     if args.num_worker==0:
-        train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, worker_init_fn=worker_init_fn)
+        train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, 
+                                  worker_init_fn=worker_init_fn, generator=dl_generator)
     else:
         train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True,
-                                        num_workers=args.num_worker, pin_memory=True, persistent_workers=False, worker_init_fn=worker_init_fn)
-        
+                                        num_workers=args.num_worker, pin_memory=True, persistent_workers=False, 
+                                        worker_init_fn=worker_init_fn, generator=dl_generator)
 
     logging.info( f"{args.experiment_name} processing...9")
     # Sample Training Loop

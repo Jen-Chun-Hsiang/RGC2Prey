@@ -259,7 +259,7 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
     if not hasattr(args, 'tf_sheet_name_additional'):
         args.tf_sheet_name_additional = None
 
-    process_seed(args.seed)
+    rnd_seed = process_seed(args.seed)
 
     logging.info( f"{file_name} processing...1 seed:{args.seed}")
     
@@ -396,8 +396,8 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
         except Exception:
             dl_num_workers = 0
 
-    dl_generator = torch.Generator().manual_seed(args.seed)         # for larger-batch test loader 
-    dl_generator_small = torch.Generator().manual_seed(args.seed+1)
+    dl_generator = torch.Generator().manual_seed(rnd_seed)         # for larger-batch test loader 
+    dl_generator_small = torch.Generator().manual_seed(rnd_seed+1)
     test_loader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=True, 
                              num_workers=dl_num_workers, pin_memory=True, persistent_workers=False, 
                              worker_init_fn=worker_init_fn, generator=dl_generator)
