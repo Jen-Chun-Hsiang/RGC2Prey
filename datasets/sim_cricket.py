@@ -1153,6 +1153,9 @@ class RGCrfArray:
         self.is_rf_median_subtract = is_rf_median_subtract
         self.is_rescale_diffgaussian=is_rescale_diffgaussian
         self.is_both_ON_OFF = is_both_ON_OFF
+        # Store the spatial limits so other methods can reference them later
+        self.xlim = xlim
+        self.ylim = ylim
         self.target_height = xlim[1] - xlim[0]
         self.target_width = ylim[1] - ylim[0]
         self.grid_noise_level = grid_noise_level
