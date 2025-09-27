@@ -288,7 +288,7 @@ def main():
         logging.info(f"Saved RGC locations to {save_path}")
     except Exception as _e:
         logging.error(f"Failed to save RGC locations to mat file: {_e}")
-    sys.exist(0)  # TEMPORARY TO STOP EXECUTION HERE FOR TESTING
+    sys.exit(0)# TEMPORARY TO STOP EXECUTION HERE FOR TESTING
 
     if is_show_rgc_grid:
         plot_coordinate_and_save(rgc_locs, rgc_locs_off, plot_save_folder, file_name=f'{args.experiment_name}_rgc_grids.png')
