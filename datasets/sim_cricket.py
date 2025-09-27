@@ -1281,10 +1281,27 @@ class RGCrfArray:
         return idx_dict
     
     def get_additional_results(self, anti_alignment=1, sf_id_list_additional=None,
-                               sf_param_table_override=None, tf_param_table_override=None, lnk_param_table_override=None):
+                               sf_param_table_override=None, tf_param_table_override=None, lnk_param_table_override=None,
+                               target_num_centers_override=None):
         """
-        Always returns exactly 5 values for consistent unpacking.
-        LNK parameters should be handled separately via the use_lnk_override flag.
+        Generate additional results for OFF channels or second grids.
+        
+        Args:
+            anti_alignment (float): Anti-alignment parameter for grid generation (0-1).
+            sf_id_list_additional (list): List of spatial filter IDs to use.
+            sf_param_table_override (DataFrame): Override for spatial filter parameters.
+            tf_param_table_override (DataFrame): Override for temporal filter parameters.
+            lnk_param_table_override (DataFrame): Override for LNK parameters.
+            target_num_centers_override (int): Override for target number of centers.
+                If provided, creates a new grid generator with this target.
+        
+        Returns:
+            tuple: (multi_opt_sf_center, multi_opt_sf_surround, tf, grid2value_mapping, 
+                   map_func, points, lnk_params)
+        
+        Note:
+            Always returns exactly 7 values for consistent unpacking.
+            LNK parameters should be handled separately via the use_lnk_override flag.
         """
         # Use overrides when provided, otherwise fall back to stored tables
         sf_tab = sf_param_table_override if sf_param_table_override is not None else self.sf_param_table
@@ -1308,7 +1325,19 @@ class RGCrfArray:
             if len(lengths) > 0:
                 self.sync_table_length = next(iter(lengths.values()))
 
-        points = self.grid_generator.generate_second_grid(anti_alignment=anti_alignment)
+        # Use target_num_centers_override if provided, otherwise use existing grid generator
+        if target_num_centers_override is not None:
+            # Create a new grid generator with the override target_num_centers
+            temp_grid_generator = HexagonalGridGenerator(
+                self.xlim, self.ylim, target_num_centers=target_num_centers_override, 
+                rand_seed=self.rgc_rand_seed, noise_level=self.grid_noise_level
+            )
+            # Generate the first grid to initialize the generator
+            temp_grid_generator.generate_first_grid()
+            # Generate the second grid with anti_alignment
+            points = temp_grid_generator.generate_second_grid(anti_alignment=anti_alignment)
+        else:
+            points = self.grid_generator.generate_second_grid(anti_alignment=anti_alignment)
         idx_dict = self._generate_indices(points, sf_table=sf_tab, tf_table=tf_tab, lnk_table=lnk_tab)
 
         if self.use_lnk_override:

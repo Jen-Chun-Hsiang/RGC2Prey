@@ -88,6 +88,7 @@ def parse_args():
     parser.add_argument('--xlim', type=tuple, default=(-120, 120), help="x-axis limits for grid centers.")
     parser.add_argument('--ylim', type=tuple, default=(-90, 90), help="y-axis limits for grid centers.")
     parser.add_argument('--target_num_centers', type=int, default=500, help="Number of target centers to generate.")
+    parser.add_argument('--target_num_centers_additional', type=int, default=None, help="Number of target centers for additional grid (overrides target_num_centers in get_additional_results).")
     parser.add_argument('--sf_scalar', type=float, default=0.2, help="Scaling factor for spatial frequency.")
     parser.add_argument('--grid_generate_method', type=str, default='circle', 
                         choices=['closest', 'decay', 'circle'], help="Method for grid generation.")
@@ -261,7 +262,8 @@ def main():
             tf_param_table = None
         multi_opt_sf_off, multi_opt_sf_surround_off, tf_off, grid2value_mapping_off, map_func_off, rgc_locs_off, lnk_params_off = \
             rgc_array.get_additional_results(anti_alignment=args.anti_alignment, sf_id_list_additional=args.sf_id_list_additional,
-                                             sf_param_table_override=sf_param_table, tf_param_table_override=tf_param_table)  
+                                             sf_param_table_override=sf_param_table, tf_param_table_override=tf_param_table,
+                                             target_num_centers_override=args.target_num_centers_additional)  
         
         if args.is_binocular: 
             num_input_channel = 4
