@@ -1624,7 +1624,7 @@ def test_multi_temporal_filters():
     Test function to demonstrate the new multi-temporal filter functionality.
     This shows how to use different temporal filters for different RGC cells.
     """
-    print("Testing multi-temporal filter implementation...")
+    logging.info("Testing multi-temporal filter implementation...")
     
     # Create dummy data
     T, H, W = 20, 32, 32
@@ -1641,13 +1641,13 @@ def test_multi_temporal_filters():
     tf_multi_single = create_multiple_temporal_filters(tf_single, num_rgcs, variation_std=0.0)
     tf_tensor_single = torch.from_numpy(tf_multi_single).float().view(num_rgcs, 1, -1)
     
-    print(f"Single TF replicated - Shape: {tf_tensor_single.shape}")
+    logging.info(f"Single TF replicated - Shape: {tf_tensor_single.shape}")
     
     # Test 2: Different temporal filters for each RGC
     tf_multi_varied = create_multiple_temporal_filters(tf_single, num_rgcs, variation_std=0.1)
     tf_tensor_varied = torch.from_numpy(tf_multi_varied).float().view(num_rgcs, 1, -1)
     
-    print(f"Varied TFs - Shape: {tf_tensor_varied.shape}")
+    logging.info(f"Varied TFs - Shape: {tf_tensor_varied.shape}")
     
     # Test the convolution operation
     sf_frame = torch.einsum('whn,thw->nt', sf, movie)  # [N, T]
@@ -1657,14 +1657,14 @@ def test_multi_temporal_filters():
     result_single = F.conv1d(sf_frame, tf_tensor_single, stride=1, padding=0, groups=num_rgcs)
     result_varied = F.conv1d(sf_frame, tf_tensor_varied, stride=1, padding=0, groups=num_rgcs)
     
-    print(f"Result single TF - Shape: {result_single.shape}")
-    print(f"Result varied TF - Shape: {result_varied.shape}")
+    logging.info(f"Result single TF - Shape: {result_single.shape}")
+    logging.info(f"Result varied TF - Shape: {result_varied.shape}")
     
     # Check that different filters produce different results
     are_different = not torch.allclose(result_single, result_varied, atol=1e-6)
-    print(f"Single vs varied TF produce different results: {are_different}")
-    
-    print("Multi-temporal filter test completed successfully!")
+    logging.info(f"Single vs varied TF produce different results: {are_different}")
+
+    logging.info("Multi-temporal filter test completed successfully!")
 
 
 if __name__ == "__main__":

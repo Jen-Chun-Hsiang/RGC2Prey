@@ -302,8 +302,7 @@ def main():
         logging.info(f"Saved lightweight RGC repeat-check data to {repeat_save_path}")
     except Exception as _e:
         logging.error(f"Failed to save lightweight repeat-check data: {_e}")
-    sys.exit(0)# TEMPORARY TO STOP EXECUTION HERE FOR TESTING
-
+    
     if is_show_rgc_grid:
         plot_coordinate_and_save(rgc_locs, rgc_locs_off, plot_save_folder, file_name=f'{args.experiment_name}_rgc_grids.png')
         
@@ -654,11 +653,11 @@ def main():
                 # Print timer data at specific batch index
                 if args.exam_batch_idx is not None:
                     if batch_idx*args.batch_size > args.exam_batch_idx:
-                        print(f"Batch {batch_idx}:")
-                        print(f"Data Loading: {timer_data_loading}")
-                        print(f"Data Transfer: {timer_data_transfer}")
-                        print(f"Processing: {timer_data_processing}")
-                        print(f"Backpropagation: {timer_data_backpropagate}")
+                        logging.debug(f"Batch {batch_idx}:")
+                        logging.debug(f"Data Loading: {timer_data_loading}")
+                        logging.debug(f"Data Transfer: {timer_data_transfer}")
+                        logging.debug(f"Processing: {timer_data_processing}")
+                        logging.debug(f"Backpropagation: {timer_data_backpropagate}")
                         break
 
             if args.exam_batch_idx is not None:

@@ -110,7 +110,8 @@ def plot_tensor_and_save(tensor, output_folder, file_name='tensor_plot.png'):
     
     # Save the plot to the assigned folder
     output_path = os.path.join(output_folder, file_name)
-    print(f'{file_name}')
+    import logging
+    logging.info(f'{file_name}')
     plt.savefig(output_path)
     plt.close()  # Close the plot to avoid displaying it if running in an interactive environment
 
@@ -325,7 +326,8 @@ def plot_gaussian_model(grid_values, rgc_array_rf_area, output_folder, file_name
     output_path = os.path.join(output_folder, file_name)
     plt.savefig(output_path)
     plt.close()
-    print(f"Plot saved to {output_path}")
+    import logging
+    logging.info(f"Plot saved to {output_path}")
 
 
 def plot_two_path_comparison(array1, array2, save_folder, file_name):
@@ -446,7 +448,8 @@ def plot_coordinate_and_save(rgc_locs, rgc_locs_off=None, plot_save_folder=None,
         save_path = os.path.join(plot_save_folder, file_name)
         plt.savefig(save_path, dpi=300, bbox_inches='tight')
         plt.close()
-        print(f"Plot saved at: {save_path}")
+        import logging
+        logging.info(f"Plot saved at: {save_path}")
     else:
         plt.show()
 

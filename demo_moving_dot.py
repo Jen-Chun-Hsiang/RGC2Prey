@@ -68,4 +68,5 @@ for frame in range(len(sequence)):
 
 # Release the video writer
 video_writer.release()
-print(f"Video saved to {save_path}")
+import logging
+logging.info(f"Video saved to {save_path}")

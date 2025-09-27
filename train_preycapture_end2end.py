@@ -241,11 +241,11 @@ def main():
             # Print timer data at specific batch index
             if args.exam_batch_idx is not None:
                 if batch_idx*args.batch_size > args.exam_batch_idx:
-                    print(f"Batch {batch_idx}:")
-                    print(f"Data Loading: {timer_data_loading}")
-                    print(f"Data Transfer: {timer_data_transfer}")
-                    print(f"Processing: {timer_data_processing}")
-                    print(f"Backpropagation: {timer_data_backpropagate}")
+                    logging.debug(f"Batch {batch_idx}:")
+                    logging.debug(f"Data Loading: {timer_data_loading}")
+                    logging.debug(f"Data Transfer: {timer_data_transfer}")
+                    logging.debug(f"Processing: {timer_data_processing}")
+                    logging.debug(f"Backpropagation: {timer_data_backpropagate}")
                     break
 
         if args.exam_batch_idx is not None:

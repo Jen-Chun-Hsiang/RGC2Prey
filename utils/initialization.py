@@ -52,7 +52,7 @@ def process_seed(seed_input):
         # Call the seed-setting function
         return set_seed(seed_value)
     except ValueError as e:
-        print(f"Error: {e}")
+        logging.error(f"Error: {e}")
         raise
 
 

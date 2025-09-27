@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 import torch.nn.functional as F
+import logging
 
 @contextmanager
 def timer(log_values, tau=0.99, n=100):
@@ -319,8 +320,8 @@ class MovieGenerator:
             img = cv2.resize(img, (self.frame_width, self.frame_height))
             video_writer.write(cv2.cvtColor(img, cv2.COLOR_RGB2BGR))
 
-        video_writer.release()
-        print(f"Video saved at {output_filename}")
+    video_writer.release()
+    logging.info(f"Video saved at {output_filename}")
 
 
 def save_distributions(train_loader, n, folder_name, file_name, logging=None):
@@ -353,7 +354,7 @@ def save_distributions(train_loader, n, folder_name, file_name, logging=None):
             all_random_matrix.append(inputs.view(-1).cpu().numpy())
             all_output_value.append(true_path.view(-1).cpu().numpy())
             if logging is not None:
-                logging.info(f'batch_idx: {batch_idx} \n')
+                logging.debug(f'batch_idx: {batch_idx} \n')
 
     # Concatenate accumulated values
     all_random_matrix = np.concatenate(all_random_matrix)
@@ -382,7 +383,7 @@ def save_distributions(train_loader, n, folder_name, file_name, logging=None):
     plt.savefig(save_path)
     plt.close()
 
-    print(f"Plot saved to {save_path}")
+    logging.info(f"Plot saved to {save_path}")
 
 
 def generate_causal_gaussian_kernel(kernel_length, sampling_rate, gaussian_std):
