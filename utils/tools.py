@@ -320,8 +320,8 @@ class MovieGenerator:
             img = cv2.resize(img, (self.frame_width, self.frame_height))
             video_writer.write(cv2.cvtColor(img, cv2.COLOR_RGB2BGR))
 
-    video_writer.release()
-    logging.info(f"Video saved at {output_filename}")
+        video_writer.release()
+        logging.info(f"Video saved at {output_filename}")
 
 
 def save_distributions(train_loader, n, folder_name, file_name, logging=None):
