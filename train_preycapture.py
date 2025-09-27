@@ -275,6 +275,20 @@ def main():
         else:
             num_input_channel = 1
         multi_opt_sf_off, multi_opt_sf_surround_off, tf_off, grid2value_mapping_off, map_func_off, rgc_locs_off, lnk_params_off = None, None, None, None, None, None, None
+    # Ensure mat save folder exists and save RGC locations with a timestamp so we can track
+    # how RGC grids are generated across runs for consistency checks.
+    try:
+        os.makedirs(mat_save_folder, exist_ok=True)
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        save_path = os.path.join(mat_save_folder, f'{args.experiment_name}_rgc_locations_{timestamp}.mat')
+        save_dict = {'rgc_locs': rgc_locs}
+        if rgc_locs_off is not None:
+            save_dict['rgc_locs_off'] = rgc_locs_off
+        savemat(save_path, save_dict)
+        logging.info(f"Saved RGC locations to {save_path}")
+    except Exception as _e:
+        logging.error(f"Failed to save RGC locations to mat file: {_e}")
+    sys.exist(0)  # TEMPORARY TO STOP EXECUTION HERE FOR TESTING
 
     if is_show_rgc_grid:
         plot_coordinate_and_save(rgc_locs, rgc_locs_off, plot_save_folder, file_name=f'{args.experiment_name}_rgc_grids.png')
