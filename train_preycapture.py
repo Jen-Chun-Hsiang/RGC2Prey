@@ -103,6 +103,7 @@ def parse_args():
     parser.add_argument('--is_pixelized_tf', action='store_true', help="Flag for pixelized receptive field.")
     parser.add_argument('--grid_size_fac', type=float, default=1, help='Resize the grid size that transformed from RGC outputs')
     parser.add_argument('--set_s_scale', type=float, nargs='*', default=[], help='Set scale for surround weight of RF (LN model only; ignored in LNK model)')
+    parser.add_argument('--set_s_scale_additional', type=float, nargs='*', default=[], help='Set scale for surround weight of RF for additional grid (LN model only; ignored in LNK model)')
     parser.add_argument('--is_rf_median_subtract', action='store_true', help="Flag for substract median of rf")
     parser.add_argument('--is_both_ON_OFF', action='store_true', help="Flag for including OFF cell")
     parser.add_argument('--sf_sheet_name', type=str, default='SF_params_modified', help='Excel sheet name for the spatial filter')
@@ -263,7 +264,8 @@ def main():
         multi_opt_sf_off, multi_opt_sf_surround_off, tf_off, grid2value_mapping_off, map_func_off, rgc_locs_off, lnk_params_off = \
             rgc_array.get_additional_results(anti_alignment=args.anti_alignment, sf_id_list_additional=args.sf_id_list_additional,
                                              sf_param_table_override=sf_param_table, tf_param_table_override=tf_param_table,
-                                             target_num_centers_override=args.target_num_centers_additional)  
+                                             target_num_centers_override=args.target_num_centers_additional, 
+                                             set_s_scale_override=args.set_s_scale_additional)  
         
         if args.is_binocular: 
             num_input_channel = 4

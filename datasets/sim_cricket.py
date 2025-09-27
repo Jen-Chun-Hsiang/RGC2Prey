@@ -1282,7 +1282,7 @@ class RGCrfArray:
     
     def get_additional_results(self, anti_alignment=1, sf_id_list_additional=None,
                                sf_param_table_override=None, tf_param_table_override=None, lnk_param_table_override=None,
-                               target_num_centers_override=None):
+                               target_num_centers_override=None, set_s_scale_override=None):
         """
         Generate additional results for OFF channels or second grids.
         
@@ -1294,6 +1294,8 @@ class RGCrfArray:
             lnk_param_table_override (DataFrame): Override for LNK parameters.
             target_num_centers_override (int): Override for target number of centers.
                 If provided, creates a new grid generator with this target.
+            set_s_scale_override (list): Override for set_s_scale parameter.
+                If provided, overrides the instance's set_s_scale for this operation.
         
         Returns:
             tuple: (multi_opt_sf_center, multi_opt_sf_surround, tf, grid2value_mapping, 
@@ -1307,6 +1309,11 @@ class RGCrfArray:
         sf_tab = sf_param_table_override if sf_param_table_override is not None else self.sf_param_table
         tf_tab = tf_param_table_override if tf_param_table_override is not None else self.tf_param_table
         lnk_tab = lnk_param_table_override if lnk_param_table_override is not None else self.lnk_param_table
+        
+        # Store original set_s_scale and temporarily override if needed
+        original_set_s_scale = self.set_s_scale
+        if set_s_scale_override is not None:
+            self.set_s_scale = set_s_scale_override
 
         # If synchronization is used, validate that the provided override tables are compatible
         if self.syn_params:
@@ -1352,6 +1359,9 @@ class RGCrfArray:
                                                                                sf_param_table_override=sf_tab)
         tf = self._create_temporal_filter(idx_list=idx_dict.get('tf'), tf_param_table_override=tf_tab)
         grid2value_mapping, map_func = self._get_grid_mapping(points)
+        
+        # Restore original set_s_scale
+        self.set_s_scale = original_set_s_scale
 
         return multi_opt_sf_center, multi_opt_sf_surround, tf, grid2value_mapping, map_func, points, lnk_params
 
