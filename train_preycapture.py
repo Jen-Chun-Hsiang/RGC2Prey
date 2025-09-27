@@ -288,6 +288,18 @@ def main():
         logging.info(f"Saved RGC locations to {save_path}")
     except Exception as _e:
         logging.error(f"Failed to save RGC locations to mat file: {_e}")
+    # Also save a lightweight compressed .npz file for quick repeat-checking by other scripts.
+    try:
+        repeat_check_dir = os.path.join(mat_save_folder, 'repeat_check', args.experiment_name)
+        os.makedirs(repeat_check_dir, exist_ok=True)
+        repeat_save_path = os.path.join(repeat_check_dir, f'{args.experiment_name}_rgc_locations.npz')
+        if 'rgc_locs_off' in locals() and rgc_locs_off is not None:
+            np.savez_compressed(repeat_save_path, rgc_locs=rgc_locs, rgc_locs_off=rgc_locs_off)
+        else:
+            np.savez_compressed(repeat_save_path, rgc_locs=rgc_locs)
+        logging.info(f"Saved lightweight RGC repeat-check data to {repeat_save_path}")
+    except Exception as _e:
+        logging.error(f"Failed to save lightweight repeat-check data: {_e}")
     sys.exit(0)# TEMPORARY TO STOP EXECUTION HERE FOR TESTING
 
     if is_show_rgc_grid:

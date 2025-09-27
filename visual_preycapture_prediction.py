@@ -261,7 +261,7 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
 
     rnd_seed = process_seed(args.seed)
 
-    logging.info( f"{file_name} processing...1 seed:{args.seed}")
+    logging.info( f"{file_name} processing...1 seed:{args.seed}, {rnd_seed}")
     
     # Simple parameter loading for RGCs
     # make sure the following usecol is provide to avoid full empty columns
@@ -325,6 +325,51 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
             num_input_channel = 1
         grid_centers = rgc_locs
         multi_opt_sf_off, multi_opt_sf_surround_off, tf_off, grid2value_mapping_off, map_func_off, rgc_locs_off, lnk_params_off = None, None, None, None, None, None, None
+    # Ensure mat save folder exists and save RGC locations with a timestamp so we can track
+    # how RGC grids are generated across runs for consistency checks.
+    try:
+        os.makedirs(mat_save_folder, exist_ok=True)
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        save_path = os.path.join(mat_save_folder, f'{file_name}_rgc_locations_in_visualization_{timestamp}.mat')
+        save_dict = {'rgc_locs': rgc_locs}
+        if 'rgc_locs_off' in locals() and rgc_locs_off is not None:
+            save_dict['rgc_locs_off'] = rgc_locs_off
+        savemat(save_path, save_dict)
+        logging.info(f"Saved RGC locations to {save_path}")
+    except Exception as _e:
+        logging.error(f"Failed to save RGC locations to mat file: {_e}")
+    # Quick comparison: load the training-produced lightweight .npz by experiment_name
+    try:
+        ref_path = os.path.join(mat_save_folder, 'repeat_check', experiment_name, f'{experiment_name}_rgc_locations.npz')
+        if not os.path.exists(ref_path):
+            logging.info(f'No repeat-check file found for experiment {experiment_name}; skipping quick check.')
+        else:
+            # Load the exact keys written by the training script (np.savez_compressed with keys 'rgc_locs' and optional 'rgc_locs_off')
+            with np.load(ref_path, allow_pickle=True) as ref:
+                # The training script saves 'rgc_locs' and optionally 'rgc_locs_off'
+                ref_locs = ref['rgc_locs']
+                ref_locs_off = ref['rgc_locs_off'] if 'rgc_locs_off' in ref.files else None
+
+            # Compare main ON grid
+            main_ok = np.allclose(ref_locs, rgc_locs, rtol=1e-6, atol=1e-8, equal_nan=True)
+
+            # Compare OFF grid only if the reference contains it. Follow training semantics:
+            # - if ref has OFF but current run does not -> FAIL
+            # - if neither has OFF -> OK
+            # - if both have OFF -> compare with same tolerance
+            off_ok = True
+            if ref_locs_off is not None:
+                if 'rgc_locs_off' not in locals() or rgc_locs_off is None:
+                    off_ok = False
+                else:
+                    off_ok = np.allclose(ref_locs_off, rgc_locs_off, rtol=1e-6, atol=1e-8, equal_nan=True)
+
+            if main_ok and off_ok:
+                logging.info(f'Quick repeat-check PASSED against {ref_path}')
+            else:
+                logging.warning(f'Quick repeat-check FAILED against {ref_path} (main_ok={main_ok}, off_ok={off_ok})')
+    except Exception as e:
+        logging.error(f'Error during quick repeat-check: {e}')
 
     if is_show_rgc_grid:
         plot_coordinate_and_save(rgc_locs, rgc_locs_off, plot_save_folder, file_name=f'{args.experiment_name}_rgc_grids_test.png')
