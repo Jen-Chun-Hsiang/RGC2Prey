@@ -258,6 +258,8 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
         args.sf_sheet_name_additional = None
     if not hasattr(args, 'tf_sheet_name_additional'):
         args.tf_sheet_name_additional = None
+    if not hasattr(args, 'target_num_centers_additional'):
+        args.target_num_centers_additional = None
 
     rnd_seed = process_seed(args.seed)
 
@@ -314,7 +316,8 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
             tf_param_table_additional = None
         multi_opt_sf_off, multi_opt_sf_surround_off, tf_off, grid2value_mapping_off, map_func_off, rgc_locs_off, lnk_params_off = \
             rgc_array.get_additional_results(anti_alignment=args.anti_alignment, sf_id_list_additional=args.sf_id_list_additional,
-                                             sf_param_table_override=sf_param_table_additional, tf_param_table_override=tf_param_table_additional)  
+                                             sf_param_table_override=sf_param_table_additional, tf_param_table_override=tf_param_table_additional,
+                                             target_num_centers_override=args.target_num_centers_additional)  
         if args.is_binocular:
             num_input_channel = 4
             
