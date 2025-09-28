@@ -83,7 +83,9 @@ def create_moving_bar_dataset():
         use_lnk=False,
         surround_sigma_ratio=4.0,
         surround_sf=surround_sf,
-        lnk_params=None
+        lnk_params=None,
+        # Random seed for consistent data generation
+        rnd_seed=None
     )
     
     print(f"✓ Created Cricket2RGCs dataset with {len(dataset)} samples")

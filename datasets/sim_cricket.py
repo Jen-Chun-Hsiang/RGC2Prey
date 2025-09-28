@@ -406,11 +406,7 @@ class Cricket2RGCs(Dataset):
         self.grid_width = int(round(target_width * grid_size_fac))
         self.grid_height = int(round(target_height * grid_size_fac))
 
-        # Random seed for consistent data generation
         self.rnd_seed = rnd_seed
-        # Don't set global seeds here - let the main script control global seeding
-        # We'll use local random state management in __getitem__ instead
-
         # Flags and options
         self.is_syn_mov_shown = is_syn_mov_shown
         self.fr2spikes = fr2spikes
@@ -706,21 +702,24 @@ class Cricket2RGCs(Dataset):
     def __getitem__(self, idx):
         # Use local random state management to avoid interfering with global seeding
         if self.rnd_seed is not None:
-            # Save current global random states
+            # Save current global random states (avoid CUDA in multiprocessing)
             python_state = random.getstate()
             numpy_state = np.random.get_state()
             torch_state = torch.get_rng_state()
-            torch_cuda_state = None
-            if torch.cuda.is_available():
-                torch_cuda_state = torch.cuda.get_rng_state_all()
+            # Don't manage CUDA state in DataLoader workers to avoid multiprocessing issues
             
             # Set sample-specific seeds temporarily
             sample_seed = self.rnd_seed + idx
             random.seed(sample_seed)
             np.random.seed(sample_seed)
             torch.manual_seed(sample_seed)
-            if torch.cuda.is_available():
-                torch.cuda.manual_seed_all(sample_seed)
+            # Only set CUDA seed if we're in the main process (not in DataLoader worker)
+            try:
+                if torch.cuda.is_available() and not hasattr(torch.utils.data.get_worker_info(), '__bool__') or torch.utils.data.get_worker_info() is None:
+                    torch.cuda.manual_seed_all(sample_seed)
+            except:
+                # Silently skip CUDA seeding in workers to avoid multiprocessing issues
+                pass
             
             try:
                 # Generate movie and process with consistent seeding
@@ -854,8 +853,7 @@ class Cricket2RGCs(Dataset):
                 random.setstate(python_state)
                 np.random.set_state(numpy_state)
                 torch.set_rng_state(torch_state)
-                if torch_cuda_state is not None:
-                    torch.cuda.set_rng_state_all(torch_cuda_state)
+                # Don't restore CUDA state in DataLoader workers
         else:
             # No seeding - use default behavior
             syn_movie, path, path_bg, *rest = self.movie_generator.generate()

@@ -437,7 +437,7 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
                                 surround_sigma_ratio=args.surround_sigma_ratio,
                                 surround_sf=multi_opt_sf_surround,
                                 surround_sf_off=multi_opt_sf_surround_off,
-                                # Random seed for consistent data generation (fallback to None for older checkpoints)
+                                # Random seed for consistent data generation
                                 rnd_seed=rnd_seed)
 
     # Ensure num_workers is a non-negative integer (DataLoader accepts 0 for inline workers)
@@ -494,7 +494,7 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
                                 surround_sigma_ratio=args.surround_sigma_ratio,
                                 surround_sf=multi_opt_sf_surround,
                                 surround_sf_off=multi_opt_sf_surround_off,
-                                # Random seed for consistent data generation (fallback to None for older checkpoints)
+                                # Random seed for consistent data generation
                                 rnd_seed=rnd_seed)
     
     test_loader = DataLoader(test_dataset, batch_size=1, shuffle=True, 
@@ -578,7 +578,7 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
                                 surround_sigma_ratio=args.surround_sigma_ratio,
                                 surround_sf=multi_opt_sf_surround,
                                 surround_sf_off=multi_opt_sf_surround_off,
-                                # Random seed for consistent data generation (fallback to None for older checkpoints)
+                                # Random seed for consistent data generation
                                 rnd_seed=rnd_seed)
     test_loader = DataLoader(test_dataset, batch_size=1, shuffle=False, worker_init_fn=worker_init_fn)
 
