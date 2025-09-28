@@ -417,6 +417,7 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
 
     logging.info( f"{file_name} processing...4")
 
+    # [Section 1] Create test dataset and loader
     test_dataset = Cricket2RGCs(num_samples=num_sample, multi_opt_sf=multi_opt_sf, tf=tf, map_func=map_func,
                                 grid2value_mapping=grid2value_mapping, multi_opt_sf_off=multi_opt_sf_off, tf_off=tf_off, 
                                 map_func_off=map_func_off, grid2value_mapping_off=grid2value_mapping_off, target_width=target_width, 
@@ -435,7 +436,9 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
                                 lnk_params_off=lnk_params_off,
                                 surround_sigma_ratio=args.surround_sigma_ratio,
                                 surround_sf=multi_opt_sf_surround,
-                                surround_sf_off=multi_opt_sf_surround_off)
+                                surround_sf_off=multi_opt_sf_surround_off,
+                                # Random seed for consistent data generation (fallback to None for older checkpoints)
+                                rnd_seed=rnd_seed)
 
     # Ensure num_workers is a non-negative integer (DataLoader accepts 0 for inline workers)
     dl_num_workers = getattr(args, 'num_worker', None)
@@ -470,7 +473,7 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
     save_path = os.path.join(mat_save_folder, f'{file_name}_{epoch_number}_prediction_error.mat')
     savemat(save_path, {'test_losses': test_losses, 'training_losses': training_losses})
     
-    # Get path
+    # [Section 2] Create a small test dataset and loader for visualization and movie generation
     test_dataset = Cricket2RGCs(num_samples=int(num_sample*0.1), multi_opt_sf=multi_opt_sf, tf=tf, map_func=map_func,
                                 grid2value_mapping=grid2value_mapping, multi_opt_sf_off=multi_opt_sf_off, tf_off=tf_off, 
                                 map_func_off=map_func_off, grid2value_mapping_off=grid2value_mapping_off, target_width=target_width, 
@@ -490,7 +493,9 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
                                 lnk_params_off=lnk_params_off,
                                 surround_sigma_ratio=args.surround_sigma_ratio,
                                 surround_sf=multi_opt_sf_surround,
-                                surround_sf_off=multi_opt_sf_surround_off)
+                                surround_sf_off=multi_opt_sf_surround_off,
+                                # Random seed for consistent data generation (fallback to None for older checkpoints)
+                                rnd_seed=rnd_seed)
     
     test_loader = DataLoader(test_dataset, batch_size=1, shuffle=True, 
                              worker_init_fn=worker_init_fn, generator=dl_generator_small)
@@ -551,6 +556,7 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
 
     logging.info( f"{file_name} processing...9")
 
+    # [Section 3] Visualization and movie generation
     model.to('cpu')
     test_dataset = Cricket2RGCs(num_samples=num_display, multi_opt_sf=multi_opt_sf, tf=tf, map_func=map_func,
                                 grid2value_mapping=grid2value_mapping, multi_opt_sf_off=multi_opt_sf_off, tf_off=tf_off, 
@@ -571,7 +577,9 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
                                 lnk_params_off=lnk_params_off,
                                 surround_sigma_ratio=args.surround_sigma_ratio,
                                 surround_sf=multi_opt_sf_surround,
-                                surround_sf_off=multi_opt_sf_surround_off)
+                                surround_sf_off=multi_opt_sf_surround_off,
+                                # Random seed for consistent data generation (fallback to None for older checkpoints)
+                                rnd_seed=rnd_seed)
     test_loader = DataLoader(test_dataset, batch_size=1, shuffle=False, worker_init_fn=worker_init_fn)
 
     logging.info( f"{file_name} processing...10")

@@ -393,7 +393,9 @@ def main():
             lnk_params_off=lnk_params_off,
             surround_sigma_ratio=args.surround_sigma_ratio,
             surround_sf=multi_opt_sf_surround,
-            surround_sf_off=multi_opt_sf_surround_off
+            surround_sf_off=multi_opt_sf_surround_off,
+            # Random seed for consistent data generation
+            rnd_seed=rnd_seed+5678
         )
         mu, sigma, mean_r, mean_width, (hist, edges), pct_nan, pct_nan_width, data, corr = estimate_rgc_signal_distribution(
             train_dataset,
@@ -450,7 +452,9 @@ def main():
         lnk_params_off=lnk_params_off,
         surround_sigma_ratio=args.surround_sigma_ratio,
         surround_sf=multi_opt_sf_surround,
-        surround_sf_off=multi_opt_sf_surround_off
+        surround_sf_off=multi_opt_sf_surround_off,
+        # Random seed for consistent data generation
+        rnd_seed=rnd_seed+5678
     )
     
     logging.info( f"{args.experiment_name} processing...6")
@@ -530,7 +534,9 @@ def main():
         surround_sigma_ratio=args.surround_sigma_ratio,
         lnk_params_off=lnk_params_off,
         surround_sf=multi_opt_sf_surround,
-        surround_sf_off=multi_opt_sf_surround_off
+        surround_sf_off=multi_opt_sf_surround_off,
+        # Random seed for consistent data generation
+        rnd_seed=rnd_seed+5678
     )
 
     logging.info( f"{args.experiment_name} processing...8")

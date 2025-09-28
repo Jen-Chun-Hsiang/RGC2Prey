@@ -391,6 +391,8 @@ class Cricket2RGCs(Dataset):
         surround_sigma_ratio=4.0,
         surround_sf=None,  
         surround_sf_off=None,
+        # Random seed for consistent data generation
+        rnd_seed=None,
         
     ):
         # Core attributes
@@ -403,6 +405,11 @@ class Cricket2RGCs(Dataset):
         self.grid_size_fac = grid_size_fac
         self.grid_width = int(round(target_width * grid_size_fac))
         self.grid_height = int(round(target_height * grid_size_fac))
+
+        # Random seed for consistent data generation
+        self.rnd_seed = rnd_seed
+        # Don't set global seeds here - let the main script control global seeding
+        # We'll use local random state management in __getitem__ instead
 
         # Flags and options
         self.is_syn_mov_shown = is_syn_mov_shown
@@ -697,41 +704,115 @@ class Cricket2RGCs(Dataset):
         ).squeeze()
 
     def __getitem__(self, idx):
-        syn_movie, path, path_bg, *rest = self.movie_generator.generate()
+        # Use local random state management to avoid interfering with global seeding
+        if self.rnd_seed is not None:
+            # Save current global random states
+            python_state = random.getstate()
+            numpy_state = np.random.get_state()
+            torch_state = torch.get_rng_state()
+            torch_cuda_state = None
+            if torch.cuda.is_available():
+                torch_cuda_state = torch.cuda.get_rng_state_all()
+            
+            # Set sample-specific seeds temporarily
+            sample_seed = self.rnd_seed + idx
+            random.seed(sample_seed)
+            np.random.seed(sample_seed)
+            torch.manual_seed(sample_seed)
+            if torch.cuda.is_available():
+                torch.cuda.manual_seed_all(sample_seed)
+            
+            try:
+                # Generate movie and process with consistent seeding
+                syn_movie, path, path_bg, *rest = self.movie_generator.generate()
+                
+                # Determine binocular vs monocular
+                is_binocular = (syn_movie.ndim == 4 and syn_movie.shape[1] == 2)
+                if is_binocular:
+                    movies = [syn_movie[:, i] for i in range(2)]
+                else:
+                    mono = syn_movie[:, 0] if syn_movie.ndim == 4 else syn_movie
+                    movies = [mono]
+                    syn_movie = syn_movie[:, 0, :, :] 
 
-        # Determine binocular vs monocular
-        is_binocular = (syn_movie.ndim == 4 and syn_movie.shape[1] == 2)
-        if is_binocular:
-            movies = [syn_movie[:, i] for i in range(2)]
-        else:
-            mono = syn_movie[:, 0] if syn_movie.ndim == 4 else syn_movie
-            movies = [mono]
-            syn_movie = syn_movie[:, 0, :, :] 
+                def _compute_for_channel(mv, ch):
+                    """Helper to compute RGC response - simplified"""
+                    return self._compute_rgc_time(
+                        mv,
+                        ch['sf'],
+                        ch['sf_surround'],
+                        ch['tf'], 
+                        ch['rect_thr'],
+                        rect_softness=ch.get('rect_softness', getattr(self, 'rectified_softness', 1.0)),
+                        lnk_params=ch['lnk_params']
+                    )
 
-        def _compute_for_channel(mv, ch):
-            """Helper to compute RGC response - simplified"""
-            return self._compute_rgc_time(
-                mv,
-                ch['sf'],
-                ch['sf_surround'],
-                ch['tf'], 
-                ch['rect_thr'],
-                rect_softness=ch.get('rect_softness', getattr(self, 'rectified_softness', 1.0)),
-                lnk_params=ch['lnk_params']
-            )
+                grid_values_list = []
 
-        grid_values_list = []
+                # Direct-image branch
+                if self.is_direct_image:
+                    grid_values_list.append(self._process_direct_image(movies[0]))
 
-        # Direct-image branch
-        if self.is_direct_image:
-            grid_values_list.append(self._process_direct_image(movies[0]))
+                else:
+                    # 1) Both ON/OFF + binocular => 4 outputs (2 pathways × 2 eyes)
+                    if self.is_both_ON_OFF and is_binocular:
+                        for ch in self.channels:
+                            for mv in movies:
+                                rgc_time = _compute_for_channel(mv, ch)  
+                                grid_values_list.append(
+                                    ch['map_func'](
+                                        rgc_time,
+                                        ch['grid2value'],
+                                        self.grid_width,
+                                        self.grid_height
+                                    )
+                                )
 
-        else:
-            # 1) Both ON/OFF + binocular => 4 outputs (2 pathways × 2 eyes)
-            if self.is_both_ON_OFF and is_binocular:
-                for ch in self.channels:
-                    for mv in movies:
-                        rgc_time = _compute_for_channel(mv, ch)  
+                    # 2) Two grids + binocular => 4 outputs (2 grids × 2 eyes)
+                    elif self.is_two_grids and is_binocular:
+                        for ch in self.channels:
+                            for mv in movies:
+                                rgc_time = _compute_for_channel(mv, ch)
+                                grid_values_list.append(
+                                    ch['map_func'](
+                                        rgc_time,
+                                        ch['grid2value'],
+                                        self.grid_width,
+                                        self.grid_height
+                                    )
+                                )
+
+                    # 3) Binocular only => 2 outputs
+                    elif is_binocular:
+                        ch = self.channels[0]
+                        for mv in movies:
+                            rgc_time = _compute_for_channel(mv, ch)
+                            grid_values_list.append(
+                                ch['map_func'](
+                                    rgc_time,
+                                    ch['grid2value'],
+                                    self.grid_width,
+                                    self.grid_height
+                                )
+                            )
+
+                    # 4) ON/OFF only => 2 outputs
+                    elif self.is_both_ON_OFF:
+                        for ch in self.channels:
+                            rgc_time = _compute_for_channel(movies[0], ch)
+                            grid_values_list.append(
+                                ch['map_func'](
+                                    rgc_time,
+                                    ch['grid2value'],
+                                    self.grid_width,
+                                    self.grid_height
+                                )
+                            )
+
+                    # 5) Default single pathway => 1 output
+                    else:
+                        ch = self.channels[0]
+                        rgc_time = _compute_for_channel(movies[0], ch)
                         grid_values_list.append(
                             ch['map_func'](
                                 rgc_time,
@@ -741,9 +822,103 @@ class Cricket2RGCs(Dataset):
                             )
                         )
 
-            # 2) Two grids + binocular => 4 outputs (2 grids × 2 eyes)
-            elif self.is_two_grids and is_binocular:
-                for ch in self.channels:
+                # Stack channels
+                grid_seq = torch.stack(grid_values_list, dim=1)
+
+                # Weighted coords if needed
+                if self.grid_coords is not None:
+                    s_rgc_time = torch.abs(rgc_time - rgc_time[:, :1])
+                    weighted_sum = torch.einsum('nt,nc->tc', s_rgc_time, self.grid_coords)
+                    sum_rates = torch.sum(s_rgc_time, dim=0, keepdim=True).clamp(min=1e-6).view(-1, 1)
+                    weighted_coords = (weighted_sum / sum_rates).detach().numpy()
+                else:
+                    weighted_coords = np.array(0)
+
+                # Normalize paths
+                path = path[-rgc_time.shape[1]:] / self.norm_path_fac
+                path_bg = path_bg[-rgc_time.shape[1]:] / self.norm_path_fac
+
+                # Permute for final shape
+                grid_seq = grid_seq.permute(0, 1, 3, 2)
+
+                out_path = torch.tensor(path, dtype=torch.float32)
+                out_bg = torch.tensor(path_bg, dtype=torch.float32)
+
+                # Return with or without synthetic movie
+                if self.is_syn_mov_shown:
+                    return grid_seq, path, path_bg, syn_movie, *rest, weighted_coords
+                return grid_seq, out_path, out_bg
+                
+            finally:
+                # Restore global random states to not interfere with other parts of the code
+                random.setstate(python_state)
+                np.random.set_state(numpy_state)
+                torch.set_rng_state(torch_state)
+                if torch_cuda_state is not None:
+                    torch.cuda.set_rng_state_all(torch_cuda_state)
+        else:
+            # No seeding - use default behavior
+            syn_movie, path, path_bg, *rest = self.movie_generator.generate()
+            
+            # Determine binocular vs monocular
+            is_binocular = (syn_movie.ndim == 4 and syn_movie.shape[1] == 2)
+            if is_binocular:
+                movies = [syn_movie[:, i] for i in range(2)]
+            else:
+                mono = syn_movie[:, 0] if syn_movie.ndim == 4 else syn_movie
+                movies = [mono]
+                syn_movie = syn_movie[:, 0, :, :] 
+
+            def _compute_for_channel(mv, ch):
+                """Helper to compute RGC response - simplified"""
+                return self._compute_rgc_time(
+                    mv,
+                    ch['sf'],
+                    ch['sf_surround'],
+                    ch['tf'], 
+                    ch['rect_thr'],
+                    rect_softness=ch.get('rect_softness', getattr(self, 'rectified_softness', 1.0)),
+                    lnk_params=ch['lnk_params']
+                )
+
+            grid_values_list = []
+
+            # Direct-image branch
+            if self.is_direct_image:
+                grid_values_list.append(self._process_direct_image(movies[0]))
+
+            else:
+                # 1) Both ON/OFF + binocular => 4 outputs (2 pathways × 2 eyes)
+                if self.is_both_ON_OFF and is_binocular:
+                    for ch in self.channels:
+                        for mv in movies:
+                            rgc_time = _compute_for_channel(mv, ch)  
+                            grid_values_list.append(
+                                ch['map_func'](
+                                    rgc_time,
+                                    ch['grid2value'],
+                                    self.grid_width,
+                                    self.grid_height
+                                )
+                            )
+
+                # 2) Two grids + binocular => 4 outputs (2 grids × 2 eyes)
+                elif self.is_two_grids and is_binocular:
+                    for ch in self.channels:
+                        for mv in movies:
+                            rgc_time = _compute_for_channel(mv, ch)
+                            grid_values_list.append(
+                                ch['map_func'](
+                                    rgc_time,
+                                    ch['grid2value'],
+                                    self.grid_width,
+                                    self.grid_height
+                                )
+                            )
+
+                # 3) Binocular only => 2 outputs
+                elif is_binocular:
+                    ch = self.channels[0]
                     for mv in movies:
                         rgc_time = _compute_for_channel(mv, ch)
                         grid_values_list.append(
@@ -755,23 +930,22 @@ class Cricket2RGCs(Dataset):
                             )
                         )
 
-            # 3) Binocular only => 2 outputs
-            elif is_binocular:
-                ch = self.channels[0]
-                for mv in movies:
-                    rgc_time = _compute_for_channel(mv, ch)
-                    grid_values_list.append(
-                        ch['map_func'](
-                            rgc_time,
-                            ch['grid2value'],
-                            self.grid_width,
-                            self.grid_height
+                # 4) ON/OFF only => 2 outputs
+                elif self.is_both_ON_OFF:
+                    for ch in self.channels:
+                        rgc_time = _compute_for_channel(movies[0], ch)
+                        grid_values_list.append(
+                            ch['map_func'](
+                                rgc_time,
+                                ch['grid2value'],
+                                self.grid_width,
+                                self.grid_height
+                            )
                         )
-                    )
 
-            # 4) ON/OFF only => 2 outputs
-            elif self.is_both_ON_OFF:
-                for ch in self.channels:
+                # 5) Default single pathway => 1 output
+                else:
+                    ch = self.channels[0]
                     rgc_time = _compute_for_channel(movies[0], ch)
                     grid_values_list.append(
                         ch['map_func'](
@@ -782,56 +956,32 @@ class Cricket2RGCs(Dataset):
                         )
                     )
 
-            # 5) Default single pathway => 1 output
+            # Stack channels
+            grid_seq = torch.stack(grid_values_list, dim=1)
+
+            # Weighted coords if needed
+            if self.grid_coords is not None:
+                s_rgc_time = torch.abs(rgc_time - rgc_time[:, :1])
+                weighted_sum = torch.einsum('nt,nc->tc', s_rgc_time, self.grid_coords)
+                sum_rates = torch.sum(s_rgc_time, dim=0, keepdim=True).clamp(min=1e-6).view(-1, 1)
+                weighted_coords = (weighted_sum / sum_rates).detach().numpy()
             else:
-                ch = self.channels[0]
-                rgc_time = _compute_for_channel(movies[0], ch)
-                grid_values_list.append(
-                    ch['map_func'](
-                        rgc_time,
-                        ch['grid2value'],
-                        self.grid_width,
-                        self.grid_height
-                    )
-                )
+                weighted_coords = np.array(0)
 
-        # Stack channels
-        grid_seq = torch.stack(grid_values_list, dim=1)
+            # Normalize paths
+            path = path[-rgc_time.shape[1]:] / self.norm_path_fac
+            path_bg = path_bg[-rgc_time.shape[1]:] / self.norm_path_fac
 
-        # _root_folder = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver'
-        # _mat_save_folder = os.path.join(_root_folder, 'RGC2Prey', 'Results', 'Mats') + '/'
-        # _current_time = datetime.now().strftime('%Y%m%d_%H%M%S')
-        # _save_path = os.path.join(_mat_save_folder, f'rgc_time_distribution_singleRGC_{_current_time}.mat')
-        # savemat(_save_path, {'rgc_time': rgc_time.detach().cpu().numpy()})
+            # Permute for final shape
+            grid_seq = grid_seq.permute(0, 1, 3, 2)
 
-        # Weighted coords if needed
-        if self.grid_coords is not None:
-            s_rgc_time = torch.abs(rgc_time - rgc_time[:, :1])
-            weighted_sum = torch.einsum('nt,nc->tc', s_rgc_time, self.grid_coords)
-            sum_rates = torch.sum(s_rgc_time, dim=0, keepdim=True).clamp(min=1e-6).view(-1, 1)
-            weighted_coords = (weighted_sum / sum_rates).detach().numpy()
-        else:
-            weighted_coords = np.array(0)
+            out_path = torch.tensor(path, dtype=torch.float32)
+            out_bg = torch.tensor(path_bg, dtype=torch.float32)
 
-        # Normalize paths
-        path = path[-rgc_time.shape[1]:] / self.norm_path_fac
-        path_bg = path_bg[-rgc_time.shape[1]:] / self.norm_path_fac
-
-        # print(f'grid_seq shape: {grid_seq.shape}')
-        # Permute for final shape
-        grid_seq = grid_seq.permute(0, 1, 3, 2)
-        # if self.is_both_ON_OFF or self.is_two_grids or is_binocular:
-        #     grid_seq = grid_seq.permute(0, 1, 3, 2)
-        # else:
-        #     grid_seq = grid_seq.permute(0, 2, 1).unsqueeze(1)
-
-        out_path = torch.tensor(path, dtype=torch.float32)
-        out_bg = torch.tensor(path_bg, dtype=torch.float32)
-
-        # Return with or without synthetic movie
-        if self.is_syn_mov_shown:
-            return grid_seq, path, path_bg, syn_movie, *rest, weighted_coords
-        return grid_seq, out_path, out_bg
+            # Return with or without synthetic movie
+            if self.is_syn_mov_shown:
+                return grid_seq, path, path_bg, syn_movie, *rest, weighted_coords
+            return grid_seq, out_path, out_bg
     
 
 class SynMovieGenerator:
