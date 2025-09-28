@@ -335,7 +335,13 @@ def main():
 
     logging.info( f"{args.experiment_name} processing...4")
     if is_show_rgc_tf:
-        plot_vector_and_save(tf, plot_save_folder, file_name=f'{args.experiment_name}_temporal_filter.png')
+        # Delegate plotting of 1D or multi-filter temporal filters to utils.plot_temporal_filters
+        try:
+            from utils.utils import plot_temporal_filters
+            plot_temporal_filters(tf, plot_save_folder, base_file_name=f'{args.experiment_name}_temporal_filter')
+        except Exception:
+            # Fallback: try the original simple plot
+            plot_vector_and_save(tf, plot_save_folder, file_name=f'{args.experiment_name}_temporal_filter.png')
 
     movie_generator = SynMovieGenerator(top_img_folder, bottom_img_folder,
         crop_size=args.crop_size, boundary_size=args.boundary_size, center_ratio=args.center_ratio, max_steps=args.max_steps,

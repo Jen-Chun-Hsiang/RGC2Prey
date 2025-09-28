@@ -131,17 +131,45 @@ def plot_vector_and_save(vector, output_folder, file_name='vector_plot.png'):
     else:
         raise TypeError("Input should be a PyTorch tensor or a NumPy array.")
     
-    # Plot the vector
-    plt.figure(figsize=(8, 6))
-    plt.plot(vector_np, color='b', linestyle='-', marker='o')  # Customize the line style as desired
-    plt.title('1D Vector Plot')
-    plt.xlabel('Index')
-    plt.ylabel('Value')
-    
-    # Save the plot to the assigned folder
-    output_path = os.path.join(output_folder, file_name)
-    plt.savefig(output_path)
-    plt.close() 
+    # If 1D, behave as before. If 2D (T x N), overlay all and save individual plots (limit to 50)
+    if vector_np.ndim == 1:
+        plt.figure(figsize=(8, 6))
+        plt.plot(vector_np, color='b', linestyle='-', marker='o')  # Customize the line style as desired
+        plt.title('1D Vector Plot')
+        plt.xlabel('Index')
+        plt.ylabel('Value')
+        # Save the plot to the assigned folder
+        output_path = os.path.join(output_folder, file_name)
+        plt.savefig(output_path)
+        plt.close()
+    elif vector_np.ndim == 2:
+        T, N = vector_np.shape
+        # Overlay plot of all vectors
+        plt.figure(figsize=(10, 6))
+        for i in range(N):
+            plt.plot(range(T), vector_np[:, i], alpha=0.6, linewidth=1)
+        plt.title(f'{file_name} - All vectors (N={N})')
+        plt.xlabel('Index')
+        plt.ylabel('Value')
+        plt.tight_layout()
+        base_name, ext = os.path.splitext(file_name)
+        overlay_path = os.path.join(output_folder, f"{base_name}_all{ext}")
+        plt.savefig(overlay_path)
+        plt.close()
+
+        # Individual plots (limit to first 50)
+        max_individual = min(N, 50)
+        for i in range(max_individual):
+            plt.figure(figsize=(8, 6))
+            plt.plot(range(T), vector_np[:, i], color='b', linestyle='-', marker='o')
+            plt.title(f'Vector {i+1} of {N}')
+            plt.xlabel('Index')
+            plt.ylabel('Value')
+            indiv_path = os.path.join(output_folder, f"{base_name}_{i+1}{ext}")
+            plt.savefig(indiv_path)
+            plt.close()
+    else:
+        raise ValueError('Input array must be 1D or 2D for plotting.')
 
 
 def plot_movement_and_velocity(path, velocity_history, boundary_size, name, output_folder="plots"):
@@ -363,6 +391,91 @@ def plot_two_path_comparison(array1, array2, save_folder, file_name):
     save_path = os.path.join(save_folder, file_name)
     plt.savefig(save_path, bbox_inches="tight")
     plt.close()
+
+
+def plot_temporal_filters(tf, output_folder, base_file_name='temporal_filter', max_individual=50):
+    """
+    Plot temporal filter(s) which can be 1D (T,) or 2D (T, N).
+
+    - If 1D: saves single plot named '<base_file_name>.png'
+    - If 2D: saves overlay '<base_file_name>_all.png' and individual files
+      '<base_file_name>_1.png', '<base_file_name>_2.png', ... up to max_individual.
+    """
+    os.makedirs(output_folder, exist_ok=True)
+
+    # Convert to numpy array if torch tensor
+    try:
+        if isinstance(tf, torch.Tensor):
+            tf_np = tf.cpu().numpy()
+        else:
+            tf_np = np.array(tf)
+    except Exception:
+        # Fallback: try to coerce via list
+        tf_np = np.array(tf)
+
+    # Delegate to plot_vector_and_save for 1D or individual plots
+    if tf_np.ndim == 1:
+        plot_vector_and_save(tf_np, output_folder, file_name=f'{base_file_name}.png')
+        return
+
+    if tf_np.ndim == 2:
+        T, N = tf_np.shape
+        try:
+            import matplotlib.pyplot as plt
+            plt.figure(figsize=(10, 6))
+            for i in range(N):
+                plt.plot(range(T), tf_np[:, i], alpha=0.6, linewidth=1)
+            plt.title(f'{base_file_name} - All temporal filters (N={N})')
+            plt.xlabel('Time')
+            plt.ylabel('Filter value')
+            plt.tight_layout()
+            overlay_path = os.path.join(output_folder, f'{base_file_name}_all.png')
+            plt.savefig(overlay_path)
+            plt.close()
+
+            # Individual plots (limit)
+            max_ind = min(N, max_individual)
+            for i in range(max_ind):
+                plot_vector_and_save(tf_np[:, i], output_folder, file_name=f'{base_file_name}_{i+1}.png')
+
+            # Also create a tiled image sampling up to rows x cols (default 3x4)
+            try:
+                rows, cols = 3, 4
+                num_tiles = rows * cols
+                sample_N = min(N, num_tiles)
+                # sample indices evenly if more filters than tiles
+                if N <= num_tiles:
+                    sample_idx = list(range(N))
+                else:
+                    # pick evenly spaced indices across N
+                    sample_idx = [int(round(i * (N - 1) / (num_tiles - 1))) for i in range(num_tiles)]
+
+                import matplotlib.pyplot as plt
+                fig, axes = plt.subplots(rows, cols, figsize=(cols * 3, rows * 2.5), squeeze=False)
+                for k in range(num_tiles):
+                    r = k // cols
+                    c = k % cols
+                    ax = axes[r][c]
+                    if k < len(sample_idx):
+                        idx = sample_idx[k]
+                        ax.plot(range(T), tf_np[:, idx], color='b', linewidth=1)
+                        ax.set_title(f'#{idx+1}')
+                    else:
+                        ax.axis('off')
+                    ax.set_xlabel('t')
+                    ax.set_ylabel('val')
+                plt.tight_layout()
+                tiled_path = os.path.join(output_folder, f'{base_file_name}_tiles_{rows}x{cols}.png')
+                fig.savefig(tiled_path)
+                plt.close(fig)
+            except Exception:
+                pass
+        except Exception:
+            # If plotting fails, fallback to saving first column as a single plot
+            plot_vector_and_save(tf_np[:, 0], output_folder, file_name=f'{base_file_name}.png')
+        return
+
+    raise ValueError('tf must be 1D or 2D array-like')
 
 
 def causal_moving_average(seq, window_size):
