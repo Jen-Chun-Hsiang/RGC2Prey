@@ -309,7 +309,6 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
             logging.warning("No LNK parameters available, using LN model")
 
     if args.is_both_ON_OFF or args.is_two_grids:
-        num_input_channel = 2
         grid_centers = None
         is_plot_centerFR = False
         # Load additional parameter tables if specified
@@ -326,6 +325,8 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
                                              set_s_scale_override=args.set_s_scale_additional)  
         if args.is_binocular:
             num_input_channel = 4
+        else:
+            num_input_channel = 2
             
     else:
         if args.is_binocular:

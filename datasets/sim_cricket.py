@@ -941,7 +941,20 @@ class Cricket2RGCs(Dataset):
                             )
                         )
 
-                # 5) Default single pathway => 1 output
+                # 5) Two grids only => 2 outputs (2 grids × 1 eye)
+                elif self.is_two_grids:
+                    for ch in self.channels:
+                        rgc_time = _compute_for_channel(movies[0], ch)
+                        grid_values_list.append(
+                            ch['map_func'](
+                                rgc_time,
+                                ch['grid2value'],
+                                self.grid_width,
+                                self.grid_height
+                            )
+                        )
+
+                # 6) Default single pathway => 1 output
                 else:
                     ch = self.channels[0]
                     rgc_time = _compute_for_channel(movies[0], ch)
