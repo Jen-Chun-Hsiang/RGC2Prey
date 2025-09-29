@@ -121,6 +121,7 @@ def parse_args():
     parser.add_argument('--is_rescale_diffgaussian', action='store_true', help='Rescale the diffgaussian RF to have zero min and max to 1')
     parser.add_argument('--set_surround_size_scalar', type=float, default=None, help='Resize the rf surround size ')
     parser.add_argument('--set_bias', type=float, default=None, help='Set bias for all RGCs if provided (overrides Excel values)')
+    parser.add_argument('--set_biphasic_scale', type=float, default=None, help='Set biphasic scale for temporal filter: amp2 = set_biphasic_scale * amp1')
 
     # Arguments for LNK model
     parser.add_argument('--use_lnk_model', action='store_true', help='Use LNK model instead of LN model for RGC responses. In LNK: w_xs controls surround interaction, s_scale is ignored.')
@@ -244,7 +245,7 @@ def main():
         is_rf_median_subtract=args.is_rf_median_subtract, is_rescale_diffgaussian=args.is_rescale_diffgaussian, 
         grid_noise_level=args.grid_noise_level, is_reversed_tf=args.is_reversed_tf, sf_id_list=args.sf_id_list,
         use_lnk_override=args.use_lnk_model, lnk_param_table=lnk_param_table, syn_params=syn_params,
-        set_surround_size_scalar=args.set_surround_size_scalar, set_bias=args.set_bias  # Pass surround size scalar to RGCrfArray
+        set_surround_size_scalar=args.set_surround_size_scalar, set_bias=args.set_bias, set_biphasic_scale=args.set_biphasic_scale
     )
     
     logging.info( f"{args.experiment_name} processing...1")

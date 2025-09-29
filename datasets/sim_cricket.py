@@ -1271,7 +1271,8 @@ class RGCrfArray:
                  # New synchronization parameters
                  syn_params=None,
                  lnk_param_table=None,
-                 set_bias=None):
+                 set_bias=None,
+                 set_biphasic_scale=None):
         """
         Enhanced constructor with flexible parameter synchronization.
         
@@ -1279,6 +1280,7 @@ class RGCrfArray:
             ...existing args...
             syn_params: List of parameters to synchronize, e.g., ['tf', 'sf', 'lnk'] or ['tf', 'sf']
             lnk_param_table: DataFrame with LNK parameters for synchronization
+            set_biphasic_scale: Float value to set row['amp2'] = set_biphasic_scale * row['amp1'] in temporal filter
         """
         self.sf_param_table = sf_param_table
         self.tf_param_table = tf_param_table
@@ -1317,6 +1319,7 @@ class RGCrfArray:
         self.surround_sigma_ratio = surround_sigma_ratio  # Add this line
         self.set_surround_size_scalar = set_surround_size_scalar
         self.set_bias = set_bias  # Default bias value
+        self.set_biphasic_scale = set_biphasic_scale  # Biphasic scaling parameter for temporal filter
         
         # Handle new synchronization options
         self.lnk_param_table = lnk_param_table
@@ -1690,7 +1693,7 @@ class RGCrfArray:
                 for pid in idx_list:
                     row = tf_table.iloc[pid]
                     tf_params = np.array([row['sigma1'], row['sigma2'], row['mean1'], row['mean2'], row['amp1'], row['amp2'], row['offset']])
-                    tf = gaussian_temporalfilter(self.temporal_filter_len, tf_params)
+                    tf = gaussian_temporalfilter(self.temporal_filter_len, tf_params, set_biphasic_scale=self.set_biphasic_scale)
                     tf = tf-tf[0]
                     tf = tf / np.sum(np.abs(tf))
                     if self.is_reversed_tf:
@@ -1701,7 +1704,7 @@ class RGCrfArray:
                 pid = np.random.randint(0, num_sim_data)
                 row = tf_table.iloc[pid]
                 tf_params = np.array([row['sigma1'], row['sigma2'], row['mean1'], row['mean2'], row['amp1'], row['amp2'], row['offset']])
-                tf = gaussian_temporalfilter(self.temporal_filter_len, tf_params)
+                tf = gaussian_temporalfilter(self.temporal_filter_len, tf_params, set_biphasic_scale=self.set_biphasic_scale)
                 tf = tf-tf[0]
                 tf = tf / np.sum(np.abs(tf))
                 if self.is_reversed_tf:

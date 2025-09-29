@@ -6,7 +6,7 @@ from scipy.stats import norm
 def gaussmf_python(x, mean, sigma):
     return np.exp(-((x - mean) ** 2) / (2 * sigma ** 2))
 
-def gaussian_temporalfilter(n, OptW):
+def gaussian_temporalfilter(n, OptW, set_biphasic_scale=None):
     # Generate x as 1:n (inclusive)
     x = np.arange(1, n + 1)
     
@@ -15,6 +15,10 @@ def gaussian_temporalfilter(n, OptW):
     mean1, mean2 = OptW[2], OptW[3]
     amplitude1, amplitude2 = OptW[4], OptW[5]
     offset = OptW[6]
+    
+    # Apply biphasic scaling if specified
+    if set_biphasic_scale is not None:
+        amplitude2 = set_biphasic_scale * amplitude2
     
     # Compute the temporal filter
     # tf = (norm.pdf(x, loc=mean1, scale=sigma1) * amplitude1 -
