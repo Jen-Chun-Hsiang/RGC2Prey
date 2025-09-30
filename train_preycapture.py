@@ -577,13 +577,25 @@ def main():
     elif args.schedule_method.lower() == 'cawr':
         scheduler = optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer, T_0=5, T_mult=2, eta_min=args.min_lr)
 
-    if args.load_checkpoint_epoch:
-        checkpoint_filename = f'{args.experiment_name}_checkpoint_epoch_{args.load_checkpoint_epoch}'
-        checkpoint_filename = os.path.join(savemodel_dir, f'{checkpoint_filename}.pth')
-        checkpoint_loader = CheckpointLoader(checkpoint_filename)
-        model, optimizer, scheduler = checkpoint_loader.load_checkpoint(model, optimizer, scheduler)
-        start_epoch = checkpoint_loader.load_epoch()
-        training_losses = checkpoint_loader.load_training_losses()
+    if args.load_checkpoint_epoch is not None:
+        checkpoint_filename = os.path.join(savemodel_dir, f'{args.experiment_name}_checkpoint_epoch_{args.load_checkpoint_epoch}.pth')
+        if not os.path.isfile(checkpoint_filename):
+            logging.error(f"Requested checkpoint does not exist: {checkpoint_filename}. Continuing from scratch.")
+            start_epoch = 0
+            training_losses = []
+        else:
+            try:
+                checkpoint_loader = CheckpointLoader(checkpoint_filename)
+                model, optimizer, scheduler = checkpoint_loader.load_checkpoint(model, optimizer, scheduler)
+                start_epoch = checkpoint_loader.load_epoch()
+                training_losses = checkpoint_loader.load_training_losses() or []
+                # Ensure model is on the target device after loading
+                model = model.to(device)
+                logging.info(f"Successfully loaded checkpoint from epoch {start_epoch}")
+            except Exception as e:
+                logging.error(f"Failed to load checkpoint {checkpoint_filename}: {e}. Continuing from scratch.")
+                start_epoch = 0
+                training_losses = []
     else:
         start_epoch = 0
         training_losses = []  # To store the loss at each epoch
