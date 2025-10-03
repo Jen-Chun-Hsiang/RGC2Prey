@@ -39,7 +39,15 @@ def _generate_movie_job(job):
         data_movie.generate_movie(
             job['inputs'], job['syn_movie'], job['true_path'], job['bg_path'],
             job['predicted_path'], job['scaling_factors'], video_id=job['video_id'],
-            weighted_coords=job.get('weighted_coords', None)
+            weighted_coords=job.get('weighted_coords', None),
+            save_frames=job.get('save_frames', False),
+            frame_save_root=job.get('frame_save_root', None),
+            truth_marker_style=job.get('truth_marker_style', None),
+            prediction_marker_style=job.get('prediction_marker_style', None),
+            center_marker_style=job.get('center_marker_style', None),
+            enable_truth_marker=job.get('enable_truth_marker', False),
+            enable_prediction_marker=job.get('enable_prediction_marker', False),
+            enable_center_marker=job.get('enable_center_marker', False)
         )
         
         return f"Movie {job['video_id']} generated successfully"
@@ -62,6 +70,20 @@ def parse_args():
     parser.add_argument('--epoch_number', type=int, default=200, help="Epoch number to check")
     parser.add_argument('--num_worker', type=int, default=None,
                         help="Number of DataLoader workers and max parallel movie workers (overrides checkpoint setting)")
+    parser.add_argument('--save_movie_frames', action='store_true', help="Save per-frame images for movies and RGC outputs")
+    parser.add_argument('--frame_save_root', type=str, default=None, help="Root directory for saved frame images")
+    parser.add_argument('--frame_truth_marker', type=str, default='o', help="Marker symbol for ground truth positions")
+    parser.add_argument('--frame_truth_color', type=str, default='royalblue', help="Marker color for ground truth positions")
+    parser.add_argument('--frame_truth_size', type=float, default=60.0, help="Marker size for ground truth positions")
+    parser.add_argument('--frame_pred_marker', type=str, default='x', help="Marker symbol for predicted positions")
+    parser.add_argument('--frame_pred_color', type=str, default='darkorange', help="Marker color for predicted positions")
+    parser.add_argument('--frame_pred_size', type=float, default=60.0, help="Marker size for predicted positions")
+    parser.add_argument('--frame_center_marker', type=str, default='+', help="Marker symbol for center RF positions")
+    parser.add_argument('--frame_center_color', type=str, default='crimson', help="Marker color for center RF positions")
+    parser.add_argument('--frame_center_size', type=float, default=60.0, help="Marker size for center RF positions")
+    parser.add_argument('--add_truth_marker', action='store_true', help="Include ground truth marker in saved frames")
+    parser.add_argument('--add_pred_marker', action='store_true', help="Include prediction marker in saved frames")
+    parser.add_argument('--add_center_marker', action='store_true', help="Include center RF marker in saved frames")
 
     return parser.parse_args()
 
@@ -81,7 +103,21 @@ def main():
                             test_ob_folder=args.test_ob_folder,
                             boundary_size=args.boundary_size,
                             cli_num_worker=args.num_worker,
-                            epoch_number=args.epoch_number
+                            epoch_number=args.epoch_number,
+                            save_movie_frames=args.save_movie_frames,
+                            frame_save_root=args.frame_save_root,
+                            frame_truth_marker=args.frame_truth_marker,
+                            frame_truth_color=args.frame_truth_color,
+                            frame_truth_size=args.frame_truth_size,
+                            frame_pred_marker=args.frame_pred_marker,
+                            frame_pred_color=args.frame_pred_color,
+                            frame_pred_size=args.frame_pred_size,
+                            frame_center_marker=args.frame_center_marker,
+                            frame_center_color=args.frame_center_color,
+                            frame_center_size=args.frame_center_size,
+                            add_truth_marker=args.add_truth_marker,
+                            add_pred_marker=args.add_pred_marker,
+                            add_center_marker=args.add_center_marker
                         )
         else:
             for noise_level in noise_levels:
@@ -93,11 +129,30 @@ def main():
                     test_ob_folder=args.test_ob_folder,
                     boundary_size=args.boundary_size,
                     cli_num_worker=args.num_worker,
-                    epoch_number=args.epoch_number
+                    epoch_number=args.epoch_number,
+                    save_movie_frames=args.save_movie_frames,
+                    frame_save_root=args.frame_save_root,
+                    frame_truth_marker=args.frame_truth_marker,
+                    frame_truth_color=args.frame_truth_color,
+                    frame_truth_size=args.frame_truth_size,
+                    frame_pred_marker=args.frame_pred_marker,
+                    frame_pred_color=args.frame_pred_color,
+                    frame_pred_size=args.frame_pred_size,
+                    frame_center_marker=args.frame_center_marker,
+                    frame_center_color=args.frame_center_color,
+                    frame_center_size=args.frame_center_size,
+                    add_truth_marker=args.add_truth_marker,
+                    add_pred_marker=args.add_pred_marker,
+                    add_center_marker=args.add_center_marker
                 )
 
 
-def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None, test_bg_folder=None, test_ob_folder=None, boundary_size=None, epoch_number=200, cli_num_worker=None):
+def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None, test_bg_folder=None, test_ob_folder=None,
+                   boundary_size=None, epoch_number=200, cli_num_worker=None, save_movie_frames=False,
+                   frame_save_root=None, frame_truth_marker='o', frame_truth_color='royalblue', frame_truth_size=60.0,
+                   frame_pred_marker='x', frame_pred_color='darkorange', frame_pred_size=60.0,
+                   frame_center_marker='+', frame_center_color='crimson', frame_center_size=60.0,
+                   add_truth_marker=False, add_pred_marker=False, add_center_marker=False):
     num_display = 3
     frame_width = 640
     frame_height = 480
@@ -119,6 +174,50 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
     mat_save_folder = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/Results/Mats/'
     rgc_array_folder = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/Results/RGC_arrays/'
     log_save_folder  = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/Results/Prints/'
+    frame_img_folder = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/Results/Frames/'
+
+    if save_movie_frames:
+        frame_save_root_final = frame_save_root if frame_save_root is not None else os.path.join(frame_img_folder, 'frames')
+        logging.info(f"Frame saving enabled. Frames will be stored under {frame_save_root_final}")
+        enable_truth_marker = bool(add_truth_marker)
+        enable_pred_marker = bool(add_pred_marker)
+        enable_center_marker = bool(add_center_marker)
+        if not (enable_truth_marker or enable_pred_marker or enable_center_marker):
+            logging.info("Frame saving requested without marker flags; frames will be saved without markers.")
+    else:
+        frame_save_root_final = None
+        enable_truth_marker = False
+        enable_pred_marker = False
+        enable_center_marker = False
+        if add_truth_marker or add_pred_marker or add_center_marker:
+            logging.info("Marker flags provided but --save_movie_frames was not set; markers will be ignored.")
+
+    truth_marker_style = None
+    if enable_truth_marker:
+        truth_marker_style = {
+            'marker': frame_truth_marker,
+            'color': frame_truth_color,
+            'size': frame_truth_size,
+            'label': 'Ground Truth'
+        }
+
+    pred_marker_style = None
+    if enable_pred_marker:
+        pred_marker_style = {
+            'marker': frame_pred_marker,
+            'color': frame_pred_color,
+            'size': frame_pred_size,
+            'label': 'Prediction'
+        }
+
+    center_marker_style = None
+    if enable_center_marker:
+        center_marker_style = {
+            'marker': frame_center_marker,
+            'color': frame_center_color,
+            'size': frame_center_size,
+            'label': 'Center RF'
+        }
 
     if test_ob_folder is None:
         test_ob_folder = 'cricket'
@@ -627,7 +726,15 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
                 'video_save_folder': video_save_folder,
                 'file_name': file_name,
                 'epoch_number': epoch_number,
-                'grid_generate_method': args.grid_generate_method
+                'grid_generate_method': args.grid_generate_method,
+                'save_frames': save_movie_frames,
+                'frame_save_root': frame_save_root_final,
+                'truth_marker_style': truth_marker_style,
+                'prediction_marker_style': pred_marker_style,
+                'center_marker_style': center_marker_style,
+                'enable_truth_marker': enable_truth_marker,
+                'enable_prediction_marker': enable_pred_marker,
+                'enable_center_marker': enable_center_marker
             })
 
         x1, y1 = true_path[:, 0], true_path[:, 1]

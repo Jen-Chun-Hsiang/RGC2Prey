@@ -218,7 +218,121 @@ class MovieGenerator:
         plt.close(fig)  # Close the figure to free memory
         return img
 
-    def generate_movie(self, image_sequence, syn_movie, path, path_bg, path_predict, scaling_factors, video_id, weighted_coords):
+    def _normalize_marker_style(self, style, default):
+        if default is None and style is None:
+            return None
+        normalized = {} if default is None else default.copy()
+        if style is not None:
+            normalized.update({k: v for k, v in style.items() if v is not None})
+        return normalized
+
+    def _map_coord_to_image(self, coord, width, height):
+        if coord is None:
+            return None
+        coord = np.asarray(coord)
+        scalar_width = width / 2.0
+        scalar_height = height / 2.0
+        x = coord[0] * scalar_width + width / 2.0
+        y = -coord[1] * scalar_height + height / 2.0
+        return np.array([x, y])
+
+    def _render_single_panel(self, image, vmin, vmax, truth_coord, pred_coord, center_coord,
+                              truth_style, pred_style, center_style, figsize=(4, 3), dpi=150):
+        fig = plt.figure(figsize=figsize, dpi=dpi)
+        ax = fig.add_subplot(111)
+        if image.ndim == 2:
+            ax.imshow(image, cmap='gray', vmin=vmin, vmax=vmax)
+        else:
+            ax.imshow(image, vmin=vmin, vmax=vmax)
+
+        height, width = image.shape[-2], image.shape[-1]
+        ax.set_xlim(0, width)
+        ax.set_ylim(height, 0)
+
+        if truth_coord is not None and truth_style is not None:
+            ax.scatter(truth_coord[0], truth_coord[1], color=truth_style['color'], marker=truth_style['marker'],
+                       s=truth_style['size'], label=truth_style.get('label'))
+
+        if pred_coord is not None and pred_style is not None:
+            ax.scatter(pred_coord[0], pred_coord[1], color=pred_style['color'], marker=pred_style['marker'],
+                       s=pred_style['size'], label=pred_style.get('label'))
+
+        if center_coord is not None and center_style is not None:
+            ax.scatter(center_coord[0], center_coord[1], color=center_style['color'], marker=center_style['marker'],
+                       s=center_style['size'], label=center_style.get('label'))
+
+        handles, labels = ax.get_legend_handles_labels()
+        if labels:
+            ax.legend(loc='upper right', frameon=False)
+
+        ax.set_xticks([])
+        ax.set_yticks([])
+        plt.tight_layout(pad=0.1)
+
+        canvas = FigureCanvas(fig)
+        canvas.draw()
+        if hasattr(canvas, "tostring_rgb"):
+            img = np.frombuffer(canvas.tostring_rgb(), dtype='uint8')
+            img = img.reshape(canvas.get_width_height()[::-1] + (3,))
+        else:
+            img = np.asarray(canvas.buffer_rgba())
+            img = img[..., :3]
+        plt.close(fig)
+        return img
+
+    def _save_frame_images(self, frame_idx, base_filename, syn_frame, rgc_frame, coord, pred_coord, center_coord,
+                            frame_save_dir, movie_min, movie_max, rgcout_min, rgcout_max,
+                            truth_style, pred_style, center_style):
+        os.makedirs(frame_save_dir, exist_ok=True)
+
+        syn_display = syn_frame
+        if syn_display.ndim == 3:
+            if syn_display.shape[0] == 1:
+                syn_display = syn_display[0]
+            elif syn_display.shape[-1] == 1:
+                syn_display = syn_display[..., 0]
+            elif syn_display.shape[0] in (2, 3) and syn_display.shape[-1] not in (2, 3):
+                syn_display = syn_display[0]
+        syn_height, syn_width = syn_display.shape[-2], syn_display.shape[-1]
+        syn_truth = self._map_coord_to_image(coord, syn_width, syn_height) if coord is not None else None
+        syn_pred = self._map_coord_to_image(pred_coord, syn_width, syn_height) if pred_coord is not None else None
+        syn_center = self._map_coord_to_image(center_coord, syn_width, syn_height) if center_coord is not None else None
+
+        syn_img = self._render_single_panel(
+            syn_display, movie_min, movie_max, syn_truth, syn_pred, syn_center,
+            truth_style, pred_style, center_style
+        )
+
+        if rgc_frame.ndim == 3:
+            if rgc_frame.shape[0] == 1:
+                rgc_display = rgc_frame[0]
+            elif rgc_frame.shape[-1] == 1:
+                rgc_display = rgc_frame[..., 0]
+            else:
+                rgc_display = rgc_frame[0]
+        else:
+            rgc_display = rgc_frame
+
+        rgc_height, rgc_width = rgc_display.shape[-2], rgc_display.shape[-1]
+        rgc_truth = self._map_coord_to_image(coord, rgc_width, rgc_height) if coord is not None else None
+        rgc_pred = self._map_coord_to_image(pred_coord, rgc_width, rgc_height) if pred_coord is not None else None
+        rgc_center = self._map_coord_to_image(center_coord, rgc_width, rgc_height) if center_coord is not None else None
+
+        rgc_img = self._render_single_panel(
+            rgc_display, rgcout_min, rgcout_max, rgc_truth, rgc_pred, rgc_center,
+            truth_style, pred_style, center_style
+        )
+
+        movie_filename = os.path.join(frame_save_dir, f"{base_filename}_frame_{frame_idx:04d}_movie.png")
+        rgc_filename = os.path.join(frame_save_dir, f"{base_filename}_frame_{frame_idx:04d}_rgc.png")
+
+        cv2.imwrite(movie_filename, cv2.cvtColor(syn_img, cv2.COLOR_RGB2BGR))
+        cv2.imwrite(rgc_filename, cv2.cvtColor(rgc_img, cv2.COLOR_RGB2BGR))
+
+    def generate_movie(self, image_sequence, syn_movie, path, path_bg, path_predict, scaling_factors, video_id, weighted_coords,
+                       save_frames=False, frame_save_root=None, truth_marker_style=None, prediction_marker_style=None,
+                       center_marker_style=None, enable_truth_marker=False, enable_prediction_marker=False,
+                       enable_center_marker=False):
         """
         Generate the video based on the provided input data.
 
@@ -240,10 +354,37 @@ class MovieGenerator:
         scaling_factors = scaling_factors[-num_steps:]
 
         os.makedirs(self.video_save_folder, exist_ok=True)
+        base_filename = f'RGC_proj_map_{self.bls_tag}_{self.grid_generate_method}_{video_id}'
         output_filename = os.path.join(
             self.video_save_folder,
-            f'RGC_proj_map_{self.bls_tag}_{self.grid_generate_method}_{video_id}.mp4'
+            f'{base_filename}.mp4'
         )
+
+        frame_save_dir = None
+        if save_frames:
+            default_root = os.path.join(self.video_save_folder, 'frames')
+            frame_root = frame_save_root if frame_save_root is not None else default_root
+            frame_save_dir = os.path.join(frame_root, base_filename)
+            os.makedirs(frame_save_dir, exist_ok=True)
+            logging.info(f"Saving frame images for {base_filename} in {frame_save_dir}")
+
+        if enable_truth_marker:
+            default_truth_style = {'color': 'royalblue', 'marker': 'o', 'size': 60, 'label': 'Ground Truth'}
+            truth_style = self._normalize_marker_style(truth_marker_style, default_truth_style)
+        else:
+            truth_style = None
+
+        if enable_prediction_marker:
+            default_pred_style = {'color': 'darkorange', 'marker': 'x', 'size': 60, 'label': 'Prediction'}
+            pred_style = self._normalize_marker_style(prediction_marker_style, default_pred_style)
+        else:
+            pred_style = None
+
+        if enable_center_marker:
+            default_center_style = {'color': 'crimson', 'marker': '+', 'size': 60, 'label': 'Center RF'}
+            center_style = self._normalize_marker_style(center_marker_style, default_center_style)
+        else:
+            center_style = None
 
         fourcc = cv2.VideoWriter_fourcc(*"mp4v")
         video_writer = cv2.VideoWriter(output_filename, fourcc, self.fps, (self.frame_width, self.frame_height))
@@ -315,6 +456,25 @@ class MovieGenerator:
                 movie_min = movie_min,
                 movie_max = movie_max
             )
+
+            if save_frames and frame_save_dir is not None:
+                self._save_frame_images(
+                    frame_idx=i,
+                    base_filename=base_filename,
+                    syn_frame=np.squeeze(syn_frame),
+                    rgc_frame=frame,
+                    coord=coord,
+                    pred_coord=pred_coord if is_path_predict and pred_coord is not None else None,
+                    center_coord=centerRF if is_centerRF and centerRF is not None else None,
+                    frame_save_dir=frame_save_dir,
+                    movie_min=movie_min,
+                    movie_max=movie_max,
+                    rgcout_min=rgcout_min,
+                    rgcout_max=rgcout_max,
+                    truth_style=truth_style,
+                    pred_style=pred_style,
+                    center_style=center_style
+                )
 
             # Resize the image to fit video dimensions
             img = cv2.resize(img, (self.frame_width, self.frame_height))
