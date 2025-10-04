@@ -84,6 +84,8 @@ def parse_args():
     parser.add_argument('--add_truth_marker', action='store_true', help="Include ground truth marker in saved frames")
     parser.add_argument('--add_pred_marker', action='store_true', help="Include prediction marker in saved frames")
     parser.add_argument('--add_center_marker', action='store_true', help="Include center RF marker in saved frames")
+    parser.add_argument('--visual_sample_ids', type=int, nargs='+', default=None,
+                        help="0-based indices from Section 2 analysis to visualize in Section 3")
 
     return parser.parse_args()
 
@@ -117,7 +119,8 @@ def main():
                             frame_center_size=args.frame_center_size,
                             add_truth_marker=args.add_truth_marker,
                             add_pred_marker=args.add_pred_marker,
-                            add_center_marker=args.add_center_marker
+                            add_center_marker=args.add_center_marker,
+                            visual_sample_ids=args.visual_sample_ids
                         )
         else:
             for noise_level in noise_levels:
@@ -143,7 +146,8 @@ def main():
                     frame_center_size=args.frame_center_size,
                     add_truth_marker=args.add_truth_marker,
                     add_pred_marker=args.add_pred_marker,
-                    add_center_marker=args.add_center_marker
+                    add_center_marker=args.add_center_marker,
+                    visual_sample_ids=args.visual_sample_ids
                 )
 
 
@@ -152,7 +156,7 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
                    frame_save_root=None, frame_truth_marker='o', frame_truth_color='royalblue', frame_truth_size=60.0,
                    frame_pred_marker='x', frame_pred_color='darkorange', frame_pred_size=60.0,
                    frame_center_marker='+', frame_center_color='crimson', frame_center_size=60.0,
-                   add_truth_marker=False, add_pred_marker=False, add_center_marker=False):
+                   add_truth_marker=False, add_pred_marker=False, add_center_marker=False, visual_sample_ids=None):
     num_display = 3
     frame_width = 640
     frame_height = 480
@@ -554,7 +558,6 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
             dl_num_workers = 0
 
     dl_generator = torch.Generator().manual_seed(rnd_seed)         # for larger-batch test loader 
-    dl_generator_small = torch.Generator().manual_seed(rnd_seed+1)
     test_loader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=True, 
                              num_workers=dl_num_workers, pin_memory=True, persistent_workers=False, 
                              worker_init_fn=worker_init_fn, generator=dl_generator)
@@ -577,31 +580,59 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
     savemat(save_path, {'test_losses': test_losses, 'training_losses': training_losses})
     
     # [Section 2] Create a small test dataset and loader for visualization and movie generation
-    test_dataset = Cricket2RGCs(num_samples=int(num_sample*0.1), multi_opt_sf=multi_opt_sf, tf=tf, map_func=map_func,
-                                grid2value_mapping=grid2value_mapping, multi_opt_sf_off=multi_opt_sf_off, tf_off=tf_off, 
-                                map_func_off=map_func_off, grid2value_mapping_off=grid2value_mapping_off, target_width=target_width, 
-                                target_height=target_height, movie_generator=movie_generator, grid_size_fac=args.grid_size_fac, 
-                                is_norm_coords=args.is_norm_coords, is_syn_mov_shown=True, fr2spikes=args.fr2spikes, 
-                                is_both_ON_OFF=args.is_both_ON_OFF, quantize_scale=args.quantize_scale, 
-                                add_noise=is_add_noise, rgc_noise_std=noise_level, rgc_noise_std_max=args.rgc_noise_std_max, smooth_data=args.smooth_data, 
-                                is_rectified=args.is_rectified, is_direct_image=args.is_direct_image, grid_coords=grid_centers,
-                                is_reversed_OFF_sign=args.is_reversed_OFF_sign, rectified_thr_ON=args.rectified_thr_ON, 
-                                rectified_thr_OFF=args.rectified_thr_OFF,
-                                rectified_mode=args.rectified_mode, rectified_softness=args.rectified_softness,
-                                rectified_softness_OFF=args.rectified_softness_OFF,
-                                is_two_grids=args.is_two_grids,
-                                # LNK parameters
-                                use_lnk=args.use_lnk_model,
-                                lnk_params=lnk_params,
-                                lnk_params_off=lnk_params_off,
-                                surround_sigma_ratio=args.surround_sigma_ratio,
-                                surround_sf=multi_opt_sf_surround,
-                                surround_sf_off=multi_opt_sf_surround_off,
-                                # Random seed for consistent data generation
-                                rnd_seed=rnd_seed)
-    
-    test_loader = DataLoader(test_dataset, batch_size=1, shuffle=True, 
-                             worker_init_fn=worker_init_fn, generator=dl_generator_small)
+    reuse_section2_samples = bool(visual_sample_ids and len(visual_sample_ids) > 0)
+
+    if reuse_section2_samples:
+        analysis_dataset = Cricket2RGCs(num_samples=int(num_sample*0.1), multi_opt_sf=multi_opt_sf, tf=tf, map_func=map_func,
+                                    grid2value_mapping=grid2value_mapping, multi_opt_sf_off=multi_opt_sf_off, tf_off=tf_off, 
+                                    map_func_off=map_func_off, grid2value_mapping_off=grid2value_mapping_off, target_width=target_width, 
+                                    target_height=target_height, movie_generator=movie_generator, grid_size_fac=args.grid_size_fac, 
+                                    is_norm_coords=args.is_norm_coords, is_syn_mov_shown=True, fr2spikes=args.fr2spikes, 
+                                    is_both_ON_OFF=args.is_both_ON_OFF, quantize_scale=args.quantize_scale, 
+                                    add_noise=is_add_noise, rgc_noise_std=noise_level, rgc_noise_std_max=args.rgc_noise_std_max, smooth_data=args.smooth_data, 
+                                    is_rectified=args.is_rectified, is_direct_image=args.is_direct_image, grid_coords=grid_centers,
+                                    is_reversed_OFF_sign=args.is_reversed_OFF_sign, rectified_thr_ON=args.rectified_thr_ON, 
+                                    rectified_thr_OFF=args.rectified_thr_OFF,
+                                    rectified_mode=args.rectified_mode, rectified_softness=args.rectified_softness,
+                                    rectified_softness_OFF=args.rectified_softness_OFF,
+                                    is_two_grids=args.is_two_grids,
+                                    # LNK parameters
+                                    use_lnk=args.use_lnk_model,
+                                    lnk_params=lnk_params,
+                                    lnk_params_off=lnk_params_off,
+                                    surround_sigma_ratio=args.surround_sigma_ratio,
+                                    surround_sf=multi_opt_sf_surround,
+                                    surround_sf_off=multi_opt_sf_surround_off,
+                                    # Random seed for consistent data generation
+                                    rnd_seed=rnd_seed)
+        analysis_loader = DataLoader(analysis_dataset, batch_size=1, shuffle=False, 
+                                     worker_init_fn=worker_init_fn)
+    else:
+        analysis_dataset = Cricket2RGCs(num_samples=int(num_sample*0.1), multi_opt_sf=multi_opt_sf, tf=tf, map_func=map_func,
+                                    grid2value_mapping=grid2value_mapping, multi_opt_sf_off=multi_opt_sf_off, tf_off=tf_off, 
+                                    map_func_off=map_func_off, grid2value_mapping_off=grid2value_mapping_off, target_width=target_width, 
+                                    target_height=target_height, movie_generator=movie_generator, grid_size_fac=args.grid_size_fac, 
+                                    is_norm_coords=args.is_norm_coords, is_syn_mov_shown=True, fr2spikes=args.fr2spikes, 
+                                    is_both_ON_OFF=args.is_both_ON_OFF, quantize_scale=args.quantize_scale, 
+                                    add_noise=is_add_noise, rgc_noise_std=noise_level, rgc_noise_std_max=args.rgc_noise_std_max, smooth_data=args.smooth_data, 
+                                    is_rectified=args.is_rectified, is_direct_image=args.is_direct_image, grid_coords=grid_centers,
+                                    is_reversed_OFF_sign=args.is_reversed_OFF_sign, rectified_thr_ON=args.rectified_thr_ON, 
+                                    rectified_thr_OFF=args.rectified_thr_OFF,
+                                    rectified_mode=args.rectified_mode, rectified_softness=args.rectified_softness,
+                                    rectified_softness_OFF=args.rectified_softness_OFF,
+                                    is_two_grids=args.is_two_grids,
+                                    # LNK parameters
+                                    use_lnk=args.use_lnk_model,
+                                    lnk_params=lnk_params,
+                                    lnk_params_off=lnk_params_off,
+                                    surround_sigma_ratio=args.surround_sigma_ratio,
+                                    surround_sf=multi_opt_sf_surround,
+                                    surround_sf_off=multi_opt_sf_surround_off,
+                                    # Random seed for consistent data generation
+                                    rnd_seed=rnd_seed)
+        dl_generator_small = torch.Generator().manual_seed(rnd_seed + 1)
+        analysis_loader = DataLoader(analysis_dataset, batch_size=1, shuffle=True, 
+                                     worker_init_fn=worker_init_fn, generator=dl_generator_small)
 
     logging.info( f"{file_name} processing...7")
     test_losses = [] 
@@ -612,32 +643,67 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
     all_scaling_factors = []
     all_bg_file = []
     all_id_numbers = []
+    section2_samples = []
 
-    for batch_idx, (inputs, true_path, path_bg, _, scaling_factors, bg_image_name, image_id, weighted_coords) in enumerate(test_loader):
+    for batch_idx, (inputs, true_path, path_bg, syn_movie, scaling_factors, bg_image_name, image_id, weighted_coords) in enumerate(analysis_loader):
         # temporalily check
         if is_save_movie_sequence_to_mat:
             sequence = inputs.cpu().numpy()
             savemat(os.path.join(mat_save_folder, 'sequence_evaluation.mat'), {'sequence': sequence})
             raise ValueError(f"check mat data range...")
-        path = true_path.reshape(1, -1)  # Ensure row vector
-        path_bg = path_bg.reshape(1, -1)  # Ensure row vector
-        path_cm = weighted_coords.reshape(1, -1)
-        scaling_factors = scaling_factors.reshape(1, -1)  # Ensure row vector
+        true_path_np = true_path.squeeze(0).cpu().numpy()
+        path_bg_np = path_bg.squeeze(0).cpu().numpy()
+        if isinstance(scaling_factors, torch.Tensor):
+            scaling_factors_np = scaling_factors.squeeze(0).cpu().numpy()
+        else:
+            scaling_factors_np = np.array(scaling_factors).squeeze()
+        if isinstance(weighted_coords, torch.Tensor):
+            weighted_coords_np = weighted_coords.squeeze(0).cpu().numpy()
+        else:
+            weighted_coords_np = np.array(weighted_coords)
+
+        path = true_path_np.reshape(1, -1)  # Ensure row vector
+        path_bg = path_bg_np.reshape(1, -1)  # Ensure row vector
+        path_cm = weighted_coords_np.reshape(1, -1)
+        scaling_factors_flat = scaling_factors_np.reshape(1, -1)  # Ensure row vector
+
+        if isinstance(bg_image_name, (list, tuple)):
+            bg_image_name_value = bg_image_name[0]
+        elif isinstance(bg_image_name, np.ndarray):
+            bg_image_name_value = bg_image_name.reshape(-1)[0]
+        else:
+            bg_image_name_value = bg_image_name
+        bg_image_name_value = str(bg_image_name_value)
+
+        if isinstance(image_id, torch.Tensor):
+            image_id_value = int(image_id.reshape(-1)[0].item())
+        else:
+            image_id_value = int(np.array(image_id).reshape(-1)[0])
 
         all_paths.append(path)
         all_paths_bg.append(path_bg)
         all_path_cm.append(path_cm)
-        all_scaling_factors.append(scaling_factors)
-        all_bg_file.append(bg_image_name)
-        all_id_numbers.append(image_id)
+        all_scaling_factors.append(scaling_factors_flat)
+        all_bg_file.append(bg_image_name_value)
+        all_id_numbers.append(image_id_value)
 
-        true_path = torch.tensor(true_path, dtype=torch.float32)  # convert to torch due to different processing
-        inputs, true_path = inputs.to(device), true_path.to(device)
+        inputs_device = inputs.to(device)
+        true_path_device = true_path.to(device).float()
         with torch.no_grad():
-            predicted_path, _ = model(inputs)
-            loss = criterion(predicted_path, true_path)
+            predicted_path, _ = model(inputs_device)
+            loss = criterion(predicted_path, true_path_device)
         test_losses.append(loss.item())
-        all_paths_pred.append(predicted_path.cpu().numpy())
+        predicted_path_np = predicted_path.cpu().numpy()
+        all_paths_pred.append(predicted_path_np)
+
+        if reuse_section2_samples:
+            section2_samples.append({
+                'analysis_index': batch_idx,
+                'dataset_index': batch_idx,
+                'bg_image_name': bg_image_name_value,
+                'image_id': image_id_value,
+                'loss': loss.item()
+            })
 
     logging.info( f"{file_name} processing...8")
     
@@ -653,136 +719,304 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
     test_losses = np.array(test_losses)
     training_losses = np.array(training_losses)
     save_path = os.path.join(mat_save_folder, f'{file_name}_{epoch_number}_prediction_error_with_path.mat')
-    savemat(save_path, {'test_losses': test_losses, 'training_losses': training_losses, 'all_paths': all_paths,
-                        'all_paths_bg': all_paths_bg, 'all_scaling_factors': all_scaling_factors, 'all_bg_file': all_bg_file,
-                        'all_id_numbers': all_id_numbers, 'all_paths_pred': all_paths_pred, 'all_path_cm':all_path_cm})
+    mat_payload = {'test_losses': test_losses, 'training_losses': training_losses, 'all_paths': all_paths,
+                   'all_paths_bg': all_paths_bg, 'all_scaling_factors': all_scaling_factors, 'all_bg_file': all_bg_file,
+                   'all_id_numbers': all_id_numbers, 'all_paths_pred': all_paths_pred, 'all_path_cm': all_path_cm}
+    if reuse_section2_samples:
+        mat_payload['analysis_indices'] = np.arange(all_paths.shape[0])
+    savemat(save_path, mat_payload)
 
     logging.info( f"{file_name} processing...9")
 
     # [Section 3] Visualization and movie generation
     model.to('cpu')
-    test_dataset = Cricket2RGCs(num_samples=num_display, multi_opt_sf=multi_opt_sf, tf=tf, map_func=map_func,
-                                grid2value_mapping=grid2value_mapping, multi_opt_sf_off=multi_opt_sf_off, tf_off=tf_off, 
-                                map_func_off=map_func_off, grid2value_mapping_off=grid2value_mapping_off, target_width=target_width, 
-                                target_height=target_height, movie_generator=movie_generator, grid_size_fac=args.grid_size_fac, 
-                                is_norm_coords=args.is_norm_coords, is_syn_mov_shown=True, fr2spikes=args.fr2spikes, 
-                                is_both_ON_OFF=args.is_both_ON_OFF, quantize_scale=args.quantize_scale, 
-                                add_noise=is_add_noise, rgc_noise_std=noise_level, rgc_noise_std_max=args.rgc_noise_std_max, smooth_data=args.smooth_data, 
-                                is_rectified=args.is_rectified, is_direct_image=args.is_direct_image, grid_coords=grid_centers,
-                                is_reversed_OFF_sign=args.is_reversed_OFF_sign, rectified_thr_ON=args.rectified_thr_ON, 
-                                rectified_thr_OFF=args.rectified_thr_OFF,
-                                rectified_mode=args.rectified_mode, rectified_softness=args.rectified_softness,
-                                rectified_softness_OFF=args.rectified_softness_OFF,
-                                is_two_grids=args.is_two_grids,
-                                # LNK parameters
-                                use_lnk=args.use_lnk_model,
-                                lnk_params=lnk_params,
-                                lnk_params_off=lnk_params_off,
-                                surround_sigma_ratio=args.surround_sigma_ratio,
-                                surround_sf=multi_opt_sf_surround,
-                                surround_sf_off=multi_opt_sf_surround_off,
-                                # Random seed for consistent data generation
-                                rnd_seed=rnd_seed)
-    test_loader = DataLoader(test_dataset, batch_size=1, shuffle=False, worker_init_fn=worker_init_fn)
 
-    logging.info( f"{file_name} processing...10")
-    
-    # Test model on samples - collect video jobs for parallel processing
-    video_jobs = []
-    for batch_idx, (inputs, true_path, bg_path, syn_movie, scaling_factors, bg_image_name, image_id, weighted_coords) in enumerate(test_loader):
-        # inputs = inputs.to(args.device)
-        true_path = true_path.squeeze(0).cpu().numpy()
-        bg_path = bg_path.squeeze(0).cpu().numpy()
-        if is_plot_centerFR:
-            weighted_coords = weighted_coords.squeeze(0).cpu().numpy()
+    selected_sample_records = []
+    requested_indices = None
+    if visual_sample_ids and len(visual_sample_ids) > 0:
+        requested_indices = list(visual_sample_ids)
+    else:
+        logging.info(f"{file_name}: no visual_sample_ids provided; Section 3 will generate fresh samples and Section 2 remains unchanged")
+
+    if requested_indices:
+        if not section2_samples:
+            logging.warning(f"{file_name}: requested visualization indices but Section 2 recorded no samples; generating new samples instead.")
         else:
-            weighted_coords = None
+            normalised_indices = []
+            for raw_idx in requested_indices:
+                idx = raw_idx
+                if idx < 0:
+                    idx = len(section2_samples) + idx
+                if 0 <= idx < len(section2_samples):
+                    normalised_indices.append(idx)
+                else:
+                    logging.warning(f"{file_name}: requested visualization index {raw_idx} is out of range (available 0-{len(section2_samples)-1}).")
+            seen = set()
+            ordered_unique = []
+            for idx in normalised_indices:
+                if idx not in seen:
+                    ordered_unique.append(idx)
+                    seen.add(idx)
+            if analysis_dataset is None:
+                logging.warning(f"{file_name}: analysis dataset unavailable; cannot reuse Section 2 samples.")
+            else:
+                for idx in ordered_unique:
+                    record = section2_samples[idx]
+                    selected_sample_records.append({
+                        'analysis_index': idx,
+                        'dataset_index': record['dataset_index'],
+                        'loss': record['loss'],
+                        'bg_image_name': record['bg_image_name'],
+                        'image_id': record['image_id']
+                    })
+                if selected_sample_records:
+                    logging.info(f"{file_name}: using Section 2 sample indices {ordered_unique} for visualization and movie generation")
+                elif requested_indices:
+                    logging.warning(f"{file_name}: none of the requested indices {requested_indices} were valid; falling back to fresh samples.")
 
-        with torch.no_grad():
-            predicted_path, _ = model(inputs)
-            predicted_path = predicted_path.squeeze().cpu().numpy()
+    video_jobs = []
 
-        # Extract x and y coordinates
-        sequence_length = len(true_path)
+    if selected_sample_records:
+        logging.info(f"{file_name} processing...10 (Section 3 using pre-selected samples)")
+    else:
+        logging.info( f"{file_name} processing...10")
 
-        if is_making_video:
-            syn_movie_np = syn_movie.squeeze().cpu().numpy()
-            inputs_np = inputs.squeeze().cpu().numpy()
-            scaling_factors_np = scaling_factors.squeeze().cpu().numpy()
-            
-            # Collect job data for parallel processing
-            video_jobs.append({
-                'inputs': inputs_np,
-                'syn_movie': syn_movie_np,
-                'true_path': true_path,
-                'bg_path': bg_path,
-                'predicted_path': predicted_path,
-                'scaling_factors': scaling_factors_np,
-                'video_id': batch_idx,
-                'weighted_coords': weighted_coords,
-                'frame_width': frame_width,
-                'frame_height': frame_height,
-                'fps': fps,
-                'video_save_folder': video_save_folder,
-                'file_name': file_name,
-                'epoch_number': epoch_number,
-                'grid_generate_method': args.grid_generate_method,
-                'save_frames': save_movie_frames,
-                'frame_save_root': frame_save_root_final,
-                'truth_marker_style': truth_marker_style,
-                'prediction_marker_style': pred_marker_style,
-                'center_marker_style': center_marker_style,
-                'enable_truth_marker': enable_truth_marker,
-                'enable_prediction_marker': enable_pred_marker,
-                'enable_center_marker': enable_center_marker
-            })
+    if selected_sample_records:
+        def _ensure_xy(array_like):
+            arr = np.asarray(array_like)
+            arr = np.squeeze(arr)
+            if arr.ndim == 1:
+                arr = arr.reshape(-1, 2)
+            return arr
 
-        x1, y1 = true_path[:, 0], true_path[:, 1]
-        x2, y2 = predicted_path[:, 0], predicted_path[:, 1]
-        x3, y3 = bg_path[:, 0], bg_path[:, 1]
-        label_1 = 'Truth'
-        label_2 = 'Prediction'
-        label_3 = 'Background'
+        for record in selected_sample_records:
+            dataset_idx = record['dataset_index']
+            sample = analysis_dataset[dataset_idx]
+            inputs_single, true_path_single, bg_path_single, syn_movie_single, scaling_factors_single, bg_image_name_single, image_id_single, weighted_coords_single = sample
 
-        # Plot the loss over epochs
-        plt.figure(figsize=(12, 12))
+            if isinstance(inputs_single, torch.Tensor):
+                inputs_tensor = inputs_single.unsqueeze(0).float()
+                inputs_np = inputs_single.cpu().numpy()
+            else:
+                inputs_tensor = torch.tensor(inputs_single, dtype=torch.float32).unsqueeze(0)
+                inputs_np = np.asarray(inputs_single)
 
-        # Loss plot
-        plt.subplot(2, 2, 1)
-        plt.plot(range(1, len(training_losses) + 1), training_losses, label="Training Loss")
-        plt.xlabel("Epoch")
-        plt.ylabel("Loss")
-        plt.title("Training Loss per Epoch")
-        plt.legend()
+            if isinstance(true_path_single, torch.Tensor):
+                true_path_single = true_path_single.cpu().numpy()
+            if isinstance(bg_path_single, torch.Tensor):
+                bg_path_single = bg_path_single.cpu().numpy()
+            if isinstance(syn_movie_single, torch.Tensor):
+                syn_movie_np = syn_movie_single.squeeze().cpu().numpy()
+            else:
+                syn_movie_np = np.asarray(syn_movie_single).squeeze()
+            if isinstance(scaling_factors_single, torch.Tensor):
+                scaling_factors_np = scaling_factors_single.squeeze().cpu().numpy()
+            else:
+                scaling_factors_np = np.asarray(scaling_factors_single).squeeze()
+            if isinstance(weighted_coords_single, torch.Tensor):
+                weighted_coords_raw = weighted_coords_single.cpu().numpy()
+            else:
+                weighted_coords_raw = np.asarray(weighted_coords_single)
 
-        plt.subplot(2, 2, 2)
-        plt.plot(x1, y1, label=label_1, color="darkblue", linestyle="-", linewidth=2)
-        plt.plot(x2, y2, label=label_2, color="maroon", linestyle="--", linewidth=2)
-        
-        # X-coordinate over time
-        plt.subplot(2, 2, 3)
-        plt.plot(range(sequence_length), x1, label=label_1, color='darkblue')
-        plt.plot(range(sequence_length), x2, label=label_2, color='maroon')
-        plt.plot(range(sequence_length), x3, label=label_3, color='seagreen')
-        plt.xlabel("Time step")
-        plt.ylabel("X-coordinate")
-        plt.title("X-Coordinate Trace over Time")
-        plt.legend()
+            with torch.no_grad():
+                predicted_path_tensor, _ = model(inputs_tensor)
 
-        # X-coordinate over time
-        plt.subplot(2, 2, 4)
-        plt.plot(range(sequence_length), y1, label=label_1, color='darkblue')
-        plt.plot(range(sequence_length), y2, label=label_2, color='maroon')
-        plt.plot(range(sequence_length), y3, label=label_3, color='seagreen')
-        plt.xlabel("Time step")
-        plt.ylabel("Y-coordinate")
-        plt.title("Y-Coordinate Trace over Time")
-        plt.legend()
+            true_path_arr = _ensure_xy(true_path_single)
+            bg_path_arr = _ensure_xy(bg_path_single)
+            predicted_path_arr = _ensure_xy(predicted_path_tensor.squeeze(0).cpu().numpy())
 
-        # Save the plot
-        save_path = os.path.join(test_save_folder, f'{file_name}_{epoch_number}_prediction_plot_sample_{batch_idx + 1}.png')
-        plt.savefig(save_path, bbox_inches="tight")
-        plt.close()
+            if is_plot_centerFR:
+                weighted_coords_use = _ensure_xy(weighted_coords_raw) if weighted_coords_raw.size > 1 else None
+            else:
+                weighted_coords_use = None
+
+            inputs_np = np.squeeze(inputs_np, axis=0) if inputs_np.ndim >= 1 and inputs_np.shape[0] == 1 else inputs_np
+            syn_movie_np = np.squeeze(syn_movie_np)
+
+            sequence_length = len(true_path_arr)
+
+            video_id = record['analysis_index']
+
+            if is_making_video:
+                video_jobs.append({
+                    'inputs': inputs_np,
+                    'syn_movie': syn_movie_np,
+                    'true_path': true_path_arr,
+                    'bg_path': bg_path_arr,
+                    'predicted_path': predicted_path_arr,
+                    'scaling_factors': scaling_factors_np,
+                    'video_id': video_id,
+                    'weighted_coords': weighted_coords_use,
+                    'frame_width': frame_width,
+                    'frame_height': frame_height,
+                    'fps': fps,
+                    'video_save_folder': video_save_folder,
+                    'file_name': file_name,
+                    'epoch_number': epoch_number,
+                    'grid_generate_method': args.grid_generate_method,
+                    'save_frames': save_movie_frames,
+                    'frame_save_root': frame_save_root_final,
+                    'truth_marker_style': truth_marker_style,
+                    'prediction_marker_style': pred_marker_style,
+                    'center_marker_style': center_marker_style,
+                    'enable_truth_marker': enable_truth_marker,
+                    'enable_prediction_marker': enable_pred_marker,
+                    'enable_center_marker': enable_center_marker
+                })
+
+            x1, y1 = true_path_arr[:, 0], true_path_arr[:, 1]
+            x2, y2 = predicted_path_arr[:, 0], predicted_path_arr[:, 1]
+            x3, y3 = bg_path_arr[:, 0], bg_path_arr[:, 1]
+            label_1 = 'Truth'
+            label_2 = 'Prediction'
+            label_3 = 'Background'
+
+            plt.figure(figsize=(12, 12))
+
+            plt.subplot(2, 2, 1)
+            plt.plot(range(1, len(training_losses) + 1), training_losses, label="Training Loss")
+            plt.xlabel("Epoch")
+            plt.ylabel("Loss")
+            plt.title("Training Loss per Epoch")
+            plt.legend()
+
+            plt.subplot(2, 2, 2)
+            plt.plot(x1, y1, label=label_1, color="darkblue", linestyle="-", linewidth=2)
+            plt.plot(x2, y2, label=label_2, color="maroon", linestyle="--", linewidth=2)
+
+            plt.subplot(2, 2, 3)
+            plt.plot(range(sequence_length), x1, label=label_1, color='darkblue')
+            plt.plot(range(sequence_length), x2, label=label_2, color='maroon')
+            plt.plot(range(sequence_length), x3, label=label_3, color='seagreen')
+            plt.xlabel("Time step")
+            plt.ylabel("X-coordinate")
+            plt.title("X-Coordinate Trace over Time")
+            plt.legend()
+
+            plt.subplot(2, 2, 4)
+            plt.plot(range(sequence_length), y1, label=label_1, color='darkblue')
+            plt.plot(range(sequence_length), y2, label=label_2, color='maroon')
+            plt.plot(range(sequence_length), y3, label=label_3, color='seagreen')
+            plt.xlabel("Time step")
+            plt.ylabel("Y-coordinate")
+            plt.title("Y-Coordinate Trace over Time")
+            plt.legend()
+
+            save_path = os.path.join(test_save_folder, f'{file_name}_{epoch_number}_prediction_plot_sample_{video_id + 1}.png')
+            plt.savefig(save_path, bbox_inches="tight")
+            plt.close()
+
+    else:
+        visual_dataset = Cricket2RGCs(num_samples=num_display, multi_opt_sf=multi_opt_sf, tf=tf, map_func=map_func,
+                                    grid2value_mapping=grid2value_mapping, multi_opt_sf_off=multi_opt_sf_off, tf_off=tf_off, 
+                                    map_func_off=map_func_off, grid2value_mapping_off=grid2value_mapping_off, target_width=target_width, 
+                                    target_height=target_height, movie_generator=movie_generator, grid_size_fac=args.grid_size_fac, 
+                                    is_norm_coords=args.is_norm_coords, is_syn_mov_shown=True, fr2spikes=args.fr2spikes, 
+                                    is_both_ON_OFF=args.is_both_ON_OFF, quantize_scale=args.quantize_scale, 
+                                    add_noise=is_add_noise, rgc_noise_std=noise_level, rgc_noise_std_max=args.rgc_noise_std_max, smooth_data=args.smooth_data, 
+                                    is_rectified=args.is_rectified, is_direct_image=args.is_direct_image, grid_coords=grid_centers,
+                                    is_reversed_OFF_sign=args.is_reversed_OFF_sign, rectified_thr_ON=args.rectified_thr_ON, 
+                                    rectified_thr_OFF=args.rectified_thr_OFF,
+                                    rectified_mode=args.rectified_mode, rectified_softness=args.rectified_softness,
+                                    rectified_softness_OFF=args.rectified_softness_OFF,
+                                    is_two_grids=args.is_two_grids,
+                                    # LNK parameters
+                                    use_lnk=args.use_lnk_model,
+                                    lnk_params=lnk_params,
+                                    lnk_params_off=lnk_params_off,
+                                    surround_sigma_ratio=args.surround_sigma_ratio,
+                                    surround_sf=multi_opt_sf_surround,
+                                    surround_sf_off=multi_opt_sf_surround_off,
+                                    # Random seed for consistent data generation
+                                    rnd_seed=rnd_seed)
+        visual_loader = DataLoader(visual_dataset, batch_size=1, shuffle=False, worker_init_fn=worker_init_fn)
+
+        for batch_idx, (inputs, true_path, bg_path, syn_movie, scaling_factors, bg_image_name, image_id, weighted_coords) in enumerate(visual_loader):
+            true_path = true_path.squeeze(0).cpu().numpy()
+            bg_path = bg_path.squeeze(0).cpu().numpy()
+            if is_plot_centerFR:
+                weighted_coords = weighted_coords.squeeze(0).cpu().numpy()
+            else:
+                weighted_coords = None
+
+            with torch.no_grad():
+                predicted_path, _ = model(inputs)
+                predicted_path = predicted_path.squeeze().cpu().numpy()
+
+            sequence_length = len(true_path)
+
+            if is_making_video:
+                syn_movie_np = syn_movie.squeeze().cpu().numpy()
+                inputs_np = inputs.squeeze().cpu().numpy()
+                scaling_factors_np = scaling_factors.squeeze().cpu().numpy()
+
+                video_jobs.append({
+                    'inputs': inputs_np,
+                    'syn_movie': syn_movie_np,
+                    'true_path': true_path,
+                    'bg_path': bg_path,
+                    'predicted_path': predicted_path,
+                    'scaling_factors': scaling_factors_np,
+                    'video_id': batch_idx,
+                    'weighted_coords': weighted_coords,
+                    'frame_width': frame_width,
+                    'frame_height': frame_height,
+                    'fps': fps,
+                    'video_save_folder': video_save_folder,
+                    'file_name': file_name,
+                    'epoch_number': epoch_number,
+                    'grid_generate_method': args.grid_generate_method,
+                    'save_frames': save_movie_frames,
+                    'frame_save_root': frame_save_root_final,
+                    'truth_marker_style': truth_marker_style,
+                    'prediction_marker_style': pred_marker_style,
+                    'center_marker_style': center_marker_style,
+                    'enable_truth_marker': enable_truth_marker,
+                    'enable_prediction_marker': enable_pred_marker,
+                    'enable_center_marker': enable_center_marker
+                })
+
+            x1, y1 = true_path[:, 0], true_path[:, 1]
+            x2, y2 = predicted_path[:, 0], predicted_path[:, 1]
+            x3, y3 = bg_path[:, 0], bg_path[:, 1]
+            label_1 = 'Truth'
+            label_2 = 'Prediction'
+            label_3 = 'Background'
+
+            plt.figure(figsize=(12, 12))
+
+            plt.subplot(2, 2, 1)
+            plt.plot(range(1, len(training_losses) + 1), training_losses, label="Training Loss")
+            plt.xlabel("Epoch")
+            plt.ylabel("Loss")
+            plt.title("Training Loss per Epoch")
+            plt.legend()
+
+            plt.subplot(2, 2, 2)
+            plt.plot(x1, y1, label=label_1, color="darkblue", linestyle="-", linewidth=2)
+            plt.plot(x2, y2, label=label_2, color="maroon", linestyle="--", linewidth=2)
+
+            plt.subplot(2, 2, 3)
+            plt.plot(range(sequence_length), x1, label=label_1, color='darkblue')
+            plt.plot(range(sequence_length), x2, label=label_2, color='maroon')
+            plt.plot(range(sequence_length), x3, label=label_3, color='seagreen')
+            plt.xlabel("Time step")
+            plt.ylabel("X-coordinate")
+            plt.title("X-Coordinate Trace over Time")
+            plt.legend()
+
+            plt.subplot(2, 2, 4)
+            plt.plot(range(sequence_length), y1, label=label_1, color='darkblue')
+            plt.plot(range(sequence_length), y2, label=label_2, color='maroon')
+            plt.plot(range(sequence_length), y3, label=label_3, color='seagreen')
+            plt.xlabel("Time step")
+            plt.ylabel("Y-coordinate")
+            plt.title("Y-Coordinate Trace over Time")
+            plt.legend()
+
+            save_path = os.path.join(test_save_folder, f'{file_name}_{epoch_number}_prediction_plot_sample_{batch_idx + 1}.png')
+            plt.savefig(save_path, bbox_inches="tight")
+            plt.close()
 
     # Generate movies in parallel after all data processing is complete
     if is_making_video and len(video_jobs) > 0:
