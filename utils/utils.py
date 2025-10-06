@@ -558,11 +558,29 @@ def plot_coordinate_and_save(rgc_locs, rgc_locs_off=None, plot_save_folder=None,
     # Save or show the figure
     if plot_save_folder is not None and file_name is not None:
         os.makedirs(plot_save_folder, exist_ok=True)
-        save_path = os.path.join(plot_save_folder, file_name)
-        plt.savefig(save_path, dpi=300, bbox_inches='tight')
+        # Save rasterized PNG (useful for quick previews) and an EPS vector file for Illustrator
+        save_path_png = os.path.join(plot_save_folder, file_name)
+        try:
+            plt.savefig(save_path_png, dpi=300, bbox_inches='tight')
+        except Exception:
+            # Fallback: try without bbox adjustment
+            plt.savefig(save_path_png)
+
+        # Also save a vectorized EPS version using the same base name but .eps extension
+        base, _ext = os.path.splitext(file_name)
+        save_path_eps = os.path.join(plot_save_folder, f"{base}.eps")
+        try:
+            plt.savefig(save_path_eps, format='eps', bbox_inches='tight')
+        except Exception:
+            # If EPS save fails, try saving without bbox and with default format inference
+            try:
+                plt.savefig(save_path_eps)
+            except Exception:
+                pass
+
         plt.close()
         import logging
-        logging.info(f"Plot saved at: {save_path}")
+        logging.info(f"Plot saved at: {save_path_png} (raster) and {save_path_eps} (vector eps)")
     else:
         plt.show()
 
