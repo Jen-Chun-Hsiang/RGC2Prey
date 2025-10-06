@@ -306,7 +306,7 @@ def main():
     
     if is_show_rgc_grid:
         plot_coordinate_and_save(rgc_locs, rgc_locs_off, plot_save_folder, file_name=f'{args.experiment_name}_rgc_grids.png')
-        sys.exit(0)  # Exit after plotting grids
+        
 
     logging.info( f"{args.experiment_name} processing...3")
     # Check results of RGC array synthesis
