@@ -503,8 +503,9 @@ class HexagonalGridGenerator:
             raise ValueError("First grid has not been generated. Call generate_first_grid() first.")
         shift_x = anti_alignment * self.dx
         shift_y = anti_alignment * self.dy
-        offset_x = self.offset_x - shift_x,  # note we subtract shift in offset
-        offset_y = self.offset_y - shift_y,
+        # Subtract shift to produce the anti-aligned offset; ensure offsets are scalars (no trailing commas)
+        offset_x = self.offset_x - shift_x
+        offset_y = self.offset_y - shift_y
         points = self._generate_points_with_noise(self.dx, self.dy, offset_x, offset_y)
         points = self.sub_select_points(points).squeeze()
         np.random.set_state(self.current_state)
