@@ -268,8 +268,10 @@ def main():
                                              target_num_centers_override=args.target_num_centers_additional, 
                                              set_s_scale_override=args.set_s_scale_additional)  
         
-        if args.is_binocular: 
+        if args.is_both_ON_OFF and args.is_binocular:
             num_input_channel = 4
+        elif args.is_two_grids and args.is_binocular:
+            num_input_channel = 2
         else:
             num_input_channel = 2
     else:

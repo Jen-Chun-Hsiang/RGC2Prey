@@ -769,8 +769,8 @@ class Cricket2RGCs(Dataset):
 
                     # 2) Two grids + binocular => 4 outputs (2 grids × 2 eyes)
                     elif self.is_two_grids and is_binocular:
-                        for ch in self.channels:
-                            for mv in movies:
+                        if len(self.channels) >= len(movies):
+                            for ch, mv in zip(self.channels, movies):
                                 rgc_time = _compute_for_channel(mv, ch)
                                 grid_values_list.append(
                                     ch['map_func'](
@@ -780,6 +780,22 @@ class Cricket2RGCs(Dataset):
                                         self.grid_height
                                     )
                                 )
+                        else:
+                            logging.warning(
+                                "is_two_grids with binocular input expects at least as many channels as eyes; "
+                                "falling back to broadcasting both eyes across all grids."
+                            )
+                            for ch in self.channels:
+                                for mv in movies:
+                                    rgc_time = _compute_for_channel(mv, ch)
+                                    grid_values_list.append(
+                                        ch['map_func'](
+                                            rgc_time,
+                                            ch['grid2value'],
+                                            self.grid_width,
+                                            self.grid_height
+                                        )
+                                    )
 
                     # 3) Binocular only => 2 outputs
                     elif is_binocular:
@@ -902,8 +918,8 @@ class Cricket2RGCs(Dataset):
 
                 # 2) Two grids + binocular => 4 outputs (2 grids × 2 eyes)
                 elif self.is_two_grids and is_binocular:
-                    for ch in self.channels:
-                        for mv in movies:
+                    if len(self.channels) >= len(movies):
+                        for ch, mv in zip(self.channels, movies):
                             rgc_time = _compute_for_channel(mv, ch)
                             grid_values_list.append(
                                 ch['map_func'](
@@ -913,6 +929,22 @@ class Cricket2RGCs(Dataset):
                                     self.grid_height
                                 )
                             )
+                    else:
+                        logging.warning(
+                            "is_two_grids with binocular input expects at least as many channels as eyes; "
+                            "falling back to broadcasting both eyes across all grids."
+                        )
+                        for ch in self.channels:
+                            for mv in movies:
+                                rgc_time = _compute_for_channel(mv, ch)
+                                grid_values_list.append(
+                                    ch['map_func'](
+                                        rgc_time,
+                                        ch['grid2value'],
+                                        self.grid_width,
+                                        self.grid_height
+                                    )
+                                )
 
                 # 3) Binocular only => 2 outputs
                 elif is_binocular:

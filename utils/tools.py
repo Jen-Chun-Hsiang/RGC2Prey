@@ -118,8 +118,18 @@ class MovieGenerator:
         ax2 = fig.add_subplot(gs[:2, 3:6])
         ax2.set_title("RGC Outputs")
 
-        if rgc_output.ndim == 3 and rgc_output.shape[0] > 1:
-            rgc_output = rgc_output[0, :, :]  # Use only the first channel
+        rgc_output = np.asarray(rgc_output)
+        rgc_output = np.squeeze(rgc_output)
+
+        if rgc_output.ndim == 3:
+            if rgc_output.shape[-1] in (3, 4):
+                pass  # Already channel-last RGB/RGBA
+            elif rgc_output.shape[0] in (3, 4):
+                rgc_output = np.moveaxis(rgc_output, 0, -1)
+            else:
+                rgc_output = rgc_output[0]
+        elif rgc_output.ndim != 2:
+            raise ValueError(f"RGC output must be 2D or channel-last 3D after squeezing, got shape {rgc_output.shape}")
 
         image_width, image_height = rgc_output.shape[1], rgc_output.shape[0]
         x_min = (desired_width - image_width) / 2
