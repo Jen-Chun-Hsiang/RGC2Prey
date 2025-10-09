@@ -590,11 +590,14 @@ def main():
             try:
                 checkpoint_loader = CheckpointLoader(checkpoint_filename)
                 model, optimizer, scheduler = checkpoint_loader.load_checkpoint(model, optimizer, scheduler)
-                start_epoch = checkpoint_loader.load_epoch()
+                resume_epoch = checkpoint_loader.load_epoch()
+                start_epoch = resume_epoch + 1
                 training_losses = checkpoint_loader.load_training_losses() or []
                 # Ensure model is on the target device after loading
                 model = model.to(device)
-                logging.info(f"Successfully loaded checkpoint from epoch {start_epoch}")
+                logging.info(
+                    f"Successfully loaded checkpoint from epoch {resume_epoch}; resuming at epoch {start_epoch}"
+                )
             except Exception as e:
                 logging.error(f"Failed to load checkpoint {checkpoint_filename}: {e}. Continuing from scratch.")
                 start_epoch = 0
@@ -602,6 +605,12 @@ def main():
     else:
         start_epoch = 0
         training_losses = []  # To store the loss at each epoch
+
+    if start_epoch >= args.num_epochs:
+        logging.info(
+            f"Start epoch {start_epoch} is >= total epochs {args.num_epochs}; no further training required."
+        )
+        return
 
 
     logging.info( f"{args.experiment_name} processing...11")
