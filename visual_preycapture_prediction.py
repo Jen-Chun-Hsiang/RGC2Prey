@@ -125,7 +125,9 @@ def main():
                             add_truth_marker=args.add_truth_marker,
                             add_pred_marker=args.add_pred_marker,
                             add_center_marker=args.add_center_marker,
-                            visual_sample_ids=args.visual_sample_ids
+                            visual_sample_ids=args.visual_sample_ids,
+                            movie_eye=args.movie_eye,
+                            movie_input_channel=args.movie_input_channel
                         )
         else:
             for noise_level in noise_levels:
@@ -152,7 +154,9 @@ def main():
                     add_truth_marker=args.add_truth_marker,
                     add_pred_marker=args.add_pred_marker,
                     add_center_marker=args.add_center_marker,
-                    visual_sample_ids=args.visual_sample_ids
+                    visual_sample_ids=args.visual_sample_ids,
+                    movie_eye=args.movie_eye,
+                    movie_input_channel=args.movie_input_channel
                 )
 
 
@@ -161,7 +165,8 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
                    frame_save_root=None, frame_truth_marker='o', frame_truth_color='royalblue', frame_truth_size=60.0,
                    frame_pred_marker='x', frame_pred_color='darkorange', frame_pred_size=60.0,
                    frame_center_marker='+', frame_center_color='crimson', frame_center_size=60.0,
-                   add_truth_marker=False, add_pred_marker=False, add_center_marker=False, visual_sample_ids=None):
+                   add_truth_marker=False, add_pred_marker=False, add_center_marker=False, visual_sample_ids=None,
+                   movie_eye='left', movie_input_channel='first'):
     num_display = 3
     frame_width = 640
     frame_height = 480
@@ -379,7 +384,7 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
     # Determine which eye/grid index to use when generating movies/frames.
     # Acceptable values: 'left'/'first'/0 => 0; 'right'/'second'/1 => 1. Defaults to 0.
     try:
-        raw_eye = getattr(args, 'movie_eye', 'left')
+        raw_eye = movie_eye
         if isinstance(raw_eye, str):
             raw_eye_l = raw_eye.lower()
             if raw_eye_l in ('left', 'first', '0'):
@@ -394,7 +399,7 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
         movie_eye_index = 0
 
     try:
-        raw_input_ch = getattr(args, 'movie_input_channel', 'first')
+        raw_input_ch = movie_input_channel
         if isinstance(raw_input_ch, str):
             raw_input_l = raw_input_ch.lower()
             if raw_input_l in ('first', 'left', '0'):
