@@ -339,36 +339,69 @@ class MovieGenerator:
         cv2.imwrite(movie_filename, cv2.cvtColor(syn_img, cv2.COLOR_RGB2BGR))
         cv2.imwrite(rgc_filename, cv2.cvtColor(rgc_img, cv2.COLOR_RGB2BGR))
 
+    def _select_sequence_channel(self, sequence, channel_index):
+        if sequence is None:
+            return sequence
+        seq = np.asarray(sequence)
+        if seq.ndim <= 2:
+            return seq
+
+        idx = max(0, int(channel_index))
+        # Heuristic: treat any axis with small cardinality (<=4) as channel axis.
+        potential_axes = [axis for axis, dim in enumerate(seq.shape) if dim > idx and dim <= 4]
+
+        # Prefer explicit heuristics: channel-first (axis 0), then axis 1, then last.
+        preference = [0, 1, seq.ndim - 1]
+        for preferred_axis in preference:
+            if preferred_axis < seq.ndim and preferred_axis in potential_axes:
+                if preferred_axis == 0:
+                    return seq[idx]
+                if preferred_axis == seq.ndim - 1:
+                    return seq[..., idx]
+                return np.take(seq, indices=idx, axis=preferred_axis)
+
+        # Fall back to any discovered small axis.
+        if potential_axes:
+            axis = potential_axes[0]
+            if axis == 0:
+                return seq[idx]
+            if axis == seq.ndim - 1:
+                return seq[..., idx]
+            return np.take(seq, indices=idx, axis=axis)
+
+        # Fallback: return as-is if index is out of bounds everywhere
+        return seq
+
     def generate_movie(self, image_sequence, syn_movie, path, path_bg, path_predict, scaling_factors, video_id, weighted_coords,
                        save_frames=False, frame_save_root=None, truth_marker_style=None, prediction_marker_style=None,
                        center_marker_style=None, enable_truth_marker=False, enable_prediction_marker=False,
-                       enable_center_marker=False):
-        """
-        Generate the video based on the provided input data.
+                       enable_center_marker=False, input_channel_index=0):
+        """Generate the visualization movie using the provided data."""
 
-        Args:
-            image_sequence (list): List of image sequences.
-            syn_movie (list): List of synthesized movie frames.
-            path (list): List of (x, y) coordinates for the path.
-            path_bg (list): Background path data.
-            path_predict (list): Predicted path data.
-            scaling_factors (list): List of scaling factors.
-        """
         # flip y for visualization
         path[:, 1] *= -1
         path_bg[:, 1] *= -1
 
-        # Ensure all inputs have the same length based on the length of `inputs`
-        num_steps = image_sequence.shape[0]
+        display_sequence = self._select_sequence_channel(image_sequence, input_channel_index)
+        num_steps = display_sequence.shape[0]
+
         syn_movie = syn_movie[-num_steps:]
         scaling_factors = scaling_factors[-num_steps:]
+        path = path[-num_steps:]
+        path_bg = path_bg[-num_steps:]
+
+        if path_predict is not None:
+            path_predict = path_predict[-num_steps:]
+
+        if isinstance(weighted_coords, np.ndarray):
+            if weighted_coords.ndim == 0:
+                weighted_coords = None
+            else:
+                weighted_coords = weighted_coords[-num_steps:]
 
         os.makedirs(self.video_save_folder, exist_ok=True)
         base_filename = f'RGC_proj_map_{self.bls_tag}_{self.grid_generate_method}_{video_id}'
-        output_filename = os.path.join(
-            self.video_save_folder,
-            f'{base_filename}.mp4'
-        )
+        output_filename = os.path.join(self.video_save_folder, f'{base_filename}.mp4')
 
         frame_save_dir = None
         if save_frames:
@@ -401,23 +434,25 @@ class MovieGenerator:
 
         if path_predict is not None:
             is_path_predict = True
+            path_predict = np.array(path_predict, copy=True)
             path_predict[:, 1] *= -1
             all_y_values = np.concatenate((path, path_bg, path_predict), axis=0)
         else:
             is_path_predict = False
-            path_predict = [None] * len(image_sequence)
+            path_predict = [None] * num_steps
             all_y_values = np.concatenate((path, path_bg), axis=0)
 
-        if weighted_coords is not None:
+        if weighted_coords is not None and not isinstance(weighted_coords, list):
             is_centerRF = True
+            weighted_coords = np.array(weighted_coords, copy=True)
             weighted_coords[:, 1] *= -1
         else:
             is_centerRF = False
-            weighted_coords = [None] * len(image_sequence)
-        y_min, y_max = np.min(all_y_values), np.max(all_y_values)
+            weighted_coords = [None] * num_steps
 
-        rgcout_min = np.min(image_sequence)
-        rgcout_max = np.max(image_sequence)
+        y_min, y_max = np.min(all_y_values), np.max(all_y_values)
+        rgcout_min = np.min(display_sequence)
+        rgcout_max = np.max(display_sequence)
         movie_min = np.min(syn_movie)
         movie_max = np.max(syn_movie)
 
@@ -429,15 +464,16 @@ class MovieGenerator:
         scaling_history = []
         centerRF_history = []
 
-        if syn_movie.shape[1] == 2:
+        if syn_movie.ndim >= 2 and syn_movie.shape[1] == 2:
             syn_movie = syn_movie[:, 0, :, :]
 
-        for i, (frame, syn_frame, coord, bg_coord, pred_coord, scaling, centerRF) in enumerate(zip(image_sequence, syn_movie, path, path_bg, 
-                                                                                         path_predict, scaling_factors, weighted_coords)):
+        for i, (frame, syn_frame, coord, bg_coord, pred_coord, scaling, centerRF) in enumerate(
+            zip(display_sequence, syn_movie, path, path_bg, path_predict, scaling_factors, weighted_coords)
+        ):
             path_history.append(coord)
             path_bg_history.append(bg_coord)
 
-            if is_path_predict:  #
+            if is_path_predict:
                 path_predict_history.append(pred_coord)
 
             if is_centerRF:
@@ -455,16 +491,16 @@ class MovieGenerator:
                 path_bg_history=np.array(path_bg_history),
                 coord_x_history=coord_x_history,
                 coord_y_history=coord_y_history,
-                scaling_history=scaling_history, 
-                y_min = y_min,
-                y_max = y_max,
-                is_path_predict = is_path_predict,
-                is_centerRF = is_centerRF,
-                centerRF_history = np.array(centerRF_history), 
-                rgcout_min = rgcout_min, 
-                rgcout_max = rgcout_max,
-                movie_min = movie_min,
-                movie_max = movie_max
+                scaling_history=scaling_history,
+                y_min=y_min,
+                y_max=y_max,
+                is_path_predict=is_path_predict,
+                is_centerRF=is_centerRF,
+                centerRF_history=np.array(centerRF_history),
+                rgcout_min=rgcout_min,
+                rgcout_max=rgcout_max,
+                movie_min=movie_min,
+                movie_max=movie_max
             )
 
             if save_frames and frame_save_dir is not None:
@@ -486,7 +522,6 @@ class MovieGenerator:
                     center_style=center_style
                 )
 
-            # Resize the image to fit video dimensions
             img = cv2.resize(img, (self.frame_width, self.frame_height))
             video_writer.write(cv2.cvtColor(img, cv2.COLOR_RGB2BGR))
 

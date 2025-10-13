@@ -47,7 +47,8 @@ def _generate_movie_job(job):
             center_marker_style=job.get('center_marker_style', None),
             enable_truth_marker=job.get('enable_truth_marker', False),
             enable_prediction_marker=job.get('enable_prediction_marker', False),
-            enable_center_marker=job.get('enable_center_marker', False)
+            enable_center_marker=job.get('enable_center_marker', False),
+            input_channel_index=job.get('input_channel_index', 0)
         )
         
         return f"Movie {job['video_id']} generated successfully"
@@ -86,6 +87,10 @@ def parse_args():
     parser.add_argument('--add_center_marker', action='store_true', help="Include center RF marker in saved frames")
     parser.add_argument('--visual_sample_ids', type=int, nargs='+', default=None,
                         help="0-based indices from Section 2 analysis to visualize in Section 3")
+    parser.add_argument('--movie_eye', type=str, default='left',
+                        help="Which eye/grid to use when generating movies and frames: 'left'/'right' or '0'/'1' or 'first'/'second'.")
+    parser.add_argument('--movie_input_channel', type=str, default='first',
+                        help="Which input channel/grid to visualize in movies: 'first'/'second' or numeric index (0-based).")
 
     return parser.parse_args()
 
@@ -370,6 +375,38 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
         args.set_s_scale_additional = []
 
     rnd_seed = process_seed(args.seed)
+
+    # Determine which eye/grid index to use when generating movies/frames.
+    # Acceptable values: 'left'/'first'/0 => 0; 'right'/'second'/1 => 1. Defaults to 0.
+    try:
+        raw_eye = getattr(args, 'movie_eye', 'left')
+        if isinstance(raw_eye, str):
+            raw_eye_l = raw_eye.lower()
+            if raw_eye_l in ('left', 'first', '0'):
+                movie_eye_index = 0
+            elif raw_eye_l in ('right', 'second', '1'):
+                movie_eye_index = 1
+            else:
+                movie_eye_index = int(raw_eye)
+        else:
+            movie_eye_index = int(raw_eye)
+    except Exception:
+        movie_eye_index = 0
+
+    try:
+        raw_input_ch = getattr(args, 'movie_input_channel', 'first')
+        if isinstance(raw_input_ch, str):
+            raw_input_l = raw_input_ch.lower()
+            if raw_input_l in ('first', 'left', '0'):
+                movie_input_channel_index = 0
+            elif raw_input_l in ('second', 'right', '1'):
+                movie_input_channel_index = 1
+            else:
+                movie_input_channel_index = int(raw_input_ch)
+        else:
+            movie_input_channel_index = int(raw_input_ch)
+    except Exception:
+        movie_input_channel_index = 0
 
     logging.info( f"{file_name} processing...1 seed:{args.seed}, {rnd_seed}")
     
@@ -811,6 +848,16 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
                 syn_movie_np = syn_movie_single.squeeze().cpu().numpy()
             else:
                 syn_movie_np = np.asarray(syn_movie_single).squeeze()
+            # If the synthesized movie contains an eye/grid dimension, select the requested one.
+            try:
+                # find any axis that has size==2 (common binocular axis)
+                axes_with_two = [i for i, s in enumerate(syn_movie_np.shape) if s == 2]
+                if axes_with_two:
+                    axis = axes_with_two[0]
+                    syn_movie_np = np.take(syn_movie_np, indices=movie_eye_index, axis=axis)
+            except Exception:
+                # fallback: leave syn_movie_np unchanged
+                pass
             if isinstance(scaling_factors_single, torch.Tensor):
                 scaling_factors_np = scaling_factors_single.squeeze().cpu().numpy()
             else:
@@ -863,7 +910,8 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
                     'center_marker_style': center_marker_style,
                     'enable_truth_marker': enable_truth_marker,
                     'enable_prediction_marker': enable_pred_marker,
-                    'enable_center_marker': enable_center_marker
+                    'enable_center_marker': enable_center_marker,
+                    'input_channel_index': movie_input_channel_index
                 })
 
             x1, y1 = true_path_arr[:, 0], true_path_arr[:, 1]
@@ -951,7 +999,14 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
                 syn_movie_np = syn_movie.squeeze().cpu().numpy()
                 inputs_np = inputs.squeeze().cpu().numpy()
                 scaling_factors_np = scaling_factors.squeeze().cpu().numpy()
-
+                # If the synthesized movie contains an eye/grid dimension, select the requested one.
+                try:
+                    axes_with_two = [i for i, s in enumerate(syn_movie_np.shape) if s == 2]
+                    if axes_with_two:
+                        axis = axes_with_two[0]
+                        syn_movie_np = np.take(syn_movie_np, indices=movie_eye_index, axis=axis)
+                except Exception:
+                    pass
                 video_jobs.append({
                     'inputs': inputs_np,
                     'syn_movie': syn_movie_np,
@@ -975,7 +1030,8 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
                     'center_marker_style': center_marker_style,
                     'enable_truth_marker': enable_truth_marker,
                     'enable_prediction_marker': enable_pred_marker,
-                    'enable_center_marker': enable_center_marker
+                    'enable_center_marker': enable_center_marker,
+                    'input_channel_index': movie_input_channel_index
                 })
 
             x1, y1 = true_path[:, 0], true_path[:, 1]
