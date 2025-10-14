@@ -192,19 +192,20 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
 
     if save_movie_frames:
         frame_save_root_final = frame_save_root if frame_save_root is not None else os.path.join(frame_img_folder, 'frames')
-        logging.info(f"Frame saving enabled. Frames will be stored under {frame_save_root_final}")
+        frame_save_msg = f"Frame saving enabled. Frames will be stored under {frame_save_root_final}"
+        
         enable_truth_marker = bool(add_truth_marker)
         enable_pred_marker = bool(add_pred_marker)
         enable_center_marker = bool(add_center_marker)
         if not (enable_truth_marker or enable_pred_marker or enable_center_marker):
-            logging.info("Frame saving requested without marker flags; frames will be saved without markers.")
+            frame_save_msg = f"Frame saving requested without marker flags; frames will be saved without markers."
     else:
         frame_save_root_final = None
         enable_truth_marker = False
         enable_pred_marker = False
         enable_center_marker = False
         if add_truth_marker or add_pred_marker or add_center_marker:
-            logging.info("Marker flags provided but --save_movie_frames was not set; markers will be ignored.")
+            frame_save_msg = "Marker flags provided but --save_movie_frames was not set; markers will be ignored."
 
     truth_marker_style = None
     if enable_truth_marker:
@@ -244,6 +245,7 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
     file_name = make_file_name(experiment_name, test_ob_folder, test_bg_folder, noise_level=noise_level, fix_disparity_degree=fix_disparity_degree)
     initialize_logging(log_save_folder=log_save_folder, experiment_name=file_name)
 
+    logging.info(frame_save_msg)
     logging.info(f"{file_name} processing...-1 noise:{noise_level} type:{type(noise_level)}")
     
     # Load checkpoint
