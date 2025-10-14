@@ -839,13 +839,18 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
         for record in selected_sample_records:
             dataset_idx = record['dataset_index']
             sample = analysis_dataset[dataset_idx]
-            inputs_np, true_path_single, bg_path_single, syn_movie_single, scaling_factors_single, bg_image_name_single, image_id_single, weighted_coords_single = sample
+            inputs_single, true_path_single, bg_path_single, syn_movie_single, scaling_factors_single, bg_image_name_single, image_id_single, weighted_coords_single = sample
 
             
-            logging.info(f"inputs_single dimension: {inputs_np.shape} ")
+            logging.info(f"inputs_single dimension: {inputs_single.shape} ")
             logging.info(f"syn_movie_single dimension: {syn_movie_single.shape} ")
 
-            inputs_np = inputs_np.squeeze().cpu().numpy()
+            if isinstance(inputs_single, torch.Tensor):
+                inputs_tensor = inputs_single.unsqueeze(0).float()
+                inputs_np = inputs_single.cpu().numpy()
+            else:
+                inputs_tensor = torch.tensor(inputs_single, dtype=torch.float32).unsqueeze(0)
+                inputs_np = np.asarray(inputs_single)
 
             if inputs_np.ndim == 4:
                 inputs_np = inputs_np[:, movie_input_channel_index, :, :]
