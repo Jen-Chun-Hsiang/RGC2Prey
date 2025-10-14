@@ -339,51 +339,18 @@ class MovieGenerator:
         cv2.imwrite(movie_filename, cv2.cvtColor(syn_img, cv2.COLOR_RGB2BGR))
         cv2.imwrite(rgc_filename, cv2.cvtColor(rgc_img, cv2.COLOR_RGB2BGR))
 
-    def _select_sequence_channel(self, sequence, channel_index):
-        if sequence is None:
-            return sequence
-        seq = np.asarray(sequence)
-        if seq.ndim <= 2:
-            return seq
-
-        idx = max(0, int(channel_index))
-        # Heuristic: treat any axis with small cardinality (<=4) as channel axis.
-        potential_axes = [axis for axis, dim in enumerate(seq.shape) if dim > idx and dim <= 4]
-
-        # Prefer explicit heuristics: channel-first (axis 0), then axis 1, then last.
-        preference = [0, 1, seq.ndim - 1]
-        for preferred_axis in preference:
-            if preferred_axis < seq.ndim and preferred_axis in potential_axes:
-                if preferred_axis == 0:
-                    return seq[idx]
-                if preferred_axis == seq.ndim - 1:
-                    return seq[..., idx]
-                return np.take(seq, indices=idx, axis=preferred_axis)
-
-        # Fall back to any discovered small axis.
-        if potential_axes:
-            axis = potential_axes[0]
-            if axis == 0:
-                return seq[idx]
-            if axis == seq.ndim - 1:
-                return seq[..., idx]
-            return np.take(seq, indices=idx, axis=axis)
-
-        # Fallback: return as-is if index is out of bounds everywhere
-        return seq
 
     def generate_movie(self, image_sequence, syn_movie, path, path_bg, path_predict, scaling_factors, video_id, weighted_coords,
                        save_frames=False, frame_save_root=None, truth_marker_style=None, prediction_marker_style=None,
                        center_marker_style=None, enable_truth_marker=False, enable_prediction_marker=False,
-                       enable_center_marker=False, input_channel_index=0):
+                       enable_center_marker=False):
         """Generate the visualization movie using the provided data."""
 
         # flip y for visualization
         path[:, 1] *= -1
         path_bg[:, 1] *= -1
 
-        display_sequence = self._select_sequence_channel(image_sequence, input_channel_index)
-        num_steps = display_sequence.shape[0]
+        num_steps = image_sequence.shape[0]
 
         syn_movie = syn_movie[-num_steps:]
         scaling_factors = scaling_factors[-num_steps:]
@@ -451,8 +418,8 @@ class MovieGenerator:
             weighted_coords = [None] * num_steps
 
         y_min, y_max = np.min(all_y_values), np.max(all_y_values)
-        rgcout_min = np.min(display_sequence)
-        rgcout_max = np.max(display_sequence)
+        rgcout_min = np.min(image_sequence)
+        rgcout_max = np.max(image_sequence)
         movie_min = np.min(syn_movie)
         movie_max = np.max(syn_movie)
 
@@ -468,7 +435,7 @@ class MovieGenerator:
             syn_movie = syn_movie[:, 0, :, :]
 
         for i, (frame, syn_frame, coord, bg_coord, pred_coord, scaling, centerRF) in enumerate(
-            zip(display_sequence, syn_movie, path, path_bg, path_predict, scaling_factors, weighted_coords)
+            zip(image_sequence, syn_movie, path, path_bg, path_predict, scaling_factors, weighted_coords)
         ):
             path_history.append(coord)
             path_bg_history.append(bg_coord)
