@@ -398,6 +398,7 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
     except Exception:
         movie_eye_index = 0
 
+    
     try:
         raw_input_ch = movie_input_channel
         if isinstance(raw_input_ch, str):
@@ -838,6 +839,8 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
             sample = analysis_dataset[dataset_idx]
             inputs_single, true_path_single, bg_path_single, syn_movie_single, scaling_factors_single, bg_image_name_single, image_id_single, weighted_coords_single = sample
 
+            logging.info( f"inputs_single dimension: {inputs_single.shape} ")
+            logging.info( f"syn_movie_single dimension: {syn_movie_single.shape} ")
             if isinstance(inputs_single, torch.Tensor):
                 inputs_tensor = inputs_single.unsqueeze(0).float()
                 inputs_np = inputs_single.cpu().numpy()
