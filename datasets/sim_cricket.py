@@ -1267,7 +1267,7 @@ def synthesize_image_with_params_batch(bottom_img_path, top_img_path, top_img_po
         fill_w = (bottom_w - top_w) // 2
 
         def overlay_and_crop(canvas, top_ten, relative_pos, crop_pos):
-            
+            canvas = canvas.clone() 
 
             # Compute relative position
             relative_pos = relative_pos - crop_pos
