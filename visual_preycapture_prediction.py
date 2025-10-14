@@ -244,7 +244,7 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
     file_name = make_file_name(experiment_name, test_ob_folder, test_bg_folder, noise_level=noise_level, fix_disparity_degree=fix_disparity_degree)
     initialize_logging(log_save_folder=log_save_folder, experiment_name=file_name)
 
-    logging.info( f"{file_name} processing...-1 noise:{noise_level} type:{type(noise_level)}")
+    logging.info(f"{file_name} processing...-1 noise:{noise_level} type:{type(noise_level)}")
     
     # Load checkpoint
     if experiment_name.startswith('1229'):
@@ -274,7 +274,7 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
     if boundary_size is None:
         boundary_size = args.boundary_size
 
-    logging.info( f"{file_name} processing...0")
+    logging.info(f"{file_name} processing...0")
     if args.is_GPU:
         device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     else:
@@ -414,7 +414,7 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
     except Exception:
         movie_input_channel_index = 0
 
-    logging.info( f"{file_name} processing...1 seed:{args.seed}, {rnd_seed}")
+    logging.info(f"{file_name} processing...1 seed:{args.seed}, {rnd_seed}")
     
     # Simple parameter loading for RGCs
     # make sure the following usecol is provide to avoid full empty columns
@@ -442,7 +442,7 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
         use_lnk_override=args.use_lnk_model, lnk_param_table=lnk_param_table, syn_params=syn_params,
         set_surround_size_scalar=args.set_surround_size_scalar, set_bias=args.set_bias, set_biphasic_scale=args.set_biphasic_scale
     )
-    logging.info( f"{file_name} processing...1.5")
+    logging.info(f"{file_name} processing...1.5")
     
     multi_opt_sf, multi_opt_sf_surround, tf, grid2value_mapping, map_func, rgc_locs, lnk_params = rgc_array.get_results()
 
@@ -525,15 +525,15 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
             if main_ok and off_ok:
                 logging.info(f'Quick repeat-check PASSED against {ref_path}')
             else:
-                logging.warning(f'Quick repeat-check FAILED against {ref_path} (main_ok={main_ok}, off_ok={off_ok})')
+                logging.info(f'Quick repeat-check FAILED against {ref_path} (main_ok={main_ok}, off_ok={off_ok})')
     except Exception as e:
-        logging.error(f'Error during quick repeat-check: {e}')
+        logging.info(f'Error during quick repeat-check: {e}')
 
     if is_show_rgc_grid:
         plot_coordinate_and_save(rgc_locs, rgc_locs_off, plot_save_folder, file_name=f'{args.experiment_name}_rgc_grids_test.png')
  
     # raise ValueError(f"Temporal close exam processing...")
-    logging.info( f"{file_name} processing...2")
+    logging.info(f"{file_name} processing...2")
 
     movie_generator = SynMovieGenerator(top_img_folder, bottom_img_folder,
         crop_size=args.crop_size, boundary_size=boundary_size, center_ratio=args.center_ratio, max_steps=args.max_steps,
@@ -547,7 +547,7 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
         mean_diff_offset=args.mean_diff_offset, fix_disparity=fix_disparity_degree
     )
 
-    logging.info( f"{file_name} processing...3")
+    logging.info(f"{file_name} processing...3")
     xlim, ylim = args.xlim, args.ylim
     target_height = xlim[1]-xlim[0]
     target_width = ylim[1]-ylim[0]
@@ -567,7 +567,7 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
     model.to(device)
     model.eval()
 
-    logging.info( f"{file_name} processing...4")
+    logging.info(f"{file_name} processing...4")
 
     # [Section 1] Create test dataset and loader
     test_dataset = Cricket2RGCs(num_samples=num_sample, multi_opt_sf=multi_opt_sf, tf=tf, map_func=map_func,
@@ -607,7 +607,7 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
                              num_workers=dl_num_workers, pin_memory=True, persistent_workers=False, 
                              worker_init_fn=worker_init_fn, generator=dl_generator)
 
-    logging.info( f"{file_name} processing...5")
+    logging.info(f"{file_name} processing...5")
     test_losses = [] 
 
     for batch_idx, (inputs, true_path, bg_info) in enumerate(test_loader):
@@ -617,7 +617,7 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
             loss = criterion(predicted_path, true_path)
         test_losses.append(loss.item())
 
-    logging.info( f"{file_name} processing...6")
+    logging.info(f"{file_name} processing...6")
 
     test_losses = np.array(test_losses)
     training_losses = np.array(training_losses)
@@ -679,7 +679,7 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
         analysis_loader = DataLoader(analysis_dataset, batch_size=1, shuffle=True, 
                                      worker_init_fn=worker_init_fn, generator=dl_generator_small)
 
-    logging.info( f"{file_name} processing...7")
+    logging.info(f"{file_name} processing...7")
     test_losses = [] 
     all_paths = []
     all_paths_pred = []
@@ -750,7 +750,7 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
                 'loss': loss.item()
             })
 
-    logging.info( f"{file_name} processing...8")
+    logging.info(f"{file_name} processing...8")
     
     # Concatenate along rows
     all_paths = np.vstack(all_paths)
@@ -771,7 +771,7 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
         mat_payload['analysis_indices'] = np.arange(all_paths.shape[0])
     savemat(save_path, mat_payload)
 
-    logging.info( f"{file_name} processing...9")
+    logging.info(f"{file_name} processing...9")
 
     # [Section 3] Visualization and movie generation
     model.to('cpu')
@@ -824,7 +824,7 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
     if selected_sample_records:
         logging.info(f"{file_name} processing...10 (Section 3 using pre-selected samples)")
     else:
-        logging.info( f"{file_name} processing...10")
+        logging.info(f"{file_name} processing...10")
 
     if selected_sample_records:
         def _ensure_xy(array_like):
@@ -839,8 +839,10 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
             sample = analysis_dataset[dataset_idx]
             inputs_single, true_path_single, bg_path_single, syn_movie_single, scaling_factors_single, bg_image_name_single, image_id_single, weighted_coords_single = sample
 
-            logging.info( f"inputs_single dimension: {inputs_single.shape} ")
-            logging.info( f"syn_movie_single dimension: {syn_movie_single.shape} ")
+            print(f"inputs_single dimension: {inputs_single.shape} ")
+            print(f"syn_movie_single dimension: {syn_movie_single.shape} ")
+            logging.info(f"inputs_single dimension: {inputs_single.shape} ")
+            logging.info(f"syn_movie_single dimension: {syn_movie_single.shape} ")
             if isinstance(inputs_single, torch.Tensor):
                 inputs_tensor = inputs_single.unsqueeze(0).float()
                 inputs_np = inputs_single.cpu().numpy()
