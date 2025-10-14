@@ -26,38 +26,32 @@ def _generate_movie_job(job):
         job (dict): Dictionary containing all necessary data and parameters
                    for movie generation (must be picklable).
     """
-    try:
-        # Import here to avoid issues with multiprocessing
-        from utils.tools import MovieGenerator
-        
-        data_movie = MovieGenerator(
-            job['frame_width'], job['frame_height'], job['fps'], 
-            job['video_save_folder'], bls_tag=f"{job['file_name']}_{job['epoch_number']}",
-            grid_generate_method=job['grid_generate_method']
-        )
-        
-        data_movie.generate_movie(
-            job['inputs'], job['syn_movie'], job['true_path'], job['bg_path'],
-            job['predicted_path'], job['scaling_factors'], video_id=job['video_id'],
-            weighted_coords=job.get('weighted_coords', None),
-            save_frames=job.get('save_frames', False),
-            frame_save_root=job.get('frame_save_root', None),
-            truth_marker_style=job.get('truth_marker_style', None),
-            prediction_marker_style=job.get('prediction_marker_style', None),
-            center_marker_style=job.get('center_marker_style', None),
-            enable_truth_marker=job.get('enable_truth_marker', False),
-            enable_prediction_marker=job.get('enable_prediction_marker', False),
-            enable_center_marker=job.get('enable_center_marker', False),
-            input_channel_index=job.get('input_channel_index', 0)
-        )
-        
-        return f"Movie {job['video_id']} generated successfully"
-        
-    except Exception as e:
-        import logging
-        logging.exception(f"Movie generation failed for job {job.get('video_id', 'unknown')}: {e}")
-        return f"Movie {job.get('video_id', 'unknown')} failed: {str(e)}"
-
+    
+    # Import here to avoid issues with multiprocessing
+    from utils.tools import MovieGenerator
+    
+    data_movie = MovieGenerator(
+        job['frame_width'], job['frame_height'], job['fps'], 
+        job['video_save_folder'], bls_tag=f"{job['file_name']}_{job['epoch_number']}",
+        grid_generate_method=job['grid_generate_method']
+    )
+    
+    data_movie.generate_movie(
+        job['inputs'], job['syn_movie'], job['true_path'], job['bg_path'],
+        job['predicted_path'], job['scaling_factors'], video_id=job['video_id'],
+        weighted_coords=job.get('weighted_coords', None),
+        save_frames=job.get('save_frames', False),
+        frame_save_root=job.get('frame_save_root', None),
+        truth_marker_style=job.get('truth_marker_style', None),
+        prediction_marker_style=job.get('prediction_marker_style', None),
+        center_marker_style=job.get('center_marker_style', None),
+        enable_truth_marker=job.get('enable_truth_marker', False),
+        enable_prediction_marker=job.get('enable_prediction_marker', False),
+        enable_center_marker=job.get('enable_center_marker', False),
+    )
+    
+    return f"Movie {job['video_id']} generated successfully"
+      
 
 def parse_args():
     
@@ -924,8 +918,7 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
                     'center_marker_style': center_marker_style,
                     'enable_truth_marker': enable_truth_marker,
                     'enable_prediction_marker': enable_pred_marker,
-                    'enable_center_marker': enable_center_marker,
-                    'input_channel_index': movie_input_channel_index
+                    'enable_center_marker': enable_center_marker
                 })
 
             x1, y1 = true_path_arr[:, 0], true_path_arr[:, 1]
@@ -1044,8 +1037,7 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
                     'center_marker_style': center_marker_style,
                     'enable_truth_marker': enable_truth_marker,
                     'enable_prediction_marker': enable_pred_marker,
-                    'enable_center_marker': enable_center_marker,
-                    'input_channel_index': movie_input_channel_index
+                    'enable_center_marker': enable_center_marker
                 })
 
             x1, y1 = true_path[:, 0], true_path[:, 1]
