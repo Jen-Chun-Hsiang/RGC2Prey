@@ -194,6 +194,7 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
         if not (enable_truth_marker or enable_pred_marker or enable_center_marker):
             frame_save_msg = f"Frame saving requested without marker flags; frames will be saved without markers."
     else:
+        frame_save_msg = "Frame saving not enabled."
         frame_save_root_final = None
         enable_truth_marker = False
         enable_pred_marker = False
