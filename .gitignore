@@ -13,6 +13,7 @@
 *.webp
 *.jpg
 *.jfif
+*.DS_Store
 
 # direct files #
 something_notshared.py
