@@ -201,7 +201,7 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
         enable_center_marker = False
         if add_truth_marker or add_pred_marker or add_center_marker:
             frame_save_msg = "Marker flags provided but --save_movie_frames was not set; markers will be ignored."
-
+    
     truth_marker_style = None
     if enable_truth_marker:
         truth_marker_style = {

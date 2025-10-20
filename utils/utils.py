@@ -534,7 +534,7 @@ def causal_moving_average_numpy(seq, window_size):
 
 def plot_coordinate_and_save(rgc_locs, rgc_locs_off=None, plot_save_folder=None, file_name=None):
     """
-    Plots one or two sets of coordinates on the same figure with different colors and optionally saves the plot.
+    Plots one or two sets of coordinates in separate panels and optionally saves the plot.
     
     Parameters:
     rgc_locs (numpy.ndarray): A 2D array of shape (N, 2) containing x, y coordinates.
@@ -542,18 +542,30 @@ def plot_coordinate_and_save(rgc_locs, rgc_locs_off=None, plot_save_folder=None,
     plot_save_folder (str, optional): Folder where the plot will be saved. If None, the plot is only displayed.
     file_name (str, optional): Name of the file to save the plot as, if saving is enabled.
     """
-    # Create the plot
-    plt.figure(figsize=(8, 6))
-    plt.scatter(rgc_locs[:, 0], rgc_locs[:, 1], color='blue', label='ON', alpha=0.7)
-    
     if rgc_locs_off is not None:
-        plt.scatter(rgc_locs_off[:, 0], rgc_locs_off[:, 1], color='red', label='OFF', alpha=0.7)
-    
-    # Labels and legend
-    plt.xlabel("X Coordinate")
-    plt.ylabel("Y Coordinate")
-    plt.title("RGC Locations")
-    plt.legend()
+        fig, axes = plt.subplots(1, 2, figsize=(16, 6))
+        
+        # Plot ON locations
+        axes[0].scatter(rgc_locs[:, 0], rgc_locs[:, 1], color='blue', alpha=0.7)
+        axes[0].set_xlabel("X Coordinate")
+        axes[0].set_ylabel("Y Coordinate")
+        axes[0].set_title("RGC Locations (ON)")
+        
+        # Plot OFF locations
+        axes[1].scatter(rgc_locs_off[:, 0], rgc_locs_off[:, 1], color='red', alpha=0.7)
+        axes[1].set_xlabel("X Coordinate")
+        axes[1].set_ylabel("Y Coordinate")
+        axes[1].set_title("RGC Locations (OFF)")
+        
+        plt.tight_layout()
+    else:
+        # Create the plot for single set
+        plt.figure(figsize=(8, 6))
+        plt.scatter(rgc_locs[:, 0], rgc_locs[:, 1], color='blue', label='ON', alpha=0.7)
+        plt.xlabel("X Coordinate")
+        plt.ylabel("Y Coordinate")
+        plt.title("RGC Locations")
+        plt.legend()
     
     # Save or show the figure
     if plot_save_folder is not None and file_name is not None:
