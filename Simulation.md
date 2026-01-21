@@ -314,6 +314,54 @@ From the example scripts in [examples/running_bash/train_preycapture_25101402.sh
 - Decoder architecture: `--cnn_extractor_version 4`, `--cnn_feature_dim 256`, `--lstm_hidden_size 128`, `--lstm_num_layers 4`.
 - Optimization: `--batch_size 4`, `--accumulation_steps 128` (effective batch size = 512 sequences per optimizer step, ignoring any DataLoader-level randomness).
 
+**Exact decoder architecture used by example `2025100502`**
+
+This corresponds to [examples/running_bash/train_preycapture_25100502.sh ](examples/running_bash/train_preycapture_25100502.sh%20) and is implemented by `CNN_LSTM_ObjectLocation(CNNextractor_version=4)` in [models/rgc2behavior.py](models/rgc2behavior.py).
+
+Inputs for this run:
+- Channel count: `--is_two_grids --is_binocular` ⇒ `C=2` (paired mapping).
+- With defaults `xlim=(-120,120)`, `ylim=(-90,90)` and `--grid_size_fac 0.5`:
+  - `target_height = 240`, `target_width = 180`.
+  - `grid_height = round(240 * 0.5) = 120`, `grid_width = round(180 * 0.5) = 90`.
+  - The dataset returns frames as `[C, grid_width, grid_height]`, so each frame is `[2, 90, 120]` and the model is constructed with `input_height=90`, `input_width=120`.
+
+Pre-CNN normalization:
+- Enabled by `--is_input_norm --is_channel_normalization`.
+- Uses channel-wise z-scoring per sample: for each channel, mean/std are computed over (time, height, width).
+
+Framewise CNN feature extractor (ParallelCNNFeatureExtractor4; `--conv_out_channels 16`, `--cnn_feature_dim 256`):
+- The CNN has 3 parallel branches (A1/A2/A3) starting directly from the input, each followed by 2 more convolution stages (B then C). All convs use BatchNorm2d + ReLU.
+
+Branch A1 (local, high-resolution):
+- A1: Conv2d(2→8, k=4, s=2, p=0, d=1) ⇒ output spatial size (90,120)→(44,59)
+- B1: Conv2d(8→16, k=4, s=1, p=0) ⇒ (44,59)→(41,56)
+- C1: Conv2d(16→16, k=3, s=1, p=0) ⇒ (41,56)→(39,54)
+- Flatten: 16×39×54 = 33,696
+
+Branch A2 (medium-scale via dilation/stride):
+- A2: Conv2d(2→8, k=4, s=8, p=4, d=4) (effective k=13) ⇒ (90,120)→(11,15)
+- B2: Conv2d(8→16, k=3, s=1, p=0) ⇒ (11,15)→(9,13)
+- C2: Conv2d(16→16, k=3, s=1, p=0) ⇒ (9,13)→(7,11)
+- Flatten: 16×7×11 = 1,232
+
+Branch A3 (coarse-scale via dilation/stride):
+- A3: Conv2d(2→8, k=4, s=16, p=8, d=8) (effective k=25) ⇒ (90,120)→(6,7)
+- B3: Conv2d(8→16, k=2, s=1, p=0) ⇒ (6,7)→(5,6)
+- C3: Conv2d(16→16, k=3, s=1, p=0) ⇒ (5,6)→(3,4)
+- Flatten: 16×3×4 = 192
+
+Concatenation and projection:
+- Concatenate flattened branch vectors: 33,696 + 1,232 + 192 = 35,120 features
+- FC: Linear(35,120→256)
+
+Temporal integration and outputs (`--lstm_hidden_size 128 --lstm_num_layers 4`):
+- LSTM: input_size=256, hidden_size=128, num_layers=4, dropout=0 (not set in code)
+- LayerNorm(128)
+- FC head: Linear(128→128) + ReLU, then Linear(128→2)
+
+Auxiliary background head:
+- Although `--bg_processing_type one-proj` is passed, this particular example sets `--bg_info_cost_ratio 0.0`, so the background head is effectively disabled for training loss (and the model returns `bg_predictions = coord_predictions`).
+
 **Inference / performance analysis (paper workflow)**
 
 Evaluation is performed by [visual_preycapture_prediction.py](visual_preycapture_prediction.py), which:
