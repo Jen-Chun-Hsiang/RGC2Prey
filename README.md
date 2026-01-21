@@ -12,6 +12,18 @@ This project implements a comprehensive retinal encoding framework that uses rec
 
 ## Quick Start
 
+### Data & Paths (Important)
+The main training scripts currently assume a specific on-disk dataset layout and use hard-coded absolute paths.
+
+- [train_preycapture.py](train_preycapture.py) sets `root_folder` and then builds paths like `CricketDataset/...` and `RGC2Prey/SimulationParams.xlsx` under it.
+- [train_preycapture_end2end.py](train_preycapture_end2end.py) similarly hard-codes dataset/checkpoint paths.
+
+To run outside that environment (e.g., locally on macOS), you will need to either:
+- Edit those path variables in the scripts to point at your local data/outputs, or
+- Mirror the expected folder structure (e.g., via mounts/symlinks).
+
+The parameter spreadsheet is expected at `.../RGC2Prey/SimulationParams.xlsx` and sheet names are configurable via flags like `--sf_sheet_name`, `--tf_sheet_name`, and `--lnk_sheet_name`.
+
 ### Basic Training
 ```bash
 # Standard LN model training
@@ -181,7 +193,7 @@ Experiment with different configurations via Excel parameter sheets:
 ### 1. Environment Setup
 ```bash
 # Ensure you have the required dependencies
-pip install torch torchvision matplotlib opencv-python pandas numpy
+pip install torch torchvision numpy pandas scipy matplotlib opencv-python pillow openpyxl
 ```
 
 ### 2. Parameter Configuration
@@ -212,14 +224,22 @@ python ../visual_preycapture_end2end_RFs.py
 ## Documentation
 
 ### Comprehensive Guides
-- **[`docs/README.md`](docs/README.md)** - Project documentation index
 - **[`docs/LNK_vs_LN_Model_Guide.md`](docs/LNK_vs_LN_Model_Guide.md)** - Model comparison and selection guide
 - **[`docs/LNK_Integration_Guide.md`](docs/LNK_Integration_Guide.md)** - Integration and setup instructions
 - **[`docs/LNK_Technical_Implementation.md`](docs/LNK_Technical_Implementation.md)** - Technical implementation details and equations
 - **[`docs/LNK_Usage_Examples.md`](docs/LNK_Usage_Examples.md)** - Parameter configuration and usage examples
+- **[`docs/moving_bar_adapter.md`](docs/moving_bar_adapter.md)** - Using moving bars/dots with `Cricket2RGCs` via `MovingBarAdapter`
 
 ### Test Documentation
 - **[`test/README.md`](test/README.md)** - Comprehensive testing guide and usage instructions
+
+## References
+
+Background reading that motivated the LN/LNK-style modeling choices:
+
+- Coppola, D. M., et al. (1998). The distribution of oriented contours in the real world. *PNAS*
+- Keat, J., et al. (2001). Predicting every spike: a model for the responses of visual neurons. *Neuron*
+- Pillow, J. W., et al. (2008). Spatio-temporal correlations and visual signalling in a complete neuronal population. *Nature*
 
 ## Recent Updates
 
