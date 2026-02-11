@@ -82,6 +82,14 @@ def parse_args():
                         help='Softness parameter for softplus rectification (ON channel)')
     parser.add_argument('--rectified_softness_OFF', type=float, default=None,
                         help='Softness parameter for OFF channel; if omitted, uses ON softness')
+
+    # LN contrast gain (post-linear, pre-noise)
+    parser.add_argument('--ln_contrast_gain', type=float, default=1.0,
+                        help='Gain applied to LN linear drive before noise/Poisson/rectification (ON channel)')
+    parser.add_argument('--ln_contrast_gain_off', type=float, default=None,
+                        help='Optional OFF-channel gain; if omitted, uses ln_contrast_gain')
+    parser.add_argument('--ln_contrast_gain_apply_to_lnk', action='store_true',
+                        help='Also apply ln_contrast_gain to LNK output (default: off)')
     
     # Arguments for RGCrfArray
     parser.add_argument('--rgc_array_rf_size', type=tuple, default=(320, 240), help="Receptive field size (height, width).")
@@ -394,6 +402,9 @@ def main():
             rectified_mode=args.rectified_mode,
             rectified_softness=args.rectified_softness,
             rectified_softness_OFF=args.rectified_softness_OFF,
+            ln_contrast_gain=args.ln_contrast_gain,
+            ln_contrast_gain_off=args.ln_contrast_gain_off,
+            ln_contrast_gain_apply_to_lnk=args.ln_contrast_gain_apply_to_lnk,
             multi_opt_sf_off=multi_opt_sf_off,
             tf_off=tf_off,
             map_func_off=map_func_off,
@@ -453,6 +464,9 @@ def main():
         rectified_mode=args.rectified_mode,
         rectified_softness=args.rectified_softness,
         rectified_softness_OFF=args.rectified_softness_OFF,
+        ln_contrast_gain=args.ln_contrast_gain,
+        ln_contrast_gain_off=args.ln_contrast_gain_off,
+        ln_contrast_gain_apply_to_lnk=args.ln_contrast_gain_apply_to_lnk,
         multi_opt_sf_off=multi_opt_sf_off,
         tf_off=tf_off,
         map_func_off=map_func_off,
@@ -535,6 +549,9 @@ def main():
         rectified_mode=args.rectified_mode,
         rectified_softness=args.rectified_softness,
         rectified_softness_OFF=args.rectified_softness_OFF,
+        ln_contrast_gain=args.ln_contrast_gain,
+        ln_contrast_gain_off=args.ln_contrast_gain_off,
+        ln_contrast_gain_apply_to_lnk=args.ln_contrast_gain_apply_to_lnk,
         multi_opt_sf_off=multi_opt_sf_off,
         tf_off=tf_off,
         map_func_off=map_func_off,

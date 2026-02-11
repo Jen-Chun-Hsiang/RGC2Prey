@@ -384,6 +384,10 @@ class Cricket2RGCs(Dataset):
         rectified_softness=1.0,
         rectified_softness_OFF=None,
         rgc_noise_std_max=None,
+        # LN contrast gain (post-linear, pre-noise)
+        ln_contrast_gain=1.0,
+        ln_contrast_gain_off=None,
+        ln_contrast_gain_apply_to_lnk=False,
         # Simple LNK parameters
         use_lnk=False,
         lnk_params=None,
@@ -430,6 +434,11 @@ class Cricket2RGCs(Dataset):
         self.rectified_softness = rectified_softness
         # allow separate OFF softness; fall back to global softness if None
         self.rectified_softness_OFF = rectified_softness_OFF if rectified_softness_OFF is not None else rectified_softness
+
+        # LN contrast gain (scales the linear drive before noise/Poisson/rectification)
+        self.ln_contrast_gain = ln_contrast_gain
+        self.ln_contrast_gain_off = ln_contrast_gain_off if ln_contrast_gain_off is not None else ln_contrast_gain
+        self.ln_contrast_gain_apply_to_lnk = bool(ln_contrast_gain_apply_to_lnk)
 
         # Normalization for path coordinates
         self.norm_path_fac = (
@@ -479,6 +488,7 @@ class Cricket2RGCs(Dataset):
                 'rect_thr': self.rectified_thr_ON,
                 'rect_softness': self.rectified_softness,
                 'lnk_params': lnk_params if self.use_lnk else None,
+                'ln_gain': self.ln_contrast_gain,
             }
         ]
         
@@ -515,7 +525,8 @@ class Cricket2RGCs(Dataset):
                 'grid2value': grid2value_mapping_off,
                 'rect_thr': self.rectified_thr_OFF,
                 'rect_softness': self.rectified_softness_OFF,
-                'lnk_params': lnk_params_off if self.use_lnk else None
+                'lnk_params': lnk_params_off if self.use_lnk else None,
+                'ln_gain': self.ln_contrast_gain_off,
             }
             
             self.channels.append(off_channel)
@@ -553,9 +564,17 @@ class Cricket2RGCs(Dataset):
         assert p.shape[0] == N, f"param length {p.shape[0]} != N {N}"
         return p
 
-    def _compute_rgc_time(self, movie, sf, sf_surround, tf, rect_thr,
-                            rect_softness=1.0,
-                            lnk_params=None):
+    def _compute_rgc_time(
+        self,
+        movie,
+        sf,
+        sf_surround,
+        tf,
+        rect_thr,
+        rect_softness=1.0,
+        lnk_params=None,
+        ln_gain=None,
+    ):
         """
         Compute RGC response using either LN or simplified LNK model.
         
@@ -567,6 +586,7 @@ class Cricket2RGCs(Dataset):
             sf_surround: [W, H, N] - surround spatial filters
             tf_surround: [N, 1, T_filter] - surround temporal filters
             lnk_params: unused (kept for compatibility)
+            ln_gain: optional scalar or per-RGC gain applied to the linear LN drive (and optionally to LNK output)
         Returns:
             rgc_time: [N, T_out] - RGC responses over time
         """
@@ -594,7 +614,7 @@ class Cricket2RGCs(Dataset):
             else:
                 sampled_std = 0.0
 
-            return compute_lnk_response(
+            rgc_time_lnk = compute_lnk_response(
                 movie=movie,
                 center_sf=sf,
                 center_tf=tf,
@@ -605,11 +625,49 @@ class Cricket2RGCs(Dataset):
                 dtype=movie.dtype,
                 rgc_noise_std=sampled_std,
             )
+
+            # Optional: apply LN-like gain to LNK output for consistency across experiments
+            if (ln_gain is not None) and self.ln_contrast_gain_apply_to_lnk:
+                # Fast-path for scalar gain (avoid allocating an [N] gain vector)
+                if isinstance(ln_gain, (int, float, np.number)):
+                    g = float(ln_gain)
+                    if g != 1.0:
+                        rgc_time_lnk.mul_(g)
+                elif isinstance(ln_gain, torch.Tensor) and ln_gain.ndim == 0:
+                    rgc_time_lnk.mul_(ln_gain.to(device=rgc_time_lnk.device, dtype=rgc_time_lnk.dtype))
+                elif isinstance(ln_gain, np.ndarray) and ln_gain.size == 1:
+                    g = float(ln_gain.reshape(-1)[0])
+                    if g != 1.0:
+                        rgc_time_lnk.mul_(g)
+                else:
+                    N = rgc_time_lnk.shape[0]
+                    gain_t = self._broadcast_param(ln_gain, N, rgc_time_lnk.device, rgc_time_lnk.dtype)
+                    rgc_time_lnk.mul_(gain_t.view(-1, 1))
+
+            return rgc_time_lnk
         
         # Original LN model (backward compatible)
         sf_frame = torch.einsum('whn,thw->nt', sf, movie)  # [N, T]
         sf_frame = sf_frame.unsqueeze(0)                   # [1, N, T]
         rgc_time = F.conv1d(sf_frame, tf, stride=1, padding=0, groups=sf_frame.shape[1]).squeeze(0)  # [N, T_out]
+
+        # Apply contrast gain to LN linear drive before stochasticity and rectification
+        if ln_gain is not None:
+            # Fast-path for scalar gain (avoid allocating an [N] gain vector)
+            if isinstance(ln_gain, (int, float, np.number)):
+                g = float(ln_gain)
+                if g != 1.0:
+                    rgc_time.mul_(g)
+            elif isinstance(ln_gain, torch.Tensor) and ln_gain.ndim == 0:
+                rgc_time.mul_(ln_gain.to(device=rgc_time.device, dtype=rgc_time.dtype))
+            elif isinstance(ln_gain, np.ndarray) and ln_gain.size == 1:
+                g = float(ln_gain.reshape(-1)[0])
+                if g != 1.0:
+                    rgc_time.mul_(g)
+            else:
+                N = rgc_time.shape[0]
+                gain_t = self._broadcast_param(ln_gain, N, rgc_time.device, rgc_time.dtype)
+                rgc_time.mul_(gain_t.view(-1, 1))
 
         # Post-processing
         if self.fr2spikes:
@@ -743,7 +801,8 @@ class Cricket2RGCs(Dataset):
                         ch['tf'], 
                         ch['rect_thr'],
                         rect_softness=ch.get('rect_softness', getattr(self, 'rectified_softness', 1.0)),
-                        lnk_params=ch['lnk_params']
+                        lnk_params=ch['lnk_params'],
+                        ln_gain=ch.get('ln_gain', None),
                     )
 
                 grid_values_list = []
@@ -892,7 +951,8 @@ class Cricket2RGCs(Dataset):
                     ch['tf'], 
                     ch['rect_thr'],
                     rect_softness=ch.get('rect_softness', getattr(self, 'rectified_softness', 1.0)),
-                    lnk_params=ch['lnk_params']
+                    lnk_params=ch['lnk_params'],
+                    ln_gain=ch.get('ln_gain', None),
                 )
 
             grid_values_list = []

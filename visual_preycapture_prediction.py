@@ -257,6 +257,7 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
             logging.info(f"Overriding checkpoint num_worker with CLI value: {args.num_worker}")
         except Exception:
             logging.warning(f"Invalid cli_num_worker provided: {cli_num_worker}. Using checkpoint or defaults.")
+
     training_losses = checkpoint_loader.load_training_losses()
 
     
@@ -375,6 +376,13 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
         args.target_num_centers_additional = None
     if not hasattr(args, 'set_s_scale_additional'):
         args.set_s_scale_additional = []
+    # Gain control
+    if not hasattr(args, 'ln_contrast_gain'):
+        args.ln_contrast_gain = 1.0
+    if not hasattr(args, 'ln_contrast_gain_off'):
+        args.ln_contrast_gain_off = None
+    if not hasattr(args, 'ln_contrast_gain_apply_to_lnk'):
+        args.ln_contrast_gain_apply_to_lnk = False
 
     rnd_seed = process_seed(args.seed)
 
@@ -578,6 +586,9 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
                                 rectified_thr_ON=args.rectified_thr_ON, rectified_thr_OFF=args.rectified_thr_OFF,
                                 rectified_mode=args.rectified_mode, rectified_softness=args.rectified_softness,
                                 rectified_softness_OFF=args.rectified_softness_OFF,
+                                ln_contrast_gain=args.ln_contrast_gain,
+                                ln_contrast_gain_off=args.ln_contrast_gain_off,
+                                ln_contrast_gain_apply_to_lnk=args.ln_contrast_gain_apply_to_lnk,
                                 is_two_grids=args.is_two_grids,
                                 # LNK parameters
                                 use_lnk=args.use_lnk_model,
@@ -637,6 +648,9 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
                                     rectified_thr_OFF=args.rectified_thr_OFF,
                                     rectified_mode=args.rectified_mode, rectified_softness=args.rectified_softness,
                                     rectified_softness_OFF=args.rectified_softness_OFF,
+                                    ln_contrast_gain=args.ln_contrast_gain,
+                                    ln_contrast_gain_off=args.ln_contrast_gain_off,
+                                    ln_contrast_gain_apply_to_lnk=args.ln_contrast_gain_apply_to_lnk,
                                     is_two_grids=args.is_two_grids,
                                     # LNK parameters
                                     use_lnk=args.use_lnk_model,
@@ -662,6 +676,9 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
                                     rectified_thr_OFF=args.rectified_thr_OFF,
                                     rectified_mode=args.rectified_mode, rectified_softness=args.rectified_softness,
                                     rectified_softness_OFF=args.rectified_softness_OFF,
+                                    ln_contrast_gain=args.ln_contrast_gain,
+                                    ln_contrast_gain_off=args.ln_contrast_gain_off,
+                                    ln_contrast_gain_apply_to_lnk=args.ln_contrast_gain_apply_to_lnk,
                                     is_two_grids=args.is_two_grids,
                                     # LNK parameters
                                     use_lnk=args.use_lnk_model,
