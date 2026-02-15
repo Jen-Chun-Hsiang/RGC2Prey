@@ -1377,7 +1377,8 @@ class RGCrfArray:
                  syn_params=None,
                  lnk_param_table=None,
                  set_bias=None,
-                 set_biphasic_scale=None):
+                 set_biphasic_scale=None,
+                 temporal_shift_frames: int = 0):
         """
         Enhanced constructor with flexible parameter synchronization.
         
@@ -1386,6 +1387,10 @@ class RGCrfArray:
             syn_params: List of parameters to synchronize, e.g., ['tf', 'sf', 'lnk'] or ['tf', 'sf']
             lnk_param_table: DataFrame with LNK parameters for synchronization
             set_biphasic_scale: Float value to set row['amp2'] = set_biphasic_scale * row['amp1'] in temporal filter
+            temporal_shift_frames: Optional integer shift (in frames) applied to the sampled temporal filter.
+                Positive values shift the kernel peak closer to the "present" (end of the filter window), i.e.
+                smaller effective latency. Negative values shift the peak further into the past (larger latency).
+                Shape/width is preserved (index-shift with zero padding).
         """
         self.sf_param_table = sf_param_table
         self.tf_param_table = tf_param_table
@@ -1425,6 +1430,10 @@ class RGCrfArray:
         self.set_surround_size_scalar = set_surround_size_scalar
         self.set_bias = set_bias  # Default bias value
         self.set_biphasic_scale = set_biphasic_scale  # Biphasic scaling parameter for temporal filter
+        try:
+            self.temporal_shift_frames = int(temporal_shift_frames) if temporal_shift_frames is not None else 0
+        except (TypeError, ValueError):
+            self.temporal_shift_frames = 0
         
         # Handle new synchronization options
         self.lnk_param_table = lnk_param_table
@@ -1784,6 +1793,32 @@ class RGCrfArray:
         """Get s_scale value based on configuration"""
         return row['s_scale'] if not self.set_s_scale else self.set_s_scale[0]
 
+    @staticmethod
+    def _shift_temporal_kernel_1d(tf: np.ndarray, shift_frames: int) -> np.ndarray:
+        """Shift a 1D temporal kernel by an integer number of frames with zero padding.
+
+        Convention here matches the conv1d usage in this repo: the "present" is at the end
+        of the filter window. Therefore:
+        - Positive shift moves features to larger indices (closer to the end / present).
+        - Negative shift moves features to smaller indices (further into the past).
+
+        This preserves the kernel shape/width (no warping), only translates it in time.
+        """
+        if shift_frames == 0:
+            return tf
+        out = np.zeros_like(tf)
+        L = tf.shape[0]
+        if shift_frames > 0:
+            s = int(shift_frames)
+            if s < L:
+                out[s:] = tf[:-s]
+            # else: shifted entirely out of window -> all zeros
+        else:
+            s = int(-shift_frames)
+            if s < L:
+                out[:-s] = tf[s:]
+        return out
+
     def _create_temporal_filter(self, idx_list=None, tf_param_table_override=None):
         tf_table = tf_param_table_override if tf_param_table_override is not None else self.tf_param_table
 
@@ -1803,6 +1838,13 @@ class RGCrfArray:
                     tf = tf / np.sum(np.abs(tf))
                     if self.is_reversed_tf:
                         tf = -tf
+
+                    # Optional temporal shift (keeps kernel width/shape)
+                    if getattr(self, 'temporal_shift_frames', 0) != 0:
+                        tf = self._shift_temporal_kernel_1d(tf, int(self.temporal_shift_frames))
+                        denom = np.sum(np.abs(tf))
+                        if denom > 0:
+                            tf = tf / denom
                     tf_arr.append(tf)
                 return np.stack(tf_arr, axis=-1)
             else:
@@ -1814,6 +1856,13 @@ class RGCrfArray:
                 tf = tf / np.sum(np.abs(tf))
                 if self.is_reversed_tf:
                     tf = -tf
+
+                # Optional temporal shift (keeps kernel width/shape)
+                if getattr(self, 'temporal_shift_frames', 0) != 0:
+                    tf = self._shift_temporal_kernel_1d(tf, int(self.temporal_shift_frames))
+                    denom = np.sum(np.abs(tf))
+                    if denom > 0:
+                        tf = tf / denom
         return tf
     
 

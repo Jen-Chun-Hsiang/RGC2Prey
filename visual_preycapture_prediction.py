@@ -368,6 +368,8 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
         args.set_bias = None
     if not hasattr(args, 'set_biphasic_scale'):
         args.set_biphasic_scale = None
+    if not hasattr(args, 'temporal_shift_frames'):
+        args.temporal_shift_frames = 0
     if not hasattr(args, 'sf_sheet_name_additional'):
         args.sf_sheet_name_additional = None
     if not hasattr(args, 'tf_sheet_name_additional'):
@@ -445,7 +447,8 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
         is_rf_median_subtract=args.is_rf_median_subtract, is_rescale_diffgaussian=args.is_rescale_diffgaussian, 
         grid_noise_level=args.grid_noise_level, is_reversed_tf=args.is_reversed_tf, sf_id_list=args.sf_id_list,
         use_lnk_override=args.use_lnk_model, lnk_param_table=lnk_param_table, syn_params=syn_params,
-        set_surround_size_scalar=args.set_surround_size_scalar, set_bias=args.set_bias, set_biphasic_scale=args.set_biphasic_scale
+        set_surround_size_scalar=args.set_surround_size_scalar, set_bias=args.set_bias, set_biphasic_scale=args.set_biphasic_scale,
+        temporal_shift_frames=args.temporal_shift_frames
     )
     logging.info(f"{file_name} processing...1.5")
     
