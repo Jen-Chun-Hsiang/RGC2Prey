@@ -120,6 +120,11 @@ Implemented by `RGCrfArray` in [datasets/sim_cricket.py](datasets/sim_cricket.py
 - `--set_biphasic_scale` (if set) ties the second lobe amplitude to the first.
 - `--is_reversed_tf` negates the temporal filter.
 - `--is_pixelized_tf` replaces the temporal filter with a delta (last sample = 1).
+- `--temporal_shift_frames` applies an integer **time shift** to each sampled temporal kernel *after* construction (and optional sign flip):
+  - Positive values shift the kernel toward the “present” (end of the filter window), decreasing effective latency.
+  - Negative values shift the kernel toward the “past” (start of the filter window), increasing effective latency.
+  - The shift is implemented as an index translation with **zero padding** (kernel shape/width is preserved; no warping).
+  - After shifting, kernels are re-normalized by $\sum |\mathrm{tf}|$ when non-zero (so overall gain is comparable across shifts).
 
 ### 4.4 Parameter synchronization across cells
 
@@ -136,7 +141,11 @@ Implemented in `Cricket2RGCs._compute_rgc_time` in [datasets/sim_cricket.py](dat
 1. Spatial projection: dot product of movie frames with each RGC’s spatial filter.
 2. Temporal filtering: grouped 1D convolution per RGC.
   - Note: in LN mode, “surround” is not computed as a separate convolution during encoding; it is already embedded in the single DoG spatial filter constructed in Section 4.2.
-3. Optional post-processing:
+3. Optional LN contrast gain (**post-linear, pre-stochasticity**): scale the linear drive by a gain factor before Poisson/noise/rectification.
+  - `--ln_contrast_gain` sets the ON-channel gain (default 1.0).
+  - `--ln_contrast_gain_off` optionally sets the OFF-channel gain; if omitted, it uses `--ln_contrast_gain`.
+  - This gain is applied to the LN output right after temporal filtering and before any of: `--fr2spikes`, `--smooth_data`, `--add_noise`, `--is_rectified`.
+4. Optional post-processing:
    - `--fr2spikes` with `--quantize_scale`: Poisson sampling on a clipped rate.
    - `--smooth_data`: Gaussian smoothing in time.
    - `--add_noise`: additive Gaussian noise (see noise sampling below).
@@ -160,6 +169,30 @@ When `--use_lnk_model` is enabled, the dataset uses `compute_lnk_response` from 
 Notes for replication:
 - The simplified LNK implementation currently corresponds to a **divisive** form.
 - The CLI flag `--lnk_adapt_mode` exists, but the *simplified* LNK path used by `Cricket2RGCs` does not branch on that setting; `subtractive` vs `divisive` behavior appears to be implemented in the legacy utilities in [datasets/lnk_utils.py](datasets/lnk_utils.py), not in the simplified path.
+- LN-style contrast gain and LNK:
+  - By default, `--ln_contrast_gain` only scales the LN pathway.
+  - If `--ln_contrast_gain_apply_to_lnk` is set, the same per-channel gain is additionally applied as a multiplicative factor to the **final simplified LNK output** (after the LNK computation, including its internal noise injection).
+
+Practical CLI examples:
+
+```bash
+# Reduce LN response magnitude globally (ON-only / monocular)
+python train_preycapture.py --experiment_name ln_gain_0p5 --ln_contrast_gain 0.5
+
+# Use different gains for ON vs OFF (requires --is_both_ON_OFF or --is_two_grids)
+python train_preycapture.py --experiment_name onoff_gain --is_both_ON_OFF \
+  --ln_contrast_gain 1.0 --ln_contrast_gain_off 0.7
+
+# Shift temporal filters earlier (larger effective latency)
+python train_preycapture.py --experiment_name tf_shift_minus3 --temporal_shift_frames -3
+
+# Shift temporal filters toward the present (smaller effective latency)
+python train_preycapture.py --experiment_name tf_shift_plus3 --temporal_shift_frames 3
+
+# Apply LN gain to LNK outputs as well (for controlled comparisons)
+python train_preycapture.py --experiment_name lnk_gain --use_lnk_model --ln_contrast_gain 0.8 \
+  --ln_contrast_gain_apply_to_lnk
+```
 
 ### 5.3 Noise sampling (LN and simplified LNK)
 
