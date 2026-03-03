@@ -809,7 +809,11 @@ class Cricket2RGCs(Dataset):
 
                 # Direct-image branch
                 if self.is_direct_image:
-                    grid_values_list.append(self._process_direct_image(movies[0]))
+                    if is_binocular:
+                        for mv in movies:
+                            grid_values_list.append(self._process_direct_image(mv))
+                    else:
+                        grid_values_list.append(self._process_direct_image(movies[0]))
 
                 else:
                     # 1) Both ON/OFF + binocular => 4 outputs (2 pathways × 2 eyes)
@@ -900,7 +904,7 @@ class Cricket2RGCs(Dataset):
                 grid_seq = torch.stack(grid_values_list, dim=1)
 
                 # Weighted coords if needed
-                if self.grid_coords is not None:
+                if self.grid_coords is not None and (not self.is_direct_image):
                     s_rgc_time = torch.abs(rgc_time - rgc_time[:, :1])
                     weighted_sum = torch.einsum('nt,nc->tc', s_rgc_time, self.grid_coords)
                     sum_rates = torch.sum(s_rgc_time, dim=0, keepdim=True).clamp(min=1e-6).view(-1, 1)
@@ -909,8 +913,9 @@ class Cricket2RGCs(Dataset):
                     weighted_coords = np.array(0)
 
                 # Normalize paths
-                path = path[-rgc_time.shape[1]:] / self.norm_path_fac
-                path_bg = path_bg[-rgc_time.shape[1]:] / self.norm_path_fac
+                time_len = grid_seq.shape[0]
+                path = path[-time_len:] / self.norm_path_fac
+                path_bg = path_bg[-time_len:] / self.norm_path_fac
 
                 # Permute for final shape
                 grid_seq = grid_seq.permute(0, 1, 3, 2)
@@ -959,7 +964,11 @@ class Cricket2RGCs(Dataset):
 
             # Direct-image branch
             if self.is_direct_image:
-                grid_values_list.append(self._process_direct_image(movies[0]))
+                if is_binocular:
+                    for mv in movies:
+                        grid_values_list.append(self._process_direct_image(mv))
+                else:
+                    grid_values_list.append(self._process_direct_image(movies[0]))
 
             else:
                 # 1) Both ON/OFF + binocular => 4 outputs (2 pathways × 2 eyes)
@@ -1063,7 +1072,7 @@ class Cricket2RGCs(Dataset):
             grid_seq = torch.stack(grid_values_list, dim=1)
 
             # Weighted coords if needed
-            if self.grid_coords is not None:
+            if self.grid_coords is not None and (not self.is_direct_image):
                 s_rgc_time = torch.abs(rgc_time - rgc_time[:, :1])
                 weighted_sum = torch.einsum('nt,nc->tc', s_rgc_time, self.grid_coords)
                 sum_rates = torch.sum(s_rgc_time, dim=0, keepdim=True).clamp(min=1e-6).view(-1, 1)
@@ -1072,8 +1081,9 @@ class Cricket2RGCs(Dataset):
                 weighted_coords = np.array(0)
 
             # Normalize paths
-            path = path[-rgc_time.shape[1]:] / self.norm_path_fac
-            path_bg = path_bg[-rgc_time.shape[1]:] / self.norm_path_fac
+            time_len = grid_seq.shape[0]
+            path = path[-time_len:] / self.norm_path_fac
+            path_bg = path_bg[-time_len:] / self.norm_path_fac
 
             # Permute for final shape
             grid_seq = grid_seq.permute(0, 1, 3, 2)
