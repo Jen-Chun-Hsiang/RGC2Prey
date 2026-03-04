@@ -85,6 +85,8 @@ def parse_args():
                         help="Which eye/grid to use when generating movies and frames: 'left'/'right' or '0'/'1' or 'first'/'second'.")
     parser.add_argument('--movie_input_channel', type=str, default='first',
                         help="Which input channel/grid to visualize in movies: 'first'/'second' or numeric index (0-based).")
+    parser.add_argument('--disable_center_of_mass', action='store_true',
+                        help='Disable center-of-mass baseline estimation (enabled by default when available).')
 
     return parser.parse_args()
 
@@ -121,7 +123,8 @@ def main():
                             add_center_marker=args.add_center_marker,
                             visual_sample_ids=args.visual_sample_ids,
                             movie_eye=args.movie_eye,
-                            movie_input_channel=args.movie_input_channel
+                            movie_input_channel=args.movie_input_channel,
+                            disable_center_of_mass=args.disable_center_of_mass
                         )
         else:
             for noise_level in noise_levels:
@@ -150,7 +153,8 @@ def main():
                     add_center_marker=args.add_center_marker,
                     visual_sample_ids=args.visual_sample_ids,
                     movie_eye=args.movie_eye,
-                    movie_input_channel=args.movie_input_channel
+                    movie_input_channel=args.movie_input_channel,
+                    disable_center_of_mass=args.disable_center_of_mass
                 )
 
 
@@ -160,7 +164,7 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
                    frame_pred_marker='x', frame_pred_color='darkorange', frame_pred_size=60.0,
                    frame_center_marker='+', frame_center_color='crimson', frame_center_size=60.0,
                    add_truth_marker=False, add_pred_marker=False, add_center_marker=False, visual_sample_ids=None,
-                   movie_eye='left', movie_input_channel='first'):
+                   movie_eye='left', movie_input_channel='first', disable_center_of_mass=False):
     num_display = 3
     frame_width = 640
     frame_height = 480
@@ -168,9 +172,26 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
     num_sample = 1000
     is_making_video = True
     is_add_noise = False
-    is_plot_centerFR = True
+    is_plot_centerFR = not bool(disable_center_of_mass)
     is_show_rgc_grid = True
     is_save_movie_sequence_to_mat = False
+
+    def _coerce_xy_path(data, expected_len=None):
+        arr = np.asarray(data)
+        arr = np.squeeze(arr)
+        if arr.ndim == 0:
+            return None
+        if arr.ndim == 1:
+            if arr.size % 2 != 0:
+                return None
+            arr = arr.reshape(-1, 2)
+        if arr.ndim != 2 or arr.shape[1] != 2:
+            return None
+        if expected_len is not None:
+            if arr.shape[0] == expected_len:
+                return arr
+            return None
+        return arr
     checkpoint_path = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/Results/CheckPoints/'
     
     rf_params_file = '/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/SimulationParams.xlsx'
@@ -386,6 +407,10 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
     if not hasattr(args, 'ln_contrast_gain_apply_to_lnk'):
         args.ln_contrast_gain_apply_to_lnk = False
 
+    if is_plot_centerFR and args.is_direct_image:
+        is_plot_centerFR = False
+        logging.info(f"{file_name}: center-of-mass baseline disabled because is_direct_image=True")
+
     rnd_seed = process_seed(args.seed)
 
     # Determine which eye/grid index to use when generating movies/frames.
@@ -465,6 +490,7 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
     if args.is_both_ON_OFF or args.is_two_grids:
         grid_centers = None
         is_plot_centerFR = False
+        logging.info(f"{file_name}: center-of-mass baseline disabled for is_both_ON_OFF/is_two_grids configuration")
         # Load additional parameter tables if specified
         if args.sf_sheet_name_additional and args.tf_sheet_name_additional:
             sf_param_table_additional = pd.read_excel(rf_params_file, sheet_name=args.sf_sheet_name_additional, usecols='C:L')
@@ -639,6 +665,7 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
     reuse_section2_samples = bool(visual_sample_ids and len(visual_sample_ids) > 0)
 
     if reuse_section2_samples:
+        analysis_grid_coords = grid_centers if is_plot_centerFR else None
         analysis_dataset = Cricket2RGCs(num_samples=int(num_sample*0.1), multi_opt_sf=multi_opt_sf, tf=tf, map_func=map_func,
                                     grid2value_mapping=grid2value_mapping, multi_opt_sf_off=multi_opt_sf_off, tf_off=tf_off, 
                                     map_func_off=map_func_off, grid2value_mapping_off=grid2value_mapping_off, target_width=target_width, 
@@ -646,7 +673,7 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
                                     is_norm_coords=args.is_norm_coords, is_syn_mov_shown=True, fr2spikes=args.fr2spikes, 
                                     is_both_ON_OFF=args.is_both_ON_OFF, quantize_scale=args.quantize_scale, 
                                     add_noise=is_add_noise, rgc_noise_std=noise_level, rgc_noise_std_max=args.rgc_noise_std_max, smooth_data=args.smooth_data, 
-                                    is_rectified=args.is_rectified, is_direct_image=args.is_direct_image, grid_coords=grid_centers,
+                        is_rectified=args.is_rectified, is_direct_image=args.is_direct_image, grid_coords=analysis_grid_coords,
                                     is_reversed_OFF_sign=args.is_reversed_OFF_sign, rectified_thr_ON=args.rectified_thr_ON, 
                                     rectified_thr_OFF=args.rectified_thr_OFF,
                                     rectified_mode=args.rectified_mode, rectified_softness=args.rectified_softness,
@@ -667,6 +694,7 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
         analysis_loader = DataLoader(analysis_dataset, batch_size=1, shuffle=False, 
                                      worker_init_fn=worker_init_fn)
     else:
+        analysis_grid_coords = grid_centers if is_plot_centerFR else None
         analysis_dataset = Cricket2RGCs(num_samples=int(num_sample*0.1), multi_opt_sf=multi_opt_sf, tf=tf, map_func=map_func,
                                     grid2value_mapping=grid2value_mapping, multi_opt_sf_off=multi_opt_sf_off, tf_off=tf_off, 
                                     map_func_off=map_func_off, grid2value_mapping_off=grid2value_mapping_off, target_width=target_width, 
@@ -674,7 +702,7 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
                                     is_norm_coords=args.is_norm_coords, is_syn_mov_shown=True, fr2spikes=args.fr2spikes, 
                                     is_both_ON_OFF=args.is_both_ON_OFF, quantize_scale=args.quantize_scale, 
                                     add_noise=is_add_noise, rgc_noise_std=noise_level, rgc_noise_std_max=args.rgc_noise_std_max, smooth_data=args.smooth_data, 
-                                    is_rectified=args.is_rectified, is_direct_image=args.is_direct_image, grid_coords=grid_centers,
+                        is_rectified=args.is_rectified, is_direct_image=args.is_direct_image, grid_coords=analysis_grid_coords,
                                     is_reversed_OFF_sign=args.is_reversed_OFF_sign, rectified_thr_ON=args.rectified_thr_ON, 
                                     rectified_thr_OFF=args.rectified_thr_OFF,
                                     rectified_mode=args.rectified_mode, rectified_softness=args.rectified_softness,
@@ -726,7 +754,11 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
 
         path = true_path_np.reshape(1, -1)  # Ensure row vector
         path_bg = path_bg_np.reshape(1, -1)  # Ensure row vector
-        path_cm = weighted_coords_np.reshape(1, -1)
+        weighted_coords_xy = _coerce_xy_path(weighted_coords_np, expected_len=true_path_np.shape[0])
+        if weighted_coords_xy is not None:
+            path_cm = weighted_coords_xy.reshape(1, -1)
+        else:
+            path_cm = np.full_like(path, np.nan)
         scaling_factors_flat = scaling_factors_np.reshape(1, -1)  # Ensure row vector
 
         if isinstance(bg_image_name, (list, tuple)):
@@ -780,11 +812,49 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
 
     test_losses = np.array(test_losses)
     training_losses = np.array(training_losses)
+
+    # Fair comparison between trained model prediction and center-based baseline.
+    # Convert flattened paths to [N, T, 2]
+    true_paths_for_metric = all_paths.reshape(all_paths.shape[0], -1, 2)
+    cm_paths_for_metric = all_path_cm.reshape(all_path_cm.shape[0], -1, 2)
+    if all_paths_pred.ndim == 4 and all_paths_pred.shape[1] == 1:
+        pred_paths_for_metric = np.squeeze(all_paths_pred, axis=1)
+    elif all_paths_pred.ndim == 3:
+        pred_paths_for_metric = all_paths_pred
+    else:
+        pred_paths_for_metric = all_paths_pred.reshape(all_paths_pred.shape[0], -1, 2)
+
+    model_mse_per_sample = np.mean((pred_paths_for_metric - true_paths_for_metric) ** 2, axis=(1, 2))
+    cm_valid_mask = ~np.isnan(cm_paths_for_metric).any(axis=(1, 2))
+    cm_mse_per_sample = np.full(model_mse_per_sample.shape, np.nan, dtype=float)
+    if np.any(cm_valid_mask):
+        cm_mse_per_sample[cm_valid_mask] = np.mean(
+            (cm_paths_for_metric[cm_valid_mask] - true_paths_for_metric[cm_valid_mask]) ** 2,
+            axis=(1, 2)
+        )
+
+    summary_model_mse = float(np.nanmean(model_mse_per_sample))
+    summary_cm_mse = float(np.nanmean(cm_mse_per_sample)) if np.any(cm_valid_mask) else np.nan
+    logging.info(
+        f"{file_name}: comparison summary -- model_mse={summary_model_mse:.6f}, "
+        f"center_mse={summary_cm_mse if np.isfinite(summary_cm_mse) else 'nan'}, "
+        f"center_valid_samples={int(np.sum(cm_valid_mask))}/{len(cm_valid_mask)}"
+    )
+
     save_path = os.path.join(mat_save_folder, f'{file_name}_{epoch_number}_prediction_error_with_path.mat')
     mat_payload = {'test_losses': test_losses, 'training_losses': training_losses, 'all_paths': all_paths,
                    'all_paths_bg': all_paths_bg, 'all_scaling_factors': all_scaling_factors, 'all_bg_file': all_bg_file,
-                   'all_id_numbers': all_id_numbers, 'all_paths_pred': all_paths_pred, 'all_path_cm': all_path_cm}
+                   'all_id_numbers': all_id_numbers, 'all_paths_pred': all_paths_pred, 'all_path_cm': all_path_cm,
+                   'model_mse_per_sample': model_mse_per_sample,
+                   'center_mse_per_sample': cm_mse_per_sample,
+                   'center_valid_mask': cm_valid_mask.astype(np.uint8),
+                   'model_mse_mean': np.array([summary_model_mse]),
+                   'center_mse_mean': np.array([summary_cm_mse]),
+                   'center_estimation_enabled': np.array([int(is_plot_centerFR)], dtype=np.uint8),
+                   'center_is_independent_from_model': np.array([1], dtype=np.uint8)}
     if reuse_section2_samples:
+        mat_payload['analysis_indices'] = np.arange(all_paths.shape[0])
+    else:
         mat_payload['analysis_indices'] = np.arange(all_paths.shape[0])
     savemat(save_path, mat_payload)
 
@@ -905,7 +975,7 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
             predicted_path_arr = _ensure_xy(predicted_path_tensor.squeeze(0).cpu().numpy())
 
             if is_plot_centerFR:
-                weighted_coords_use = _ensure_xy(weighted_coords_raw) if weighted_coords_raw.size > 1 else None
+                weighted_coords_use = _coerce_xy_path(weighted_coords_raw, expected_len=true_path_arr.shape[0])
             else:
                 weighted_coords_use = None
 
@@ -948,6 +1018,11 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
             label_1 = 'Truth'
             label_2 = 'Prediction'
             label_3 = 'Background'
+            if weighted_coords_use is not None:
+                x4, y4 = weighted_coords_use[:, 0], weighted_coords_use[:, 1]
+                label_4 = 'Center-of-mass'
+            else:
+                x4, y4, label_4 = None, None, None
 
             plt.figure(figsize=(12, 12))
 
@@ -961,11 +1036,15 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
             plt.subplot(2, 2, 2)
             plt.plot(x1, y1, label=label_1, color="darkblue", linestyle="-", linewidth=2)
             plt.plot(x2, y2, label=label_2, color="maroon", linestyle="--", linewidth=2)
+            if x4 is not None:
+                plt.plot(x4, y4, label=label_4, color="crimson", linestyle=":", linewidth=2)
 
             plt.subplot(2, 2, 3)
             plt.plot(range(sequence_length), x1, label=label_1, color='darkblue')
             plt.plot(range(sequence_length), x2, label=label_2, color='maroon')
             plt.plot(range(sequence_length), x3, label=label_3, color='seagreen')
+            if x4 is not None:
+                plt.plot(range(sequence_length), x4, label=label_4, color='crimson')
             plt.xlabel("Time step")
             plt.ylabel("X-coordinate")
             plt.title("X-Coordinate Trace over Time")
@@ -975,6 +1054,8 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
             plt.plot(range(sequence_length), y1, label=label_1, color='darkblue')
             plt.plot(range(sequence_length), y2, label=label_2, color='maroon')
             plt.plot(range(sequence_length), y3, label=label_3, color='seagreen')
+            if x4 is not None:
+                plt.plot(range(sequence_length), y4, label=label_4, color='crimson')
             plt.xlabel("Time step")
             plt.ylabel("Y-coordinate")
             plt.title("Y-Coordinate Trace over Time")
@@ -985,6 +1066,7 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
             plt.close()
 
     else:
+        visual_grid_coords = grid_centers if is_plot_centerFR else None
         visual_dataset = Cricket2RGCs(num_samples=num_display, multi_opt_sf=multi_opt_sf, tf=tf, map_func=map_func,
                                     grid2value_mapping=grid2value_mapping, multi_opt_sf_off=multi_opt_sf_off, tf_off=tf_off, 
                                     map_func_off=map_func_off, grid2value_mapping_off=grid2value_mapping_off, target_width=target_width, 
@@ -992,7 +1074,7 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
                                     is_norm_coords=args.is_norm_coords, is_syn_mov_shown=True, fr2spikes=args.fr2spikes, 
                                     is_both_ON_OFF=args.is_both_ON_OFF, quantize_scale=args.quantize_scale, 
                                     add_noise=is_add_noise, rgc_noise_std=noise_level, rgc_noise_std_max=args.rgc_noise_std_max, smooth_data=args.smooth_data, 
-                                    is_rectified=args.is_rectified, is_direct_image=args.is_direct_image, grid_coords=grid_centers,
+                        is_rectified=args.is_rectified, is_direct_image=args.is_direct_image, grid_coords=visual_grid_coords,
                                     is_reversed_OFF_sign=args.is_reversed_OFF_sign, rectified_thr_ON=args.rectified_thr_ON, 
                                     rectified_thr_OFF=args.rectified_thr_OFF,
                                     rectified_mode=args.rectified_mode, rectified_softness=args.rectified_softness,
@@ -1014,6 +1096,7 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
             bg_path = bg_path.squeeze(0).cpu().numpy()
             if is_plot_centerFR:
                 weighted_coords = weighted_coords.squeeze(0).cpu().numpy()
+                weighted_coords = _coerce_xy_path(weighted_coords, expected_len=true_path.shape[0])
             else:
                 weighted_coords = None
 
@@ -1067,6 +1150,11 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
             label_1 = 'Truth'
             label_2 = 'Prediction'
             label_3 = 'Background'
+            if weighted_coords is not None:
+                x4, y4 = weighted_coords[:, 0], weighted_coords[:, 1]
+                label_4 = 'Center-of-mass'
+            else:
+                x4, y4, label_4 = None, None, None
 
             plt.figure(figsize=(12, 12))
 
@@ -1080,11 +1168,15 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
             plt.subplot(2, 2, 2)
             plt.plot(x1, y1, label=label_1, color="darkblue", linestyle="-", linewidth=2)
             plt.plot(x2, y2, label=label_2, color="maroon", linestyle="--", linewidth=2)
+            if x4 is not None:
+                plt.plot(x4, y4, label=label_4, color="crimson", linestyle=":", linewidth=2)
 
             plt.subplot(2, 2, 3)
             plt.plot(range(sequence_length), x1, label=label_1, color='darkblue')
             plt.plot(range(sequence_length), x2, label=label_2, color='maroon')
             plt.plot(range(sequence_length), x3, label=label_3, color='seagreen')
+            if x4 is not None:
+                plt.plot(range(sequence_length), x4, label=label_4, color='crimson')
             plt.xlabel("Time step")
             plt.ylabel("X-coordinate")
             plt.title("X-Coordinate Trace over Time")
@@ -1094,6 +1186,8 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
             plt.plot(range(sequence_length), y1, label=label_1, color='darkblue')
             plt.plot(range(sequence_length), y2, label=label_2, color='maroon')
             plt.plot(range(sequence_length), y3, label=label_3, color='seagreen')
+            if x4 is not None:
+                plt.plot(range(sequence_length), y4, label=label_4, color='crimson')
             plt.xlabel("Time step")
             plt.ylabel("Y-coordinate")
             plt.title("Y-Coordinate Trace over Time")

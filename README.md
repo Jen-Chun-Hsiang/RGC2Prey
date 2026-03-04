@@ -41,6 +41,40 @@ python train_preycapture_end2end.py --experiment_name "end2end_test"
 - **Receptive Field Analysis**: [`visual_preycapture_end2end_RFs.py`](visual_preycapture_end2end_RFs.py)  
 - **End-to-End Predictions**: [`visual_preycapture_end2end_prediction.py`](visual_preycapture_end2end_prediction.py)
 
+### Model vs Center-of-Mass Comparison (same test samples)
+Use [`visual_preycapture_prediction.py`](visual_preycapture_prediction.py) to evaluate the trained model and center-of-mass (COM) baseline on the exact same generated test samples.
+
+- COM is enabled by default (when available) and can be disabled with `--disable_center_of_mass`.
+- Model predictions and COM are computed in parallel from the same RGC input sequence, but independently:
+  - model path comes from `CNN_LSTM_ObjectLocation(inputs)`
+  - COM path comes from dataset `weighted_coords` (RGC-rate weighted coordinate estimate)
+- To reuse Section-2 samples in Section-3 visualizations, pass `--visual_sample_ids`.
+
+Example:
+```bash
+python visual_preycapture_prediction.py \
+  --experiment_names your_experiment_name \
+  --epoch_number 200 \
+  --visual_sample_ids 0 1 2
+```
+
+Optional frame markers (movie frames):
+```bash
+python visual_preycapture_prediction.py \
+  --experiment_names your_experiment_name \
+  --epoch_number 200 \
+  --save_movie_frames --add_truth_marker --add_pred_marker --add_center_marker
+```
+
+Saved MAT file (`*_prediction_error_with_path.mat`) keeps all previous keys and adds COM comparison fields:
+- `all_path_cm`: center-of-mass paths (NaN-filled if unavailable for a sample)
+- `model_mse_per_sample`, `center_mse_per_sample`
+- `model_mse_mean`, `center_mse_mean`
+- `center_valid_mask`
+- `center_estimation_enabled`
+- `center_is_independent_from_model`
+- `analysis_indices`
+
 ### Testing and Validation
 ```bash
 # Run comprehensive test suite
