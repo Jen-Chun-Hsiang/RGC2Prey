@@ -744,10 +744,11 @@ class Cricket2RGCs(Dataset):
         tf_rep = tf_single.repeat(flat.shape[1], 1, 1)  # [H*W, 1, T_filter]
         
         # Apply temporal filtering using grouped conv1d
-        conv = F.conv1d(flat, tf_rep, stride=1, padding=0, groups=flat.shape[1]).squeeze()
-        
-        # Reshape back to spatial format
-        reshaped = conv.view(H, W, -1).permute(2, 1, 0).unsqueeze(0)
+        # Keep dimensions explicit to avoid accidental axis drops when T_out==1.
+        conv = F.conv1d(flat, tf_rep, stride=1, padding=0, groups=flat.shape[1]).squeeze(0)
+
+        # Reshape back to [1, T_out, H, W] so interpolation uses true spatial axes.
+        reshaped = conv.view(H, W, -1).permute(2, 0, 1).unsqueeze(0)
         
         # Interpolate to target grid size
         return F.interpolate(
