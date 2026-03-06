@@ -19,6 +19,25 @@ from utils.file_name import make_file_name
 from utils.initialization import process_seed, initialize_logging, worker_init_fn
 
 
+def _list_png_files(folder_path):
+    if not os.path.isdir(folder_path):
+        raise ValueError(f"Background/Object folder does not exist: {folder_path}")
+    return sorted([
+        file_name for file_name in os.listdir(folder_path)
+        if os.path.isfile(os.path.join(folder_path, file_name)) and file_name.lower().endswith('.png')
+    ])
+
+
+def _normalize_folder_name(folder_name):
+    if folder_name is None:
+        return None
+    normalized = str(folder_name).strip().rstrip('/\\')
+    normalized = os.path.basename(normalized)
+    if normalized == '':
+        raise ValueError(f"Invalid folder name: {folder_name}")
+    return normalized
+
+
 def _generate_movie_job(job):
     """Worker function to generate a single movie in a separate process.
     
@@ -252,17 +271,12 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
 
     if test_ob_folder is None:
         test_ob_folder = 'cricket'
-    elif test_ob_folder == 'white-spot':
+    test_ob_folder = _normalize_folder_name(test_ob_folder)
+    if test_ob_folder == 'white-spot':
         coord_mat_file = None
 
     if noise_level is not None:
         is_add_noise = True
-    
-    file_name = make_file_name(experiment_name, test_ob_folder, test_bg_folder, noise_level=noise_level, fix_disparity_degree=fix_disparity_degree)
-    initialize_logging(log_save_folder=log_save_folder, experiment_name=file_name)
-
-    logging.info(frame_save_msg)
-    logging.info(f"{file_name} processing...-1 noise:{noise_level} type:{type(noise_level)}")
     
     # Load checkpoint
     if experiment_name.startswith('1229'):
@@ -284,8 +298,32 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
     
     if test_bg_folder is None:
         test_bg_folder = args.bg_folder
+    test_bg_folder = _normalize_folder_name(test_bg_folder)
+
+    file_name = make_file_name(experiment_name, test_ob_folder, test_bg_folder, noise_level=noise_level, fix_disparity_degree=fix_disparity_degree)
+    initialize_logging(log_save_folder=log_save_folder, experiment_name=file_name)
+    logging.info(frame_save_msg)
+    logging.info(f"{file_name} processing...-1 noise:{noise_level} type:{type(noise_level)}")
+
     top_img_folder    = f'/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/CricketDataset/Images/cropped/{test_ob_folder}/'
     bottom_img_folder = f'/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/CricketDataset/Images/cropped/{test_bg_folder}/'  #grass
+
+    top_png_files = _list_png_files(top_img_folder)
+    bg_png_files = _list_png_files(bottom_img_folder)
+    include_bg_split_fields = str(test_bg_folder).strip().lower() == 'black-bg'
+    if len(top_png_files) == 0:
+        raise ValueError(f"No .png object images found in folder: {top_img_folder}")
+    if len(bg_png_files) == 0:
+        raise ValueError(f"No .png background images found in folder: {bottom_img_folder}")
+    logging.info(
+        f"{file_name}: object folder '{test_ob_folder}' has {len(top_png_files)} png files; "
+        f"background folder '{test_bg_folder}' has {len(bg_png_files)} png files."
+    )
+    if len(bg_png_files) <= 2:
+        logging.info(
+            f"{file_name}: small background set detected in '{test_bg_folder}': {bg_png_files}. "
+            "Saved MAT file includes numeric background IDs for MATLAB grouping."
+        )
 
     if test_ob_folder == 'cricket':
         coord_mat_file = f'/storage1/fs1/KerschensteinerD/Active/Emily/RISserver/RGC2Prey/selected_points_summary_{args.coord_adj_type}.mat'   #selected_points_summary.mat
@@ -810,6 +848,11 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
     all_id_numbers = np.array(all_id_numbers, dtype=int)  # Convert to int array
     all_paths_pred = np.array(all_paths_pred)
 
+    if include_bg_split_fields:
+        bg_file_unique, bg_file_inverse = np.unique(all_bg_file.astype(str), return_inverse=True)
+        all_bg_file_id = bg_file_inverse.astype(np.int32)
+        all_bg_file_count = np.bincount(all_bg_file_id, minlength=len(bg_file_unique)).astype(np.int32)
+
     test_losses = np.array(test_losses)
     training_losses = np.array(training_losses)
 
@@ -852,6 +895,10 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
                    'center_mse_mean': np.array([summary_cm_mse]),
                    'center_estimation_enabled': np.array([int(is_plot_centerFR)], dtype=np.uint8),
                    'center_is_independent_from_model': np.array([1], dtype=np.uint8)}
+    if include_bg_split_fields:
+        mat_payload['all_bg_file_id'] = all_bg_file_id
+        mat_payload['all_bg_file_unique'] = np.array(bg_file_unique, dtype=object)
+        mat_payload['all_bg_file_count'] = all_bg_file_count
     if reuse_section2_samples:
         mat_payload['analysis_indices'] = np.arange(all_paths.shape[0])
     else:

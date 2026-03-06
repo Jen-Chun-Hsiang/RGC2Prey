@@ -58,6 +58,15 @@ _cricket_location_prediction
 
 This `file_name` is reused by most output artifacts.
 
+Folder-name handling in `visual_preycapture_prediction.py`:
+
+- `test_ob_folder` and `test_bg_folder` are normalized before use:
+   - trim whitespace
+   - strip trailing `/` or `\\`
+   - use basename only
+- This prevents path-like inputs from breaking output file naming/saving.
+- Example: `black-bg`, `black-bg/`, and `/.../black-bg/` all resolve to `black-bg`.
+
 ---
 
 ## 3) Model evaluation pipeline (trained prediction)
@@ -189,6 +198,9 @@ Keys and meaning:
 - `all_paths_bg` : flattened background trajectories, shape `[N, 2T]`
 - `all_scaling_factors` : shape `[N, T]`
 - `all_bg_file` : object/string array of background image names
+- optional `all_bg_file_id` : int array shape `[N]`, per-sample numeric background index (emitted for `black-bg` runs)
+- optional `all_bg_file_unique` : object/string array shape `[K]`, unique background names in sorted order (emitted for `black-bg` runs)
+- optional `all_bg_file_count` : int array shape `[K]`, sample counts per unique background image (emitted for `black-bg` runs)
 - `all_id_numbers` : int array of cricket image ids
 - `all_paths_pred` : model predictions, typically shape `[N, 1, T, 2]` (or `[N, T, 2]` in some paths)
 - `all_path_cm` : flattened COM trajectories, shape `[N, 2T]` (`NaN` where invalid)
@@ -210,6 +222,16 @@ Use this file, and only compare on matched valid subset:
 3. Compare `model_mse_per_sample[mask]` vs `center_mse_per_sample[mask]`.
 
 This avoids accidental mismatch across different sections/loaders.
+
+### Background-specific split (e.g., `black-bg` with 2 images)
+
+Use numeric IDs from the same MAT file (when present):
+
+1. Read `all_bg_file_id` and `all_bg_file_unique`.
+2. For each background index `k`, define `bg_mask = (all_bg_file_id == k)`.
+3. For fair model-vs-COM comparison per background, use:
+   - `mask = bg_mask & (center_valid_mask==1)` for matched COM-valid subset.
+4. Report means and sample counts per background image label from `all_bg_file_unique{k+1}` (MATLAB 1-based display).
 
 ## 5.3 RGC-location check file (visualization run)
 
@@ -329,6 +351,9 @@ Then normalize field shapes explicitly (see template below).
 - `all_paths_pred`: may come as
   - `[N,1,T,2]` (common), or
   - `[N,T,2]`.
+- optional `all_bg_file_id`: sample-level integer labels aligned with `all_bg_file_unique`.
+- optional `all_bg_file_unique`: unique background names; use this to map IDs back to labels.
+- optional `all_bg_file_count`: number of samples for each background name in this file.
 
 For robust MATLAB analysis, do not assume one fixed rank for `all_paths_pred`.
 
@@ -420,7 +445,41 @@ else
 end
 ```
 
-### 9.6 MATLAB caveat: do not mix section metrics
+### 9.6 MATLAB template: split metrics by background image
+
+```matlab
+% Requires S loaded from *_prediction_error_with_path.mat
+
+model_mse = S.model_mse_per_sample(:);
+center_mse = S.center_mse_per_sample(:);
+center_valid = logical(S.center_valid_mask(:));
+
+if ~isfield(S,'all_bg_file_id') || ~isfield(S,'all_bg_file_unique')
+   error('Background split fields are not present in this MAT file.');
+end
+
+bg_id = S.all_bg_file_id(:) + 1; % Python 0-based -> MATLAB 1-based
+bg_names = S.all_bg_file_unique;
+
+for k = 1:max(bg_id)
+   bg_mask = (bg_id == k);
+   match_mask = bg_mask & center_valid & ~isnan(model_mse) & ~isnan(center_mse);
+
+   model_mean_k = mean(model_mse(match_mask));
+   center_mean_k = mean(center_mse(match_mask));
+   n_k = nnz(match_mask);
+
+   if iscell(bg_names)
+      name_k = string(bg_names{k});
+   else
+      name_k = string(bg_names(k,:));
+   end
+
+   fprintf('BG=%s | n=%d | model=%.6f | center=%.6f\n', name_k, n_k, model_mean_k, center_mean_k);
+end
+```
+
+### 9.7 MATLAB caveat: do not mix section metrics
 
 For fair model-vs-COM comparison in MATLAB, use only:
 
