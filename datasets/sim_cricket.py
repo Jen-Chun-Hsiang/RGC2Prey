@@ -1121,6 +1121,7 @@ class SynMovieGenerator:
         """
         self.bottom_img_folder = bottom_img_folder
         self.top_img_folder = top_img_folder
+        self.top_image_id_lookup = self._build_top_image_id_lookup(top_img_folder)
         self.crop_size = crop_size
         self.boundary_size = tuple(ast.literal_eval(boundary_size)) if isinstance(boundary_size, str) else boundary_size
         # print(f"boundary_size type: {type(boundary_size)}")
@@ -1166,6 +1167,19 @@ class SynMovieGenerator:
             start_scaling, end_scaling = min(start_scaling, end_scaling), max(start_scaling, end_scaling)
 
         return start_scaling, end_scaling
+
+    def _build_top_image_id_lookup(self, top_img_folder):
+        if top_img_folder is None or not os.path.isdir(top_img_folder):
+            return {}
+
+        png_files = sorted(
+            file_name for file_name in os.listdir(top_img_folder)
+            if os.path.isfile(os.path.join(top_img_folder, file_name)) and file_name.lower().endswith('.png')
+        )
+        return {
+            os.path.splitext(file_name)[0]: idx
+            for idx, file_name in enumerate(png_files)
+        }
     
     def _get_coord_dic(self, coord_mat_file):
         index_column_name = 'image_id'
@@ -1178,6 +1192,25 @@ class SynMovieGenerator:
         
         data_dict = df.set_index(index_column_name).to_dict(orient='index')
         return data_dict
+
+    def _resolve_image_id(self, top_img_path):
+        if top_img_path is None:
+            return None
+
+        try:
+            return get_image_number(top_img_path)
+        except ValueError:
+            if self.coord_dic is not None:
+                raise ValueError(
+                    f"Could not extract numeric image_id from object image filename: {top_img_path}. "
+                    "Numeric image IDs are required when coordinate correction is enabled."
+                )
+
+            file_stem = get_filename_without_extension(top_img_path)
+            if file_stem in self.top_image_id_lookup:
+                return int(self.top_image_id_lookup[file_stem])
+
+            return 0
 
     def generate(self):
         """
@@ -1246,7 +1279,7 @@ class SynMovieGenerator:
             )
         # Correct for the cricket head position
         bg_image_name = get_filename_without_extension(bottom_img_path)
-        image_id = get_image_number(top_img_path)
+        image_id = self._resolve_image_id(top_img_path)
         scaling_factors = np.array(scaling_factors) 
 
         if self.coord_dic is not None:

@@ -67,6 +67,14 @@ Folder-name handling in `visual_preycapture_prediction.py`:
 - This prevents path-like inputs from breaking output file naming/saving.
 - Example: `black-bg`, `black-bg/`, and `/.../black-bg/` all resolve to `black-bg`.
 
+Object-folder behavior:
+
+- If `--test_ob_folder` is omitted, the script still defaults to `cricket`.
+- If `--test_ob_folder white-spot` is used, saved filenames include `white-spot` in the same position where `cricket` normally appears.
+- For `cricket`, numeric object image IDs continue to be parsed from the filename exactly as before.
+- For single-image or non-numeric object folders such as `white-spot`, the code now assigns a stable saved object ID for MAT metadata when coordinate correction is not active.
+- If coordinate correction is active, numeric object IDs are still required and the code raises a clear error rather than silently using the wrong correction.
+
 ---
 
 ## 3) Model evaluation pipeline (trained prediction)
@@ -77,22 +85,27 @@ Inside `run_experiment(...)`:
    - Loads model weights and `args` from checkpoint via `CheckpointLoader`.
    - Applies compatibility defaults for missing legacy args.
 
-2. **Determine COM availability policy**
+2. **Normalize and validate image folders**
+   - `test_ob_folder` and `test_bg_folder` are normalized (trim, strip trailing slash, basename).
+   - The script validates that both object and background folders exist and contain at least one `.png` file.
+   - If validation fails, the run exits early with a clear error before evaluation starts.
+
+3. **Determine COM availability policy**
    - Starts with `is_plot_centerFR = not disable_center_of_mass`.
    - Then forcibly disables COM when:
      - `args.is_direct_image == True`
      - OR `args.is_both_ON_OFF == True`
      - OR `args.is_two_grids == True`
 
-3. **Rebuild encoding front-end**
+4. **Rebuild encoding front-end**
    - Recreates `RGCrfArray` and `Cricket2RGCs` using checkpoint args.
 
-4. **Section 1 test loss pass**
+5. **Section 1 test loss pass**
    - Builds `test_dataset` (`num_samples=1000`, `is_syn_mov_shown=False`).
    - Runs model in eval mode over `test_loader`.
    - Computes per-batch MSE loss and stores in `test_losses`.
 
-5. **Section 2 trajectory pass for analysis**
+6. **Section 2 trajectory pass for analysis**
    - Builds `analysis_dataset` (`num_samples=int(0.1 * 1000)=100`, `is_syn_mov_shown=True`).
    - For each sample, stores:
      - true path
@@ -102,7 +115,7 @@ Inside `run_experiment(...)`:
      - metadata (scaling factors, bg image name, image id)
    - Computes per-sample trajectory MSE for model and COM on this section.
 
-6. **Section 3 visualization/movie pass**
+7. **Section 3 visualization/movie pass**
    - Uses selected section-2 samples (`--visual_sample_ids`) when provided.
    - Otherwise generates fresh visualization samples.
    - Saves per-sample PNG plots and optional videos/frames.
@@ -176,6 +189,10 @@ Keys:
 
 - `test_losses` : `float`, shape `[num_batches]`
 - `training_losses` : `float`, shape `[num_train_epochs_saved]`
+- `test_object_folder` : string/object, selected object folder name
+- `test_background_folder` : string/object, selected background folder name
+- `num_object_png_files` : int scalar-ish array, number of object PNG files found in the object folder
+- `num_background_png_files` : int scalar-ish array, number of background PNG files found in the background folder
 
 Notes:
 
@@ -201,7 +218,7 @@ Keys and meaning:
 - optional `all_bg_file_id` : int array shape `[N]`, per-sample numeric background index (emitted for `black-bg` runs)
 - optional `all_bg_file_unique` : object/string array shape `[K]`, unique background names in sorted order (emitted for `black-bg` runs)
 - optional `all_bg_file_count` : int array shape `[K]`, sample counts per unique background image (emitted for `black-bg` runs)
-- `all_id_numbers` : int array of cricket image ids
+- `all_id_numbers` : int array of object image ids. For `cricket`, these are cricket image IDs. For `white-spot` or other non-numeric object folders, these are stable saved IDs for bookkeeping.
 - `all_paths_pred` : model predictions, typically shape `[N, 1, T, 2]` (or `[N, T, 2]` in some paths)
 - `all_path_cm` : flattened COM trajectories, shape `[N, 2T]` (`NaN` where invalid)
 - `model_mse_per_sample` : shape `[N]`, MSE over `(T,2)` per sample
@@ -211,6 +228,10 @@ Keys and meaning:
 - `center_mse_mean` : shape `[1]`, `nanmean(center_mse_per_sample)`
 - `center_estimation_enabled` : uint8 shape `[1]`, 1 if COM branch enabled in this run
 - `center_is_independent_from_model` : uint8 shape `[1]`, always 1
+- `test_object_folder` : string/object, selected object folder name
+- `test_background_folder` : string/object, selected background folder name
+- `num_object_png_files` : int scalar-ish array
+- `num_background_png_files` : int scalar-ish array
 - `analysis_indices` : `np.arange(N)`
 
 ### Recommended way to compare model vs COM
@@ -351,6 +372,8 @@ Then normalize field shapes explicitly (see template below).
 - `all_paths_pred`: may come as
   - `[N,1,T,2]` (common), or
   - `[N,T,2]`.
+- `test_object_folder`: object/string field indicating the evaluated object folder (`cricket`, `white-spot`, etc.).
+- `num_object_png_files`: scalar-ish integer array; this is useful for distinguishing standard multi-image `cricket` runs from single-image `white-spot` runs.
 - optional `all_bg_file_id`: sample-level integer labels aligned with `all_bg_file_unique`.
 - optional `all_bg_file_unique`: unique background names; use this to map IDs back to labels.
 - optional `all_bg_file_count`: number of samples for each background name in this file.
@@ -395,6 +418,38 @@ end
 fprintf('Model mean MSE: %.6f\n', model_mean);
 fprintf('Center mean MSE: %.6f\n', center_mean);
 fprintf('Valid COM samples: %d\n', n_valid);
+
+if isfield(S, 'test_object_folder')
+   disp(['Object folder: ', string(S.test_object_folder)]);
+end
+if isfield(S, 'num_object_png_files')
+   fprintf('Number of object PNG files: %d\n', double(S.num_object_png_files(1)));
+end
+```
+
+### 9.3.1 MATLAB check for `white-spot` vs `cricket`
+
+```matlab
+S = load(mat_file);
+
+obj_folder = "unknown";
+if isfield(S, 'test_object_folder')
+   obj_folder = string(S.test_object_folder);
+end
+
+num_obj = NaN;
+if isfield(S, 'num_object_png_files')
+   num_obj = double(S.num_object_png_files(1));
+end
+
+fprintf('Object folder = %s\n', obj_folder);
+fprintf('Object PNG count = %g\n', num_obj);
+
+if obj_folder == "white-spot"
+   disp('This file came from the white-spot condition.');
+elseif obj_folder == "cricket"
+   disp('This file came from the standard cricket condition.');
+end
 ```
 
 ### 9.4 Reconstructing `[N,T,2]` trajectories in MATLAB

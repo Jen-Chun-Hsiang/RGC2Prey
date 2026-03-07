@@ -319,6 +319,11 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
         f"{file_name}: object folder '{test_ob_folder}' has {len(top_png_files)} png files; "
         f"background folder '{test_bg_folder}' has {len(bg_png_files)} png files."
     )
+    if len(top_png_files) == 1:
+        logging.info(
+            f"{file_name}: single object image detected in '{test_ob_folder}'. "
+            "Saved outputs will keep the object-folder tag in filenames and use a stable object ID in MAT metadata."
+        )
     if len(bg_png_files) <= 2:
         logging.info(
             f"{file_name}: small background set detected in '{test_bg_folder}': {bg_png_files}. "
@@ -697,7 +702,14 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
     test_losses = np.array(test_losses)
     training_losses = np.array(training_losses)
     save_path = os.path.join(mat_save_folder, f'{file_name}_{epoch_number}_prediction_error.mat')
-    savemat(save_path, {'test_losses': test_losses, 'training_losses': training_losses})
+    savemat(save_path, {
+        'test_losses': test_losses,
+        'training_losses': training_losses,
+        'test_object_folder': test_ob_folder,
+        'test_background_folder': test_bg_folder,
+        'num_object_png_files': np.array([len(top_png_files)], dtype=np.int32),
+        'num_background_png_files': np.array([len(bg_png_files)], dtype=np.int32)
+    })
     
     # [Section 2] Create a small test dataset and loader for visualization and movie generation
     reuse_section2_samples = bool(visual_sample_ids and len(visual_sample_ids) > 0)
@@ -894,7 +906,11 @@ def run_experiment(experiment_name, noise_level=None, fix_disparity_degree=None,
                    'model_mse_mean': np.array([summary_model_mse]),
                    'center_mse_mean': np.array([summary_cm_mse]),
                    'center_estimation_enabled': np.array([int(is_plot_centerFR)], dtype=np.uint8),
-                   'center_is_independent_from_model': np.array([1], dtype=np.uint8)}
+                   'center_is_independent_from_model': np.array([1], dtype=np.uint8),
+                   'test_object_folder': test_ob_folder,
+                   'test_background_folder': test_bg_folder,
+                   'num_object_png_files': np.array([len(top_png_files)], dtype=np.int32),
+                   'num_background_png_files': np.array([len(bg_png_files)], dtype=np.int32)}
     if include_bg_split_fields:
         mat_payload['all_bg_file_id'] = all_bg_file_id
         mat_payload['all_bg_file_unique'] = np.array(bg_file_unique, dtype=object)
